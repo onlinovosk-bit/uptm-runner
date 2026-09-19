@@ -1,0 +1,35 @@
+# UPTM Runner Trust Model
+
+## Purpose
+
+Runner is a **control-plane** around UPTM. It exists because agent self-reports and
+local UPTM “integrity” checks have been shown insufficient (audits PR1–PR3 found
+CRITICAL coordinated DB+key+receipt forgery among other HIGH issues).
+
+## Harder to fool than agents
+
+| Claim | Mechanism |
+|------|-----------|
+| Agent PASS alone never gates | `runner.gates.evaluate_gate` requires probes, results, before/after digests |
+| Missing evidence fails closed | `evaluate_gate(None)` → FAIL |
+| Severity downgrade detected | `V-CRIT*` / `true_severity` / `hidden_as` heuristics |
+| Wave skip blocked | `RunnerFSM.assert_wave_unlocked` / unlocked set |
+| Patch spam limited | max 3 attempts/cluster → `HUMAN_REVIEW_REQUIRED` |
+| Live trading | constitution + baseline + evidence `const false` + stop conditions |
+
+## What Runner does **not** claim
+
+- **No immutability** for Runner state when it lives only on this local disk.
+  Evidence under `evidence/` can be edited by anyone with filesystem write access.
+- Runner does not replace an external WORM/HSM anchor for UPTM ledgers.
+- Cursor and Ruflo stubs are **not** integrations; they fail closed / report unavailable.
+
+## UPTM PR posture
+
+- PR #4 (`cursor/pr4-audit-trust-hardening-0444`) claims are **HYPOTHESIS**.
+- Runner **MUST NOT** merge PR #4 (or any UPTM PR). `auto_merge=false`, `pr4_merge_allowed=false`.
+- Prior audits through PR #3 remain the last **independently confirmed** vulnerability set until a fourth audit completes.
+
+## Live trading
+
+`live_trading=false` everywhere. Any enablement attempt is a stop condition.

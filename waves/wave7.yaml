@@ -1,0 +1,20 @@
+wave_id: 7
+name: exit_and_archive
+objective: "Exit contract: package evidence, refuse PR4 merge, produce upload-ready archive metadata."
+depends_on: [6]
+inputs:
+  - prompt-stacks/07_exit.md
+  - evidence/**
+outputs:
+  - evidence/wave7/exit_report.json
+ownership:
+  primary: runner
+  agents: []
+tests:
+  - test_exit_contract
+adversarial_tests:
+  - test_pr4_merge_forbidden
+exit_criteria:
+  - exit_report_written
+  - pr4_not_merged
+  - live_trading_still_false

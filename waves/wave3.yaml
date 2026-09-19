@@ -1,0 +1,22 @@
+wave_id: 3
+name: gate_and_evidence_hardening
+objective: "Prove gate fail-closed behavior: missing evidence, self-report-only, and probe-less packs cannot pass."
+depends_on: [2]
+inputs:
+  - schemas/evidence.schema.json
+  - constitution/rules.json
+outputs:
+  - evidence/wave3/gate_proof.json
+ownership:
+  primary: runner
+  agents: [cursor-gates]
+tests:
+  - test_gate_fail_closed_missing_evidence
+  - test_agent_pass_without_evidence_rejected
+adversarial_tests:
+  - test_forged_evidence_rejected
+  - test_critical_hidden_as_warning
+  - test_evidence_without_probes_rejected
+exit_criteria:
+  - all_gate_unit_tests_green
+  - adversarial_runner_tests_green

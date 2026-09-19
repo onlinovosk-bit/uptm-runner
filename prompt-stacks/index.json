@@ -1,0 +1,12 @@
+{
+  "stacks": [
+    {"id": "00", "file": "00_constitution.json", "name": "constitution"},
+    {"id": "01", "file": "01_discover.md", "name": "discover"},
+    {"id": "02", "file": "02_baseline.md", "name": "baseline"},
+    {"id": "03", "file": "03_plan.md", "name": "plan"},
+    {"id": "04", "file": "04_dispatch.md", "name": "dispatch"},
+    {"id": "05", "file": "05_verify.md", "name": "verify"},
+    {"id": "06", "file": "06_adversarial.md", "name": "adversarial"},
+    {"id": "07", "file": "07_exit.md", "name": "exit"}
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "evidence_id": "wave0-baseline-ack",
+  "wave_id": 0,
+  "commit_sha": "local-scaffold-0000000",
+  "branch": "scaffold/uptm-runner",
+  "pr": null,
+  "files": [
+    {
+      "path": "audits/baseline/wave0_baseline.json",
+      "sha256": "7340a05c7cd40a12400d1b1c96266eedc6f3254b6d9c0e544ef7466b9526570f"
+    }
+  ],
+  "commands": [
+    {
+      "cmd": "uptm-runner baseline",
+      "exit_code": 0
+    }
+  ],
+  "results": {
+    "passed": 1,
+    "failed": 0,
+    "findings": [
+      {
+        "id": "V-CRIT-LEDGER-TRIGGER-BYPASS",
+        "severity": "CRITICAL",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-CRIT-PNL-FABRICATION",
+        "severity": "CRITICAL",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-CRIT-HARDCODED-HMAC",
+        "severity": "CRITICAL",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-CRIT-COORDINATED-DB-KEY-RECEIPT",
+        "severity": "CRITICAL",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-HIGH-LOOKAHEAD",
+        "severity": "HIGH",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-HIGH-WALKFORWARD",
+        "severity": "HIGH",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-HIGH-LIFECYCLE-GATES",
+        "severity": "HIGH",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-HIGH-KELLY",
+        "severity": "HIGH",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-HIGH-EMPTY-LEDGER-ERASE",
+        "severity": "HIGH",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-HIGH-MARK-PNL-FORGERY",
+        "severity": "HIGH",
+        "status": "OPEN"
+      },
+      {
+        "id": "V-HIGH-ADVERSARIAL-COVERAGE-GAP",
+        "severity": "HIGH",
+        "status": "OPEN"
+      }
+    ]
+  },
+  "probes": [
+    {
+      "probe_id": "baseline_live_trading_false",
+      "outcome": "BLOCKED",
+      "output_digest": "live_trading_false"
+    }
+  ],
+  "before": {
+    "digest": "none",
+    "summary": "pre-baseline"
+  },
+  "after": {
+    "digest": "7340a05c7cd40a12400d1b1c96266eedc6f3254b6d9c0e544ef7466b9526570f",
+    "summary": "baseline locked"
+  },
+  "agent_claim": {
+    "verdict": "PASS",
+    "notes": "baseline loaded by runner (not agent-only)"
+  },
+  "live_trading": false,
+  "signature": null,
+  "baseline_id": "wave0-uptm-2026-09-19",
+  "pr4_merge_allowed": false
+}

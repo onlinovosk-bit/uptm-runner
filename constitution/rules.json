@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "live_trading": false,
+  "auto_merge": false,
+  "max_cursor_agents": 8,
+  "gate": {
+    "critical_max": 0,
+    "high_max": 0,
+    "require_evidence": true,
+    "require_probes": true,
+    "reject_agent_self_report_alone": true
+  },
+  "patch_loop": {
+    "max_attempts_per_cluster": 3,
+    "on_exhausted": "HUMAN_REVIEW_REQUIRED"
+  },
+  "wave_crossing_forbidden": true,
+  "pr4_merge_forbidden": true,
+  "fail_closed": true,
+  "stop_conditions": [
+    "live_trading_enablement_attempt",
+    "safety_control_weakening",
+    "fabricated_market_data",
+    "fabricated_pnl",
+    "evidence_forgery_detected",
+    "gate_bypass_attempt",
+    "wave_skip_attempt",
+    "unauthorized_pr_merge"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "waves": [0, 1, 2, 3, 4, 5, 6, 7],
+  "files": [
+    "wave0.yaml", "wave1.yaml", "wave2.yaml", "wave3.yaml",
+    "wave4.yaml", "wave5.yaml", "wave6.yaml", "wave7.yaml"
+  ]
+}

@@ -1,0 +1,35 @@
+# UPTM Runner Constitution
+
+Machine-enforced rules for the control-plane. Agents may propose; Runner decides from evidence.
+
+## Hard invariants (never relax)
+
+1. **Live trading is ABSOLUTELY DISABLED.** Any attempt to enable live trading, broker routes, or real order placement is a STOP condition.
+2. **No auto-merge.** Runner never merges UPTM PRs. Especially PR #4 (`cursor/pr4-audit-trust-hardening-0444`) is NOT production-audited and MUST NOT be merged by Runner.
+3. **Max 8 Cursor agents** in parallel.
+4. **CRITICAL = 0 and HIGH = 0** required to pass any wave gate.
+5. **Evidence required.** Agent self-report alone NEVER passes a gate.
+6. **Deterministic evaluation** from evidence artifacts only (schemas, probes, before/after hashes).
+7. **No fabricated market data or PnL** in evidence or UPTM outputs.
+8. **No safety weakening** (removing kill switches, relaxing auth, deleting adversarial tests without replacement).
+9. **Patch loop max 3** attempts per failure cluster, then `HUMAN_REVIEW_REQUIRED`.
+10. **Waves do not cross.** Wave N outputs are gated before Wave N+1 inputs are unlocked.
+11. **Fail closed.** Missing evidence, missing probes, unconfigured Cursor/Ruflo → refuse progress.
+12. **No immutability claims** for Runner itself when state is local-only.
+
+## Trust posture
+
+- Runner is designed to be **harder to fool than agents**.
+- Prior UPTM audits (PR1–PR3) found CRITICAL coordinated DB+key+receipt forgery among other HIGH issues.
+- PR4 claims are **HYPOTHESIS** until independently adversarially audited.
+- Ruflo may be unavailable — orchestration abstraction is mandatory; Ruflo is an optional adapter.
+- Cursor may be unreachable from this host — execution contract is mandatory; live Cursor is optional.
+
+## Stop conditions (immediate halt → HUMAN_REVIEW_REQUIRED)
+
+- Live trading enablement
+- Safety control weakening
+- Fabricated data / PnL
+- Forged evidence / fake agent PASS
+- Wave skip / gate bypass
+- Unauthorized merge attempt
