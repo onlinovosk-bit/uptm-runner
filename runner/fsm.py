@@ -199,6 +199,28 @@ def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
     baseline = load_baseline()
     out_dir = out_dir or (ROOT / "evidence" / "wave0")
     out_dir.mkdir(parents=True, exist_ok=True)
+    current_findings = [
+        {
+            "id": r["id"],
+            "severity": r["severity"],
+            "status": r["status"],
+            "owner": r.get("owner"),
+            "notes": r.get("notes") or r.get("rationale"),
+        }
+        for r in baseline.get("accepted_residuals", [])
+    ]
+    historical_findings = [
+        {
+            "id": f["id"],
+            "severity": f["severity"],
+            "status": "ARCHIVED_PRE_CLEAR",
+            "source": f.get("first_seen_audit"),
+            "notes": f.get("status_after_pr3_audit"),
+        }
+        for f in baseline.get("known_vulnerabilities", {}).get(
+            "from_audits_1_through_3", []
+        )
+    ]
     ack = {
         "evidence_id": "wave0-baseline-ack",
         "wave_id": 0,
@@ -217,31 +239,12 @@ def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
         "results": {
             "passed": 1,
             "failed": 0,
-            "findings": [
-                *[
-                    {
-                        "id": f["id"],
-                        "severity": f["severity"],
-                        "status": "OPEN"
-                        if "EXPLOITABLE" in f.get("status_after_pr3_audit", "")
-                        or f.get("status_after_pr3_audit") == "CONFIRMED_EXPLOITABLE"
-                        else "HYPOTHESIS"
-                        if "pr4_claim" in f
-                        else "OPEN",
-                    }
-                    for f in baseline.get("known_vulnerabilities", {}).get(
-                        "from_audits_1_through_3", []
-                    )
-                ],
-                *[
-                    {
-                        "id": r["id"],
-                        "severity": r["severity"],
-                        "status": r["status"],
-                    }
-                    for r in baseline.get("accepted_residuals", [])
-                ],
-            ],
+            "findings": current_findings,
+        },
+        "historical_findings_archive": {
+            "scope": "pre-clear UPTM audits 1-3",
+            "gate_counted": False,
+            "findings": historical_findings,
         },
         "probes": [
             {
@@ -271,8 +274,6 @@ def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
         ),
         "current_wave_assessment": baseline.get("current_wave_assessment", {}),
     }
-    # Note: findings will include CRITICAL/HIGH OPEN — wave0 gate for "ack" is special;
-    # baseline wave records them; gate for progressing past remediation waves must clear them.
     path = out_dir / "baseline_ack.json"
     path.write_text(json.dumps(ack, indent=2), encoding="utf-8")
     return {"path": str(path), "baseline_id": baseline.get("baseline_id"), "live_trading": False}

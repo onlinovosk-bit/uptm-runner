@@ -1,7 +1,7 @@
 wave_id: 2
 name: trust_model_alignment
 objective: "Align Runner trust model with UPTM audit findings; document that local-only state is not immutable."
-tip_assessment: "DONE_ON_TIP_PENDING_MAIN_MERGE"
+tip_assessment: "DONE_ON_MAIN_AFTER_PR17"
 depends_on: [1]
 inputs:
   - evidence/wave1/discovery.json

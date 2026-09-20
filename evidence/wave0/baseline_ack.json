@@ -7,7 +7,7 @@
   "files": [
     {
       "path": "audits/baseline/wave0_baseline.json",
-      "sha256": "55840f8b51c2c4c6147092b348bd00705d0d2fc90e2f86b0fe1e85967f772710"
+      "sha256": "d84c9643f6b6aeb17742e63526659c04538757fa322e1b0e3ff07be9e47b3f0f"
     }
   ],
   "commands": [
@@ -21,69 +21,101 @@
     "failed": 0,
     "findings": [
       {
-        "id": "V-CRIT-LEDGER-TRIGGER-BYPASS",
-        "severity": "CRITICAL",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-CRIT-PNL-FABRICATION",
-        "severity": "CRITICAL",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-CRIT-HARDCODED-HMAC",
-        "severity": "CRITICAL",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-CRIT-COORDINATED-DB-KEY-RECEIPT",
-        "severity": "CRITICAL",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-HIGH-LOOKAHEAD",
-        "severity": "HIGH",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-HIGH-WALKFORWARD",
-        "severity": "HIGH",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-HIGH-LIFECYCLE-GATES",
-        "severity": "HIGH",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-HIGH-KELLY",
-        "severity": "HIGH",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-HIGH-EMPTY-LEDGER-ERASE",
-        "severity": "HIGH",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-HIGH-MARK-PNL-FORGERY",
-        "severity": "HIGH",
-        "status": "OPEN"
-      },
-      {
-        "id": "V-HIGH-ADVERSARIAL-COVERAGE-GAP",
-        "severity": "HIGH",
-        "status": "OPEN"
-      },
-      {
         "id": "R-MED-PLAINTEXT-PRIVATE-KEY-SIDECAR",
         "severity": "MEDIUM",
-        "status": "ACCEPT_RESIDUAL"
+        "status": "ACCEPT_RESIDUAL",
+        "owner": "deployment-key-custody-owner",
+        "notes": "Accepted as residual medium/low risk after audit #16; mitigate operationally by protecting the sidecar and deployment host."
       },
       {
         "id": "R-LOW-SIZINGPROPOSAL-MONKEYPATCH-BEFORE-PROPOSE",
         "severity": "LOW",
-        "status": "ACCEPT_RESIDUAL"
+        "status": "ACCEPT_RESIDUAL",
+        "owner": "strategy-risk-engine-owner",
+        "notes": "Accepted as residual low risk after audit #16; monitor strategy/risk code review boundaries before proposal generation."
+      }
+    ]
+  },
+  "historical_findings_archive": {
+    "scope": "pre-clear UPTM audits 1-3",
+    "gate_counted": false,
+    "findings": [
+      {
+        "id": "V-CRIT-LEDGER-TRIGGER-BYPASS",
+        "severity": "CRITICAL",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 1,
+        "notes": "STILL_EXPLOITABLE_VIA_COORDINATED_FORGERY"
+      },
+      {
+        "id": "V-CRIT-PNL-FABRICATION",
+        "severity": "CRITICAL",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 1,
+        "notes": "STILL_EXPLOITABLE_VIA_MARKS_AND_COORDINATED_FORGERY"
+      },
+      {
+        "id": "V-CRIT-HARDCODED-HMAC",
+        "severity": "CRITICAL",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 2,
+        "notes": "PARTIALLY_ADDRESSED_BUT_KEY_COLOCATED"
+      },
+      {
+        "id": "V-CRIT-COORDINATED-DB-KEY-RECEIPT",
+        "severity": "CRITICAL",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 3,
+        "notes": "CONFIRMED_EXPLOITABLE"
+      },
+      {
+        "id": "V-HIGH-LOOKAHEAD",
+        "severity": "HIGH",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 1,
+        "notes": "PARTIAL_FIX_GLOBAL_LEAK_REMAINS"
+      },
+      {
+        "id": "V-HIGH-WALKFORWARD",
+        "severity": "HIGH",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 1,
+        "notes": "PARTIAL_FIX_GLOBAL_LEAK_REMAINS"
+      },
+      {
+        "id": "V-HIGH-LIFECYCLE-GATES",
+        "severity": "HIGH",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 1,
+        "notes": "GLOBAL_STATE_BYPASS_REMAINS"
+      },
+      {
+        "id": "V-HIGH-KELLY",
+        "severity": "HIGH",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 1,
+        "notes": "MOSTLY_FIXED_IN_PR3_CLAIMS"
+      },
+      {
+        "id": "V-HIGH-EMPTY-LEDGER-ERASE",
+        "severity": "HIGH",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 3,
+        "notes": "CONFIRMED_EXPLOITABLE"
+      },
+      {
+        "id": "V-HIGH-MARK-PNL-FORGERY",
+        "severity": "HIGH",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 3,
+        "notes": "CONFIRMED_EXPLOITABLE"
+      },
+      {
+        "id": "V-HIGH-ADVERSARIAL-COVERAGE-GAP",
+        "severity": "HIGH",
+        "status": "ARCHIVED_PRE_CLEAR",
+        "source": 1,
+        "notes": "INCOMPLETE"
       }
     ]
   },
@@ -99,7 +131,7 @@
     "summary": "pre-baseline"
   },
   "after": {
-    "digest": "55840f8b51c2c4c6147092b348bd00705d0d2fc90e2f86b0fe1e85967f772710",
+    "digest": "d84c9643f6b6aeb17742e63526659c04538757fa322e1b0e3ff07be9e47b3f0f",
     "summary": "baseline locked"
   },
   "agent_claim": {
@@ -119,6 +151,8 @@
       "status": "ACCEPT_RESIDUAL",
       "source": "audit-pr16",
       "description": "Plaintext risk remains if a colocated private-key sidecar is stolen.",
+      "owner": "deployment-key-custody-owner",
+      "notes": "Accepted as residual medium/low risk after audit #16; mitigate operationally by protecting the sidecar and deployment host.",
       "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
     },
     {
@@ -127,6 +161,8 @@
       "status": "ACCEPT_RESIDUAL",
       "source": "audit-pr16",
       "description": "SizingProposal can be monkeypatched before propose.",
+      "owner": "strategy-risk-engine-owner",
+      "notes": "Accepted as residual low risk after audit #16; monitor strategy/risk code review boundaries before proposal generation.",
       "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
     }
   ],
@@ -140,11 +176,11 @@
   ],
   "current_wave_assessment": {
     "wave0": "DONE",
-    "wave1": "DONE_ON_TIP_PENDING_MAIN_MERGE",
-    "wave2": "DONE_ON_TIP_PENDING_MAIN_MERGE",
-    "wave3": "DONE_ON_TIP_PENDING_MAIN_MERGE",
-    "wave4": "PARTIAL_DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave1": "DONE_ON_MAIN_AFTER_PR17",
+    "wave2": "DONE_ON_MAIN_AFTER_PR17",
+    "wave3": "DONE_ON_MAIN_AFTER_PR17",
+    "wave4": "PARTIAL_DONE_ON_MAIN_AFTER_PR17",
     "wave5_plus": "NEXT_AFTER_CONSOLIDATE",
-    "summary": "Trust/risk hardening spiral is complete at CLEAR. Temporal/strategy/execution work for Waves 1-4 is already largely addressed in UPTM tip and remains pending main merge/consolidation. Wave 5+ follows after consolidate."
+    "summary": "Trust/risk hardening spiral is complete at CLEAR on main after consolidation PR #17. Temporal/strategy/execution work for Waves 1-4 is addressed to the audit #16 CLEAR_FOR_MEDIUM_LOW_ONLY bar. Wave 5+ follows after consolidate."
   }
 }

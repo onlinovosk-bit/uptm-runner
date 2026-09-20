@@ -9,11 +9,13 @@
   "max_cursor_agents": 8,
   "uptm_tip": {
     "pr": 16,
+    "consolidation_pr": 17,
     "audit_id": "audit-pr16",
     "status": "CLEAR_FOR_MEDIUM_LOW_ONLY",
+    "merged_to_main": true,
     "production_ready": false,
     "merge_allowed_by_runner": false,
-    "summary": "UPTM tip PR #16 is CLEAR for MEDIUM/LOW only. Runner records the audit result but still must not auto-merge UPTM without machine gate evidence."
+    "summary": "UPTM tip is on main after consolidation PR #17 and audit #16. It is CLEAR for MEDIUM/LOW only, with no current CRITICAL/HIGH findings under the documented trust model; runner still does not auto-merge UPTM PRs."
   },
   "pr4_production_ready": false,
   "pr4_merge_allowed": false,
@@ -74,6 +76,8 @@
     }
   ],
   "known_vulnerabilities": {
+    "scope": "historical archive only; pre-CLEAR audits 1-3 are not current gate findings after consolidation PR #17 / audit #16",
+    "gate_counted": false,
     "from_audits_1_through_3": [
       {
         "id": "V-CRIT-LEDGER-TRIGGER-BYPASS",
@@ -162,6 +166,12 @@
       "notes": "LiveExecutionAdapter always raises; config rejects live_trading=true. Runner enforces live_trading=false as hard stop."
     }
   },
+  "current_findings": {
+    "scope": "consolidated main tip after PR #17 and audit #16",
+    "critical": 0,
+    "high": 0,
+    "notes": "CRITICAL/HIGH findings from audits 1-3 are retained in known_vulnerabilities as historical archive only; current gate findings are the accepted MEDIUM/LOW residuals below."
+  },
   "accepted_residuals": [
     {
       "id": "R-MED-PLAINTEXT-PRIVATE-KEY-SIDECAR",
@@ -169,6 +179,8 @@
       "status": "ACCEPT_RESIDUAL",
       "source": "audit-pr16",
       "description": "Plaintext risk remains if a colocated private-key sidecar is stolen.",
+      "owner": "deployment-key-custody-owner",
+      "notes": "Accepted as residual medium/low risk after audit #16; mitigate operationally by protecting the sidecar and deployment host.",
       "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
     },
     {
@@ -177,17 +189,19 @@
       "status": "ACCEPT_RESIDUAL",
       "source": "audit-pr16",
       "description": "SizingProposal can be monkeypatched before propose.",
+      "owner": "strategy-risk-engine-owner",
+      "notes": "Accepted as residual low risk after audit #16; monitor strategy/risk code review boundaries before proposal generation.",
       "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
     }
   ],
   "current_wave_assessment": {
     "wave0": "DONE",
-    "wave1": "DONE_ON_TIP_PENDING_MAIN_MERGE",
-    "wave2": "DONE_ON_TIP_PENDING_MAIN_MERGE",
-    "wave3": "DONE_ON_TIP_PENDING_MAIN_MERGE",
-    "wave4": "PARTIAL_DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave1": "DONE_ON_MAIN_AFTER_PR17",
+    "wave2": "DONE_ON_MAIN_AFTER_PR17",
+    "wave3": "DONE_ON_MAIN_AFTER_PR17",
+    "wave4": "PARTIAL_DONE_ON_MAIN_AFTER_PR17",
     "wave5_plus": "NEXT_AFTER_CONSOLIDATE",
-    "summary": "Trust/risk hardening spiral is complete at CLEAR. Temporal/strategy/execution work for Waves 1-4 is already largely addressed in UPTM tip and remains pending main merge/consolidation. Wave 5+ follows after consolidate."
+    "summary": "Trust/risk hardening spiral is complete at CLEAR on main after consolidation PR #17. Temporal/strategy/execution work for Waves 1-4 is addressed to the audit #16 CLEAR_FOR_MEDIUM_LOW_ONLY bar. Wave 5+ follows after consolidate."
   },
   "runner_invariants": {
     "critical_findings_allowed": 0,
