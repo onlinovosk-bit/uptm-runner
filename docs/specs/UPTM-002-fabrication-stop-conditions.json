@@ -1,0 +1,322 @@
+{
+  "schema_version": "1.0.0",
+  "spec_id": "UPTM-002",
+  "spec": "docs/specs/UPTM-002-fabrication-stop-conditions.md",
+  "status": "PREREGISTERED",
+  "detector_exists": false,
+  "stop_conditions": [
+    "fabricated_market_data",
+    "fabricated_pnl"
+  ],
+  "claim_boundary": "The detector never reports proven forgery. It reports that a required property of verifiability or consistency does not hold.",
+  "verdicts": [
+    "PASS",
+    "FAIL",
+    "UNKNOWN"
+  ],
+  "verdict_semantics": {
+    "PASS": "property holds",
+    "FAIL": "property violated; stop condition raised",
+    "UNKNOWN": "preregistered parameter absent; DENY per GOVERNANCE.md C1; no stop condition raised"
+  },
+  "gate_passes_only_if": "every check returns PASS",
+  "missing_parameter_verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "MD-P1",
+      "layer": "PROVENANCE",
+      "stop_condition": "fabricated_market_data",
+      "required_params": [
+        "source_id",
+        "acquired_at_utc",
+        "content_digest",
+        "coverage"
+      ]
+    },
+    {
+      "id": "MD-I1",
+      "layer": "INTEGRITY",
+      "stop_condition": "fabricated_market_data",
+      "required_params": [
+        "content_digest"
+      ]
+    },
+    {
+      "id": "MD-I2",
+      "layer": "INTEGRITY",
+      "stop_condition": "fabricated_market_data",
+      "required_params": [
+        "snapshot_ref"
+      ]
+    },
+    {
+      "id": "MD-I3",
+      "layer": "INTEGRITY",
+      "stop_condition": "fabricated_market_data",
+      "required_params": [
+        "coverage",
+        "computation_interval"
+      ]
+    },
+    {
+      "id": "MD-I4",
+      "layer": "INTEGRITY",
+      "stop_condition": "fabricated_market_data",
+      "required_params": []
+    },
+    {
+      "id": "MD-I5",
+      "layer": "INTEGRITY",
+      "stop_condition": "fabricated_market_data",
+      "required_params": [
+        "min_expected_variance",
+        "variance_window"
+      ]
+    },
+    {
+      "id": "MD-I6",
+      "layer": "INTEGRITY",
+      "stop_condition": "fabricated_market_data",
+      "required_params": [
+        "calendar_id"
+      ]
+    },
+    {
+      "id": "MD-I7",
+      "layer": "INTEGRITY",
+      "stop_condition": "fabricated_market_data",
+      "required_params": [
+        "duplicate_block_min_len",
+        "allows_repeated_bars"
+      ]
+    },
+    {
+      "id": "PL-A1",
+      "layer": "ACCOUNTING",
+      "stop_condition": "fabricated_pnl",
+      "required_params": [
+        "pnl_tolerance"
+      ]
+    },
+    {
+      "id": "PL-A2",
+      "layer": "ACCOUNTING",
+      "stop_condition": "fabricated_pnl",
+      "required_params": []
+    },
+    {
+      "id": "PL-A3",
+      "layer": "ACCOUNTING",
+      "stop_condition": "fabricated_pnl",
+      "required_params": [
+        "quantity_convention"
+      ]
+    },
+    {
+      "id": "PL-M1",
+      "layer": "MODEL_CONSISTENCY",
+      "stop_condition": "fabricated_pnl",
+      "required_params": [
+        "accounting_boundary"
+      ]
+    },
+    {
+      "id": "PL-M2",
+      "layer": "MODEL_CONSISTENCY",
+      "stop_condition": "fabricated_pnl",
+      "required_params": [
+        "execution_model"
+      ]
+    }
+  ],
+  "acceptance_cases": {
+    "must_fail": [
+      {
+        "id": "MUT-01",
+        "check": "MD-I4",
+        "mutation": "one bar high lowered below close"
+      },
+      {
+        "id": "MUT-02",
+        "check": "MD-I1",
+        "mutation": "one byte changed in snapshot, digest unchanged"
+      },
+      {
+        "id": "MUT-03",
+        "check": "MD-I2",
+        "mutation": "referenced snapshot path absent"
+      },
+      {
+        "id": "MUT-04",
+        "check": "MD-I3",
+        "mutation": "coverage truncated below computation interval"
+      },
+      {
+        "id": "MUT-05",
+        "check": "MD-I6",
+        "mutation": "bar on a date the declared calendar marks closed"
+      },
+      {
+        "id": "MUT-06",
+        "check": "MD-I7",
+        "mutation": "20-bar block copied to later offset, allows_repeated_bars false"
+      },
+      {
+        "id": "MUT-07",
+        "check": "MD-I5",
+        "mutation": "flat series below declared min_expected_variance"
+      },
+      {
+        "id": "MUT-08",
+        "check": "PL-A1",
+        "mutation": "reported_pnl shifted beyond declared tolerance"
+      },
+      {
+        "id": "MUT-09",
+        "check": "PL-A2",
+        "mutation": "fill whose order_id matches no gated order"
+      },
+      {
+        "id": "MUT-10",
+        "check": "PL-A3",
+        "mutation": "position_after altered by one unit"
+      },
+      {
+        "id": "MUT-11",
+        "check": "PL-M1",
+        "mutation": "realized PnL non-zero with empty fill ledger"
+      },
+      {
+        "id": "MUT-12",
+        "check": "PL-M2",
+        "mutation": "declared fee schedule, ledger records zero fees"
+      }
+    ],
+    "must_unknown": [
+      {
+        "id": "MUT-13",
+        "check": "MD-P1",
+        "missing_param": "content_digest"
+      },
+      {
+        "id": "MUT-14",
+        "check": "MD-I5",
+        "missing_param": "min_expected_variance"
+      },
+      {
+        "id": "MUT-15",
+        "check": "MD-I6",
+        "missing_param": "calendar_id"
+      },
+      {
+        "id": "MUT-16",
+        "check": "MD-I7",
+        "missing_param": "duplicate_block_min_len"
+      },
+      {
+        "id": "MUT-17",
+        "check": "PL-A1",
+        "missing_param": "pnl_tolerance"
+      },
+      {
+        "id": "MUT-18",
+        "check": "PL-M1",
+        "missing_param": "accounting_boundary"
+      },
+      {
+        "id": "MUT-19",
+        "check": "PL-A3",
+        "missing_param": "quantity_convention"
+      },
+      {
+        "id": "MUT-20",
+        "check": "PL-M2",
+        "missing_param": "execution_model"
+      },
+      {
+        "id": "MUT-21",
+        "check": "MD-P1",
+        "missing_param": "source_id"
+      },
+      {
+        "id": "MUT-22",
+        "check": "MD-P1",
+        "missing_param": "acquired_at_utc"
+      },
+      {
+        "id": "MUT-23",
+        "check": "MD-P1",
+        "missing_param": "coverage"
+      },
+      {
+        "id": "MUT-24",
+        "check": "MD-I2",
+        "missing_param": "snapshot_ref"
+      },
+      {
+        "id": "MUT-25",
+        "check": "MD-I3",
+        "missing_param": "computation_interval"
+      },
+      {
+        "id": "MUT-26",
+        "check": "MD-I5",
+        "missing_param": "variance_window"
+      },
+      {
+        "id": "MUT-27",
+        "check": "MD-I7",
+        "missing_param": "allows_repeated_bars"
+      },
+      {
+        "id": "MUT-28",
+        "check": "MD-I1",
+        "missing_param": "content_digest"
+      },
+      {
+        "id": "MUT-29",
+        "check": "MD-I3",
+        "missing_param": "coverage"
+      }
+    ],
+    "must_pass": [
+      {
+        "id": "NEG-01",
+        "check": "MD-I5",
+        "case": "flat series with min_expected_variance 0 declared"
+      },
+      {
+        "id": "NEG-02",
+        "check": "PL-M2",
+        "case": "zero fees and slippage under a declared frictionless simulation"
+      },
+      {
+        "id": "NEG-03",
+        "check": "PL-M1",
+        "case": "unrealized PnL change with zero fills, non-zero opening position, reconciles with marks"
+      },
+      {
+        "id": "NEG-04",
+        "check": "MD-I7",
+        "case": "repeated identical bars with allows_repeated_bars true"
+      },
+      {
+        "id": "NEG-05",
+        "check": "MD-I6",
+        "case": "gap over a declared market holiday"
+      }
+    ]
+  },
+  "target_capability": "PARTIAL",
+  "upgrade_to_enforced_requires": [
+    "source_authenticated_provenance",
+    "external_append_only_anchor"
+  ],
+  "upgrade_by_green_tests_forbidden": true,
+  "declared_limits": [
+    "A fully consistent forged snapshot with a matching fill ledger and matching marks.",
+    "A compromised or dishonest upstream data source.",
+    "Genuine historical data replayed as a different period, calendar-consistent with the claimed one.",
+    "Fabrication upstream of the snapshot; this checks the snapshot, not the world."
+  ]
+}
