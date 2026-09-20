@@ -166,8 +166,8 @@ CC/P9 asks us to make visible. It is now visible.
 
 | CC | Status | Basis |
 |---|---|---|
-| P5 Independence of verification | **ENFORCED** | `gates.py` rejects agent PASS without probes/results/before-after digests; detects severity downgrade |
-| P11 Uncertainty halts | **ENFORCED** | `fail_closed: true`; missing/unloadable evidence → FAIL; `HUMAN_REVIEW_REQUIRED` state |
+| P5 Independence of verification | **PARTIAL** | `gates.py` rejects agent PASS without probes/results/before-after digests and detects severity downgrade — but `agent_claim` (verdict + free-text notes) is a *required* field of the evidence schema, so any verifier reading an evidence pack also reads the producer's conclusion. Harmless for a deterministic verifier; exactly what P5 forbids for an agent verifier. |
+| P11 Uncertainty halts | **PARTIAL** | `fail_closed: true`; missing/unloadable evidence → FAIL; `HUMAN_REVIEW_REQUIRED` state. Covers the **evidence** dimension only — P11 also binds orders, positions, accounts, execution and data, for which no runtime exists yet. Unenforced, not satisfied. |
 | P4 Preregistered gates | **PARTIAL** | `exit_criteria` fixed in wave YAML before execution; no rule forbidding post-hoc amendment |
 | P9 No progress illusion | **PARTIAL** | capability-style gating exists; no readiness board; no DECLARATIVE≠PASS rule |
 | P6 No self-expansion | **WEAK** | "no safety weakening" is declarative; does not cover redefinition of limit inputs |
@@ -284,6 +284,32 @@ Additional principle adopted with decision 4 and recorded in `GOVERNANCE.md` §2
 
 No wave, gate, FSM state, stop condition or control-plane rule was modified. `rules.json`
 is byte-identical; a test asserts `live_trading` is still `false`.
+
+## 10a. Self-review correction (producer's own pass)
+
+This ADR's author is also the author of the diff, so this pass is **not** independent
+verification under P5. It is recorded because it changed two claims.
+
+The governance tests were checked by mutation rather than by reading: each property was
+deliberately violated and the suite re-run. All seven mutations were caught by the
+intended test — a governance document removed from `binds`, an `ENFORCED` claim with no
+mechanism, `UNKNOWN` resolving to `ALLOW`, `live_trading` flipped to `true`, a dropped
+LIVE condition, the lease permitted to substitute for the control-plane flag, and
+pre-existing capabilities relabelled `PASS`.
+
+Two enforcement claims in §4.2 were then found overstated **by their own author** and
+downgraded:
+
+- **P5 → PARTIAL.** `agent_claim` is a required field of the evidence schema, so the
+  producer's conclusion travels inside every evidence pack. A deterministic verifier
+  cannot be swayed by it; an agent verifier would read exactly what P5 forbids.
+- **P11 → PARTIAL.** Fail-closed is real for evidence and only for evidence. The order,
+  position, account, execution and data dimensions of P11 have no runtime to enforce
+  against, and absence of a subject is not compliance.
+
+Resulting board: **0 ENFORCED · 7 PARTIAL · 2 DECLARATIVE · 5 MISSING.** Nothing in this
+system is yet fully enforced against the Capital Capability Constitution, and the board
+now says so.
 
 ## 11. Open, deliberately not addressed here
 
