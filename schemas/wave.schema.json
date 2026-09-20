@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://uptm-runner.local/schemas/wave.schema.json",
+  "title": "UPTMRunnerWave",
+  "type": "object",
+  "required": [
+    "wave_id",
+    "name",
+    "objective",
+    "inputs",
+    "outputs",
+    "ownership",
+    "tests",
+    "adversarial_tests",
+    "exit_criteria"
+  ],
+  "properties": {
+    "wave_id": { "type": "integer", "minimum": 0, "maximum": 7 },
+    "name": { "type": "string" },
+    "objective": { "type": "string" },
+    "inputs": { "type": "array", "items": { "type": "string" } },
+    "outputs": { "type": "array", "items": { "type": "string" } },
+    "ownership": { "type": "object" },
+    "tests": { "type": "array", "items": { "type": "string" } },
+    "adversarial_tests": { "type": "array", "items": { "type": "string" } },
+    "exit_criteria": { "type": "array", "items": { "type": "string" } },
+    "depends_on": { "type": "array", "items": { "type": "integer" } }
+  }
+}

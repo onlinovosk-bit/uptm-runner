@@ -1,0 +1,17 @@
+{
+  "stack_id": "00",
+  "name": "constitution",
+  "role": "Immutable control-plane rules binding all subsequent stacks",
+  "binds": ["constitution/CONSTITUTION.md", "constitution/rules.json"],
+  "must_enforce": [
+    "live_trading=false",
+    "no_auto_merge",
+    "CRITICAL=0 HIGH=0",
+    "evidence_required",
+    "agent_self_report_never_sufficient",
+    "fail_closed",
+    "pr4_not_mergeable"
+  ],
+  "outputs": ["constitution_ack"],
+  "contract": "Any agent or adapter that cannot acknowledge these rules is refused."
+}

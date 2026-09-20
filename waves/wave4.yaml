@@ -1,0 +1,20 @@
+wave_id: 4
+name: cursor_contract
+objective: "Finalize Cursor execution contract + fail-closed stub; document handoff when Cursor unreachable."
+tip_assessment: "PARTIAL_DONE_ON_MAIN_AFTER_PR17"
+depends_on: [3]
+inputs:
+  - cursor/contract.py
+  - prompt-stacks/04_dispatch.md
+outputs:
+  - evidence/wave4/cursor_contract_ack.json
+ownership:
+  primary: runner
+  agents: []
+tests:
+  - test_cursor_stub_fails_closed
+adversarial_tests:
+  - test_fake_cursor_success_without_config_rejected
+exit_criteria:
+  - unconfigured_cursor_raises
+  - handoff_docs_present

@@ -1,0 +1,24 @@
+wave_id: 0
+name: baseline_lock
+objective: "Lock machine-readable Wave 0 baseline from known UPTM PR/audit history; confirm live_trading=false; forbid PR4 merge."
+depends_on: []
+inputs:
+  - audits/baseline/wave0_baseline.json
+  - audits/uptm/*
+  - constitution/rules.json
+outputs:
+  - evidence/wave0/baseline_ack.json
+ownership:
+  primary: runner
+  agents: []
+tests:
+  - test_baseline_loads
+  - test_live_trading_false_in_baseline
+adversarial_tests:
+  - test_reject_baseline_with_live_trading_true
+  - test_reject_pr4_as_production_ready
+exit_criteria:
+  - baseline_json_valid
+  - live_trading_is_false
+  - pr4_merge_allowed_is_false
+  - known_vulns_from_audits_1_3_recorded

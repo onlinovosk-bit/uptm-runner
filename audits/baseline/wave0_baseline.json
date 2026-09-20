@@ -1,0 +1,235 @@
+{
+  "schema_version": "1.0.0",
+  "baseline_id": "wave0-uptm-2026-09-19",
+  "created_at": "2026-09-19T22:37:00+02:00",
+  "target_repo": "onlinovosk-bit/onlinovosk-bit-uptm",
+  "runner_repo": "onlinovosk-bit/uptm-runner",
+  "live_trading": false,
+  "auto_merge": false,
+  "max_cursor_agents": 8,
+  "uptm_tip": {
+    "pr": 16,
+    "consolidation_pr": 17,
+    "audit_id": "audit-pr16",
+    "status": "CLEAR_FOR_MEDIUM_LOW_ONLY",
+    "merged_to_main": true,
+    "production_ready": false,
+    "merge_allowed_by_runner": false,
+    "summary": "UPTM tip is on main after consolidation PR #17 and audit #16. It is CLEAR for MEDIUM/LOW only, with no current CRITICAL/HIGH findings under the documented trust model; runner still does not auto-merge UPTM PRs."
+  },
+  "pr4_production_ready": false,
+  "pr4_merge_allowed": false,
+  "notes": "Wave 0 machine-readable baseline reconciled through UPTM tip PR #16 / audit #16. live_trading=false. Runner MUST NOT auto-merge any UPTM PR without the machine gate: CRITICAL=0, HIGH=0, tests pass, adversarial tests pass, CI passes, invariants hold.",
+  "pr_history": [
+    {
+      "pr": 1,
+      "branch": "cursor/uptm-bootstrap-838f",
+      "status": "audited",
+      "audit_id": "audit-pr1",
+      "production_ready": false,
+      "summary": "Bootstrap scaffold. Multiple CRITICAL/HIGH findings on ledger, PnL fabrication, look-ahead, walk-forward, Kelly, lifecycle gates."
+    },
+    {
+      "pr": 2,
+      "branch": "cursor/pr2-audit-hardening (inferred)",
+      "status": "audited",
+      "audit_id": "audit-pr2",
+      "production_ready": false,
+      "summary": "Hardening attempt. CRITICAL ledger rewrite and forged-fill HMAC still exploitable; HIGH chronology/lifecycle/Kelly gaps remain. Paper/live isolation FIXED."
+    },
+    {
+      "pr": 3,
+      "branch": "cursor/pr3-audit-hardening-fc09",
+      "status": "audited_exploitable",
+      "audit_id": "audit-pr3",
+      "implementation_report": "pr3-implementation-report",
+      "production_ready": false,
+      "summary": "Claimed fixes for PR2 vulns. Independent audit #3 found CRITICAL coordinated DB+key+receipt forgery still succeeds; HIGH empty-ledger erase, mark PnL forgery, global artifact mutation, WF future leak."
+    },
+    {
+      "pr": 4,
+      "branch": "cursor/pr4-audit-trust-hardening-0444",
+      "status": "claims_unverified",
+      "audit_id": null,
+      "implementation_report": "pr4-implementation-report",
+      "production_ready": false,
+      "merge_allowed": false,
+      "summary": "Latest hardening attempt. Claims external monotonic trust anchor, mark hardening, strategy freeze, Kelly digests. NOT audited as production. Runner MUST treat all PR4 claims as HYPOTHESIS.",
+      "claims_as_hypothesis": [
+        "External monotonic trust anchor binds event/mark counts and key fingerprint",
+        "Empty-ledger erase/reset blocked",
+        "Market marks append-only + HMAC + hash-chained",
+        "Only frozen built-in strategies allowed on safety paths",
+        "Kelly proposal integrity digest + replay prevention",
+        "33 pytest passed (self-reported by implementer)",
+        "Prior exploit probes BLOCKED (self-reported)"
+      ]
+    },
+    {
+      "pr": 16,
+      "branch": "UPTM tip",
+      "status": "audited_clear_medium_low_only",
+      "audit_id": "audit-pr16",
+      "production_ready": false,
+      "merge_allowed": false,
+      "summary": "Audit #16 records UPTM tip PR #16 as CLEAR FOR MEDIUM/LOW ONLY. Residual medium/low risks are accepted explicitly; Runner still requires a machine gate before any UPTM merge."
+    }
+  ],
+  "known_vulnerabilities": {
+    "scope": "historical archive only; pre-CLEAR audits 1-3 are not current gate findings after consolidation PR #17 / audit #16",
+    "gate_counted": false,
+    "from_audits_1_through_3": [
+      {
+        "id": "V-CRIT-LEDGER-TRIGGER-BYPASS",
+        "severity": "CRITICAL",
+        "first_seen_audit": 1,
+        "status_after_pr3_audit": "STILL_EXPLOITABLE_VIA_COORDINATED_FORGERY",
+        "description": "Ledger append-only via SQLite triggers only; triggers droppable; history rewritable."
+      },
+      {
+        "id": "V-CRIT-PNL-FABRICATION",
+        "severity": "CRITICAL",
+        "first_seen_audit": 1,
+        "status_after_pr3_audit": "STILL_EXPLOITABLE_VIA_MARKS_AND_COORDINATED_FORGERY",
+        "description": "Fake fills / unauthenticated marks can fabricate PnL."
+      },
+      {
+        "id": "V-CRIT-HARDCODED-HMAC",
+        "severity": "CRITICAL",
+        "first_seen_audit": 2,
+        "status_after_pr3_audit": "PARTIALLY_ADDRESSED_BUT_KEY_COLOCATED",
+        "description": "In-repo or colocated authority key enables forged authenticated fills when rewritten with DB+receipts."
+      },
+      {
+        "id": "V-CRIT-COORDINATED-DB-KEY-RECEIPT",
+        "severity": "CRITICAL",
+        "first_seen_audit": 3,
+        "status_after_pr3_audit": "CONFIRMED_EXPLOITABLE",
+        "description": "Coordinated replacement of SQLite + .authority_key + .receipts forges history that passes verification. Probe: COORDINATED_FORGERY_SUCCEEDED.",
+        "pr4_claim": "HYPOTHESIS: external trust anchor blocks this — NOT independently audited"
+      },
+      {
+        "id": "V-HIGH-LOOKAHEAD",
+        "severity": "HIGH",
+        "first_seen_audit": 1,
+        "status_after_pr3_audit": "PARTIAL_FIX_GLOBAL_LEAK_REMAINS",
+        "description": "Same-bar / future data leakage in backtest/paper; global future leak via strategy code."
+      },
+      {
+        "id": "V-HIGH-WALKFORWARD",
+        "severity": "HIGH",
+        "first_seen_audit": 1,
+        "status_after_pr3_audit": "PARTIAL_FIX_GLOBAL_LEAK_REMAINS",
+        "description": "Walk-forward chronology/isolation incomplete against adversarial strategies."
+      },
+      {
+        "id": "V-HIGH-LIFECYCLE-GATES",
+        "severity": "HIGH",
+        "first_seen_audit": 1,
+        "status_after_pr3_audit": "GLOBAL_STATE_BYPASS_REMAINS",
+        "description": "Strategy artifact gates bypassable via mutable globals/closures."
+      },
+      {
+        "id": "V-HIGH-KELLY",
+        "severity": "HIGH",
+        "first_seen_audit": 1,
+        "status_after_pr3_audit": "MOSTLY_FIXED_IN_PR3_CLAIMS",
+        "description": "Kelly/risk proposal bypasses (negative fraction, slippage oversized)."
+      },
+      {
+        "id": "V-HIGH-EMPTY-LEDGER-ERASE",
+        "severity": "HIGH",
+        "first_seen_audit": 3,
+        "status_after_pr3_audit": "CONFIRMED_EXPLOITABLE",
+        "description": "Full ledger erase to empty passes verification. Probe: EMPTY_REWRITE_SUCCEEDED.",
+        "pr4_claim": "HYPOTHESIS: external anchor blocks empty reset — NOT independently audited"
+      },
+      {
+        "id": "V-HIGH-MARK-PNL-FORGERY",
+        "severity": "HIGH",
+        "first_seen_audit": 3,
+        "status_after_pr3_audit": "CONFIRMED_EXPLOITABLE",
+        "description": "Unauthenticated market_marks forge equity. Probe: PNL_MARK_FORGERY_SUCCEEDED.",
+        "pr4_claim": "HYPOTHESIS: authenticated hash-chained marks — NOT independently audited"
+      },
+      {
+        "id": "V-HIGH-ADVERSARIAL-COVERAGE-GAP",
+        "severity": "HIGH",
+        "first_seen_audit": 1,
+        "status_after_pr3_audit": "INCOMPLETE",
+        "description": "Tests miss successful coordinated forgery and related attacks."
+      }
+    ],
+    "paper_live_isolation": {
+      "status": "PASS_ACROSS_AUDITS_1_3",
+      "live_trading": false,
+      "notes": "LiveExecutionAdapter always raises; config rejects live_trading=true. Runner enforces live_trading=false as hard stop."
+    }
+  },
+  "current_findings": {
+    "scope": "consolidated main tip after PR #17 and audit #16",
+    "critical": 0,
+    "high": 0,
+    "notes": "CRITICAL/HIGH findings from audits 1-3 are retained in known_vulnerabilities as historical archive only; current gate findings are the accepted MEDIUM/LOW residuals below."
+  },
+  "accepted_residuals": [
+    {
+      "id": "R-MED-PLAINTEXT-PRIVATE-KEY-SIDECAR",
+      "severity": "MEDIUM",
+      "status": "ACCEPT_RESIDUAL",
+      "source": "audit-pr16",
+      "description": "Plaintext risk remains if a colocated private-key sidecar is stolen.",
+      "owner": "deployment-key-custody-owner",
+      "notes": "Accepted as residual medium/low risk after audit #16; mitigate operationally by protecting the sidecar and deployment host.",
+      "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
+    },
+    {
+      "id": "R-LOW-SIZINGPROPOSAL-MONKEYPATCH-BEFORE-PROPOSE",
+      "severity": "LOW",
+      "status": "ACCEPT_RESIDUAL",
+      "source": "audit-pr16",
+      "description": "SizingProposal can be monkeypatched before propose.",
+      "owner": "strategy-risk-engine-owner",
+      "notes": "Accepted as residual low risk after audit #16; monitor strategy/risk code review boundaries before proposal generation.",
+      "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
+    }
+  ],
+  "current_wave_assessment": {
+    "wave0": "DONE",
+    "wave1": "DONE_ON_MAIN_AFTER_PR17",
+    "wave2": "DONE_ON_MAIN_AFTER_PR17",
+    "wave3": "DONE_ON_MAIN_AFTER_PR17",
+    "wave4": "PARTIAL_DONE_ON_MAIN_AFTER_PR17",
+    "wave5_plus": "NEXT_AFTER_CONSOLIDATE",
+    "summary": "Trust/risk hardening spiral is complete at CLEAR on main after consolidation PR #17. Temporal/strategy/execution work for Waves 1-4 is addressed to the audit #16 CLEAR_FOR_MEDIUM_LOW_ONLY bar. Wave 5+ follows after consolidate."
+  },
+  "runner_invariants": {
+    "critical_findings_allowed": 0,
+    "high_findings_allowed": 0,
+    "agent_self_report_alone_passes_gate": false,
+    "evidence_required": true,
+    "probes_required": true,
+    "max_patch_attempts_per_cluster": 3,
+    "pr4_auto_merge": false,
+    "uptm_auto_merge": false,
+    "uptm_machine_gate_required": [
+      "CRITICAL=0",
+      "HIGH=0",
+      "tests_pass",
+      "adversarial_tests_pass",
+      "ci_pass",
+      "invariants_hold"
+    ],
+    "max_parallel_agents": 8
+  },
+  "stop_conditions": [
+    "live_trading_enablement_attempt",
+    "safety_control_weakening",
+    "fabricated_market_data",
+    "fabricated_pnl",
+    "evidence_forgery_detected",
+    "gate_bypass_attempt",
+    "wave_skip_attempt",
+    "unauthorized_pr_merge"
+  ]
+}

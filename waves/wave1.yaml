@@ -1,0 +1,21 @@
+wave_id: 1
+name: discover_inventory
+objective: "Read-only discovery of UPTM surface area and open hardening PRs; no mutations."
+tip_assessment: "DONE_ON_MAIN_AFTER_PR17"
+depends_on: [0]
+inputs:
+  - evidence/wave0/baseline_ack.json
+  - constitution/CONSTITUTION.md
+outputs:
+  - evidence/wave1/discovery.json
+ownership:
+  primary: runner
+  agents: [cursor-discover]
+tests:
+  - test_discovery_no_mutation
+adversarial_tests:
+  - test_wave_skip_blocked
+exit_criteria:
+  - discovery_artifact_present
+  - no_uptm_writes
+  - pr4_status_claims_unverified

@@ -1,0 +1,20 @@
+wave_id: 2
+name: trust_model_alignment
+objective: "Align Runner trust model with UPTM audit findings; document that local-only state is not immutable."
+tip_assessment: "DONE_ON_MAIN_AFTER_PR17"
+depends_on: [1]
+inputs:
+  - evidence/wave1/discovery.json
+  - docs/TRUST_MODEL.md
+outputs:
+  - evidence/wave2/trust_ack.json
+ownership:
+  primary: runner
+  agents: []
+tests:
+  - test_trust_model_present
+adversarial_tests:
+  - test_reject_immutability_claim_without_external_anchor
+exit_criteria:
+  - trust_model_documents_local_limits
+  - coordinated_forgery_listed_as_known_critical

@@ -1,0 +1,96 @@
+{
+  "schema_version": "1.0.0",
+  "candidate_id": "mechanical_break_retest_hafez",
+  "name": "Omar Hafez mechanical break/retest candidate",
+  "status": "UNVERIFIED",
+  "live_trading": false,
+  "no_prediction_principle": {
+    "rule": "Only estimate P(outcome|state) from information available at the decision timestamp.",
+    "forbidden": [
+      "future bars",
+      "future session context",
+      "future volume profile",
+      "post-entry outcome labels in decision-state features",
+      "clairvoyant exits or stops"
+    ]
+  },
+  "pipeline": [
+    {
+      "stage": "CLAIM",
+      "value": "Omar Hafez describes or is associated with a mechanical break/retest trading concept.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "stage": "SOURCE",
+      "value": "No primary source text, video, transcript, or timestamped rules are embedded in this runner artifact.",
+      "status": "UNVERIFIED"
+    },
+    {
+      "stage": "FORMAL_DEFINITION",
+      "value": "The strategy cannot be formalized without exact mechanical rules.",
+      "status": "UNDEFINED",
+      "undefined_fields": {
+        "instrument_es_vs_mes": "UNDEFINED",
+        "level_definition": "UNDEFINED",
+        "break_definition": "UNDEFINED",
+        "retest_definition": "UNDEFINED",
+        "reaction_definition": "UNDEFINED",
+        "session_definition": "UNDEFINED",
+        "volume_profile_definition": "UNDEFINED",
+        "stop_definition": "UNDEFINED",
+        "target_exit_definition": "UNDEFINED",
+        "slippage_definition": "UNDEFINED",
+        "fee_definition": "UNDEFINED",
+        "risk_sizing_definition": "UNDEFINED"
+      }
+    },
+    {
+      "stage": "DATA_REQUIREMENT",
+      "value": "Minimum requirements are conditional on a future formal definition and must be timestamp-safe.",
+      "status": "UNDEFINED",
+      "minimum_future_safe_candidates": [
+        "timestamped OHLCV or tick data",
+        "instrument metadata",
+        "session calendar",
+        "volume-profile inputs available as of decision timestamp",
+        "spread, commission, and slippage model",
+        "order simulation rules"
+      ]
+    },
+    {
+      "stage": "TEST",
+      "value": "No executable test is defined until the formal strategy definition exists.",
+      "status": "UNDEFINED",
+      "required_properties_if_defined": [
+        "chronological evaluation",
+        "walk-forward or holdout separation",
+        "no future information at decision timestamp",
+        "explicit slippage and fee model",
+        "statistical significance test declared before evaluation"
+      ]
+    },
+    {
+      "stage": "RESULT",
+      "value": "All performance claims are unverified.",
+      "status": "UNVERIFIED",
+      "undefined_or_unverified_fields": {
+        "statistical_significance": "UNDEFINED",
+        "profitability": "UNVERIFIED",
+        "expectancy": "UNVERIFIED",
+        "drawdown": "UNVERIFIED",
+        "robustness": "UNVERIFIED"
+      }
+    },
+    {
+      "stage": "STATUS",
+      "value": "Research candidate only; not implementable or tradable from current information.",
+      "status": "UNVERIFIED"
+    }
+  ],
+  "control_plane_constraints": [
+    "Do not invent missing mechanical rules.",
+    "Do not enable live trading.",
+    "Do not treat performance claims as verified.",
+    "Reject tests that use information unavailable at the decision timestamp."
+  ]
+}

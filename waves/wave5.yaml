@@ -1,0 +1,20 @@
+wave_id: 5
+name: ruflo_boundary
+objective: "Finalize Ruflo adapter boundary + stub; orchestration must work without Ruflo."
+tip_assessment: "NEXT_AFTER_CONSOLIDATE"
+depends_on: [4]
+inputs:
+  - ruflo/adapter.py
+  - docs/RUFLO_BOUNDARY.md
+outputs:
+  - evidence/wave5/ruflo_boundary_ack.json
+ownership:
+  primary: runner
+  agents: []
+tests:
+  - test_ruflo_stub_unavailable
+adversarial_tests:
+  - test_orchestration_without_ruflo
+exit_criteria:
+  - ruflo_optional
+  - abstraction_usable_standalone
