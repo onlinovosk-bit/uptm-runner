@@ -181,6 +181,7 @@ def wave_status(fsm: RunnerFSM | None = None) -> dict[str, Any]:
                 "unlocked": i in fsm.unlocked_waves,
                 "current": i == fsm.current_wave,
                 "depends_on": w.get("depends_on", []),
+                "tip_assessment": w.get("tip_assessment"),
             }
         )
     return {
@@ -217,19 +218,29 @@ def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
             "passed": 1,
             "failed": 0,
             "findings": [
-                {
-                    "id": f["id"],
-                    "severity": f["severity"],
-                    "status": "OPEN"
-                    if "EXPLOITABLE" in f.get("status_after_pr3_audit", "")
-                    or f.get("status_after_pr3_audit") == "CONFIRMED_EXPLOITABLE"
-                    else "HYPOTHESIS"
-                    if "pr4_claim" in f
-                    else "OPEN",
-                }
-                for f in baseline.get("known_vulnerabilities", {}).get(
-                    "from_audits_1_through_3", []
-                )
+                *[
+                    {
+                        "id": f["id"],
+                        "severity": f["severity"],
+                        "status": "OPEN"
+                        if "EXPLOITABLE" in f.get("status_after_pr3_audit", "")
+                        or f.get("status_after_pr3_audit") == "CONFIRMED_EXPLOITABLE"
+                        else "HYPOTHESIS"
+                        if "pr4_claim" in f
+                        else "OPEN",
+                    }
+                    for f in baseline.get("known_vulnerabilities", {}).get(
+                        "from_audits_1_through_3", []
+                    )
+                ],
+                *[
+                    {
+                        "id": r["id"],
+                        "severity": r["severity"],
+                        "status": r["status"],
+                    }
+                    for r in baseline.get("accepted_residuals", [])
+                ],
             ],
         },
         "probes": [
@@ -252,6 +263,13 @@ def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
         "signature": None,
         "baseline_id": baseline.get("baseline_id"),
         "pr4_merge_allowed": False,
+        "uptm_tip_pr": baseline.get("uptm_tip", {}).get("pr"),
+        "uptm_tip_status": baseline.get("uptm_tip", {}).get("status"),
+        "accepted_residuals": baseline.get("accepted_residuals", []),
+        "uptm_machine_gate_required": baseline.get("runner_invariants", {}).get(
+            "uptm_machine_gate_required", []
+        ),
+        "current_wave_assessment": baseline.get("current_wave_assessment", {}),
     }
     # Note: findings will include CRITICAL/HIGH OPEN — wave0 gate for "ack" is special;
     # baseline wave records them; gate for progressing past remediation waves must clear them.

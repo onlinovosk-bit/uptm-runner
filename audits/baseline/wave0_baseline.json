@@ -7,9 +7,17 @@
   "live_trading": false,
   "auto_merge": false,
   "max_cursor_agents": 8,
+  "uptm_tip": {
+    "pr": 16,
+    "audit_id": "audit-pr16",
+    "status": "CLEAR_FOR_MEDIUM_LOW_ONLY",
+    "production_ready": false,
+    "merge_allowed_by_runner": false,
+    "summary": "UPTM tip PR #16 is CLEAR for MEDIUM/LOW only. Runner records the audit result but still must not auto-merge UPTM without machine gate evidence."
+  },
   "pr4_production_ready": false,
   "pr4_merge_allowed": false,
-  "notes": "Wave 0 machine-readable baseline. PR4 claims are HYPOTHESIS not audited fact. Runner MUST NOT merge PR4.",
+  "notes": "Wave 0 machine-readable baseline reconciled through UPTM tip PR #16 / audit #16. live_trading=false. Runner MUST NOT auto-merge any UPTM PR without the machine gate: CRITICAL=0, HIGH=0, tests pass, adversarial tests pass, CI passes, invariants hold.",
   "pr_history": [
     {
       "pr": 1,
@@ -54,6 +62,15 @@
         "33 pytest passed (self-reported by implementer)",
         "Prior exploit probes BLOCKED (self-reported)"
       ]
+    },
+    {
+      "pr": 16,
+      "branch": "UPTM tip",
+      "status": "audited_clear_medium_low_only",
+      "audit_id": "audit-pr16",
+      "production_ready": false,
+      "merge_allowed": false,
+      "summary": "Audit #16 records UPTM tip PR #16 as CLEAR FOR MEDIUM/LOW ONLY. Residual medium/low risks are accepted explicitly; Runner still requires a machine gate before any UPTM merge."
     }
   ],
   "known_vulnerabilities": {
@@ -145,6 +162,33 @@
       "notes": "LiveExecutionAdapter always raises; config rejects live_trading=true. Runner enforces live_trading=false as hard stop."
     }
   },
+  "accepted_residuals": [
+    {
+      "id": "R-MED-PLAINTEXT-PRIVATE-KEY-SIDECAR",
+      "severity": "MEDIUM",
+      "status": "ACCEPT_RESIDUAL",
+      "source": "audit-pr16",
+      "description": "Plaintext risk remains if a colocated private-key sidecar is stolen.",
+      "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
+    },
+    {
+      "id": "R-LOW-SIZINGPROPOSAL-MONKEYPATCH-BEFORE-PROPOSE",
+      "severity": "LOW",
+      "status": "ACCEPT_RESIDUAL",
+      "source": "audit-pr16",
+      "description": "SizingProposal can be monkeypatched before propose.",
+      "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
+    }
+  ],
+  "current_wave_assessment": {
+    "wave0": "DONE",
+    "wave1": "DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave2": "DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave3": "DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave4": "PARTIAL_DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave5_plus": "NEXT_AFTER_CONSOLIDATE",
+    "summary": "Trust/risk hardening spiral is complete at CLEAR. Temporal/strategy/execution work for Waves 1-4 is already largely addressed in UPTM tip and remains pending main merge/consolidation. Wave 5+ follows after consolidate."
+  },
   "runner_invariants": {
     "critical_findings_allowed": 0,
     "high_findings_allowed": 0,
@@ -153,6 +197,15 @@
     "probes_required": true,
     "max_patch_attempts_per_cluster": 3,
     "pr4_auto_merge": false,
+    "uptm_auto_merge": false,
+    "uptm_machine_gate_required": [
+      "CRITICAL=0",
+      "HIGH=0",
+      "tests_pass",
+      "adversarial_tests_pass",
+      "ci_pass",
+      "invariants_hold"
+    ],
     "max_parallel_agents": 8
   },
   "stop_conditions": [

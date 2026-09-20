@@ -1,6 +1,7 @@
 wave_id: 4
 name: cursor_contract
 objective: "Finalize Cursor execution contract + fail-closed stub; document handoff when Cursor unreachable."
+tip_assessment: "PARTIAL_DONE_ON_TIP_PENDING_MAIN_MERGE"
 depends_on: [3]
 inputs:
   - cursor/contract.py

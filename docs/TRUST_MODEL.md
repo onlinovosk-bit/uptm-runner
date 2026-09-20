@@ -26,8 +26,9 @@ CRITICAL coordinated DB+key+receipt forgery among other HIGH issues).
 
 ## UPTM PR posture
 
-- PR #4 (`cursor/pr4-audit-trust-hardening-0444`) claims are **HYPOTHESIS**.
-- Runner **MUST NOT** merge PR #4 (or any UPTM PR). `auto_merge=false`, `pr4_merge_allowed=false`.
+- UPTM tip PR #16 is recorded as **CLEAR FOR MEDIUM/LOW ONLY** by audit #16, with accepted residuals documented in `audits/baseline/wave0_baseline.json`.
+- Runner **MUST NOT** auto-merge PR #16 or any UPTM PR. `auto_merge=false`; a machine gate requires CRITICAL=0, HIGH=0, tests, adversarial tests, CI, and invariants.
+- PR #4 (`cursor/pr4-audit-trust-hardening-0444`) claims are retained as historical **HYPOTHESIS** in the baseline.
 - Prior audits through PR #3 remain the last **independently confirmed** vulnerability set until a fourth audit completes.
 
 ## Live trading

@@ -47,6 +47,7 @@ def test_fake_agent_pass(valid_evidence_factory):
     }
     r = evaluate_gate(ev)
     assert r.passed is False
+    assert any("evidence_forgery_detected" in reason for reason in r.reasons)
 
 
 def test_wave_skip(valid_evidence_factory):

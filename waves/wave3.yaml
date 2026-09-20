@@ -1,6 +1,7 @@
 wave_id: 3
 name: gate_and_evidence_hardening
 objective: "Prove gate fail-closed behavior: missing evidence, self-report-only, and probe-less packs cannot pass."
+tip_assessment: "DONE_ON_TIP_PENDING_MAIN_MERGE"
 depends_on: [2]
 inputs:
   - schemas/evidence.schema.json

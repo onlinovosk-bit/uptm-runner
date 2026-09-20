@@ -48,7 +48,7 @@ uv run pytest
 
 | Component | Status |
 |-----------|--------|
-| Wave 0 baseline JSON | **Real** (from audits 1–3 + PR4 hypotheses) |
+| Wave 0 baseline JSON | **Real** (from audits 1–3, PR4 hypotheses, and audit #16 tip reconciliation) |
 | Constitution / stacks / waves | **Real** contracts |
 | FSM + gates + stops + evidence validation | **Real** |
 | CLI | **Real** |
@@ -57,10 +57,12 @@ uv run pytest
 | Ruflo adapter | **Stub** — unavailable; local FSM is source of truth |
 | UPTM live integrations | **None** (by design) |
 
-## PR #4 policy
+## UPTM merge policy
 
-PR #4 on UPTM is the latest hardening attempt but **not** audited as production.
-Runner **must not** merge it. Claims are stored as `HYPOTHESIS` in the baseline.
+UPTM tip PR #16 is recorded as **CLEAR FOR MEDIUM/LOW ONLY** per audit #16.
+Runner **must not auto-merge** PR #16 or any UPTM PR. A machine gate requires
+CRITICAL=0, HIGH=0, tests passing, adversarial tests passing, CI passing, and
+invariants holding. Live trading remains disabled.
 
 ## Trust
 

@@ -1,6 +1,7 @@
 wave_id: 1
 name: discover_inventory
 objective: "Read-only discovery of UPTM surface area and open hardening PRs; no mutations."
+tip_assessment: "DONE_ON_TIP_PENDING_MAIN_MERGE"
 depends_on: [0]
 inputs:
   - evidence/wave0/baseline_ack.json

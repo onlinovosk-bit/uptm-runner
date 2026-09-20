@@ -65,7 +65,7 @@
               },
               "status": {
                 "type": "string",
-                "enum": ["OPEN", "FIXED", "HYPOTHESIS", "ACCEPTED_RISK"]
+                "enum": ["OPEN", "FIXED", "HYPOTHESIS", "ACCEPTED_RISK", "ACCEPT_RESIDUAL"]
               },
               "hidden_as": { "type": ["string", "null"] }
             }

@@ -5,7 +5,7 @@ Machine-enforced rules for the control-plane. Agents may propose; Runner decides
 ## Hard invariants (never relax)
 
 1. **Live trading is ABSOLUTELY DISABLED.** Any attempt to enable live trading, broker routes, or real order placement is a STOP condition.
-2. **No auto-merge.** Runner never merges UPTM PRs. Especially PR #4 (`cursor/pr4-audit-trust-hardening-0444`) is NOT production-audited and MUST NOT be merged by Runner.
+2. **No auto-merge.** Runner never auto-merges UPTM PRs. Any UPTM merge requires a machine gate with CRITICAL=0, HIGH=0, tests passing, adversarial tests passing, CI passing, and invariants holding.
 3. **Max 8 Cursor agents** in parallel.
 4. **CRITICAL = 0 and HIGH = 0** required to pass any wave gate.
 5. **Evidence required.** Agent self-report alone NEVER passes a gate.
@@ -21,7 +21,8 @@ Machine-enforced rules for the control-plane. Agents may propose; Runner decides
 
 - Runner is designed to be **harder to fool than agents**.
 - Prior UPTM audits (PR1–PR3) found CRITICAL coordinated DB+key+receipt forgery among other HIGH issues.
-- PR4 claims are **HYPOTHESIS** until independently adversarially audited.
+- UPTM tip PR #16 is **CLEAR FOR MEDIUM/LOW ONLY** per audit #16, with residuals explicitly accepted. This is not permission for live trading or auto-merge.
+- PR4 claims are superseded by later audit history but remain recorded as historical **HYPOTHESIS** in this baseline.
 - Ruflo may be unavailable — orchestration abstraction is mandatory; Ruflo is an optional adapter.
 - Cursor may be unreachable from this host — execution contract is mandatory; live Cursor is optional.
 

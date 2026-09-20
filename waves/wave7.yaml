@@ -1,6 +1,7 @@
 wave_id: 7
 name: exit_and_archive
 objective: "Exit contract: package evidence, refuse PR4 merge, produce upload-ready archive metadata."
+tip_assessment: "NEXT_AFTER_CONSOLIDATE"
 depends_on: [6]
 inputs:
   - prompt-stacks/07_exit.md

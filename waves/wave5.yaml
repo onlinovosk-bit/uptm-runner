@@ -1,6 +1,7 @@
 wave_id: 5
 name: ruflo_boundary
 objective: "Finalize Ruflo adapter boundary + stub; orchestration must work without Ruflo."
+tip_assessment: "NEXT_AFTER_CONSOLIDATE"
 depends_on: [4]
 inputs:
   - ruflo/adapter.py

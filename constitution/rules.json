@@ -2,6 +2,15 @@
   "schema_version": "1.0.0",
   "live_trading": false,
   "auto_merge": false,
+  "uptm_auto_merge": false,
+  "uptm_machine_gate": {
+    "critical_max": 0,
+    "high_max": 0,
+    "require_tests": true,
+    "require_adversarial_tests": true,
+    "require_ci": true,
+    "require_invariants": true
+  },
   "max_cursor_agents": 8,
   "gate": {
     "critical_max": 0,

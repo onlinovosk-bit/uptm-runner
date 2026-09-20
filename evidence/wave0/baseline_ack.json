@@ -7,7 +7,7 @@
   "files": [
     {
       "path": "audits/baseline/wave0_baseline.json",
-      "sha256": "7340a05c7cd40a12400d1b1c96266eedc6f3254b6d9c0e544ef7466b9526570f"
+      "sha256": "55840f8b51c2c4c6147092b348bd00705d0d2fc90e2f86b0fe1e85967f772710"
     }
   ],
   "commands": [
@@ -74,6 +74,16 @@
         "id": "V-HIGH-ADVERSARIAL-COVERAGE-GAP",
         "severity": "HIGH",
         "status": "OPEN"
+      },
+      {
+        "id": "R-MED-PLAINTEXT-PRIVATE-KEY-SIDECAR",
+        "severity": "MEDIUM",
+        "status": "ACCEPT_RESIDUAL"
+      },
+      {
+        "id": "R-LOW-SIZINGPROPOSAL-MONKEYPATCH-BEFORE-PROPOSE",
+        "severity": "LOW",
+        "status": "ACCEPT_RESIDUAL"
       }
     ]
   },
@@ -89,7 +99,7 @@
     "summary": "pre-baseline"
   },
   "after": {
-    "digest": "7340a05c7cd40a12400d1b1c96266eedc6f3254b6d9c0e544ef7466b9526570f",
+    "digest": "55840f8b51c2c4c6147092b348bd00705d0d2fc90e2f86b0fe1e85967f772710",
     "summary": "baseline locked"
   },
   "agent_claim": {
@@ -99,5 +109,42 @@
   "live_trading": false,
   "signature": null,
   "baseline_id": "wave0-uptm-2026-09-19",
-  "pr4_merge_allowed": false
+  "pr4_merge_allowed": false,
+  "uptm_tip_pr": 16,
+  "uptm_tip_status": "CLEAR_FOR_MEDIUM_LOW_ONLY",
+  "accepted_residuals": [
+    {
+      "id": "R-MED-PLAINTEXT-PRIVATE-KEY-SIDECAR",
+      "severity": "MEDIUM",
+      "status": "ACCEPT_RESIDUAL",
+      "source": "audit-pr16",
+      "description": "Plaintext risk remains if a colocated private-key sidecar is stolen.",
+      "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
+    },
+    {
+      "id": "R-LOW-SIZINGPROPOSAL-MONKEYPATCH-BEFORE-PROPOSE",
+      "severity": "LOW",
+      "status": "ACCEPT_RESIDUAL",
+      "source": "audit-pr16",
+      "description": "SizingProposal can be monkeypatched before propose.",
+      "rationale": "Accepted as residual medium/low risk after audit #16; not a blocker for CLEAR_FOR_MEDIUM_LOW_ONLY."
+    }
+  ],
+  "uptm_machine_gate_required": [
+    "CRITICAL=0",
+    "HIGH=0",
+    "tests_pass",
+    "adversarial_tests_pass",
+    "ci_pass",
+    "invariants_hold"
+  ],
+  "current_wave_assessment": {
+    "wave0": "DONE",
+    "wave1": "DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave2": "DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave3": "DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave4": "PARTIAL_DONE_ON_TIP_PENDING_MAIN_MERGE",
+    "wave5_plus": "NEXT_AFTER_CONSOLIDATE",
+    "summary": "Trust/risk hardening spiral is complete at CLEAR. Temporal/strategy/execution work for Waves 1-4 is already largely addressed in UPTM tip and remains pending main merge/consolidation. Wave 5+ follows after consolidate."
+  }
 }

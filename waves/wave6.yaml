@@ -1,6 +1,7 @@
 wave_id: 6
 name: patch_loop_and_stops
 objective: "Validate patch loop max-3 and all stop conditions including live_trading."
+tip_assessment: "NEXT_AFTER_CONSOLIDATE"
 depends_on: [5]
 inputs:
   - runner/fsm.py

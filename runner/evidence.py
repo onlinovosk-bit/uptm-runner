@@ -94,7 +94,7 @@ def normalize_severity(raw: str) -> str:
 
 def count_findings(evidence: dict[str, Any]) -> dict[str, int]:
     """
-    Count OPEN/HYPOTHESIS findings by effective severity.
+    Count OPEN/HYPOTHESIS/accepted residual findings by effective severity.
     Prefer true_severity; detect V-CRIT*/V-HIGH* id downgrades.
     """
     counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "INFO": 0, "WARNING": 0}
@@ -102,7 +102,10 @@ def count_findings(evidence: dict[str, Any]) -> dict[str, int]:
         status = finding.get("status")
         if status == "FIXED":
             continue
-        if status not in ("OPEN", "HYPOTHESIS", None) and status == "ACCEPTED_RISK":
+        if status not in ("OPEN", "HYPOTHESIS", None) and status in (
+            "ACCEPTED_RISK",
+            "ACCEPT_RESIDUAL",
+        ):
             # still count accepted risk as present risk for gating
             pass
 
