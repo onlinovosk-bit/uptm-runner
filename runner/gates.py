@@ -13,6 +13,12 @@ from runner.evidence import (
     load_evidence,
     validate_evidence_structure,
 )
+from runner.detectors.fabrication import (
+    detect_fabricated_market_data,
+    detect_fabricated_pnl,
+    worst,
+    worst_verdict,
+)
 from runner.paths import RULES
 from runner.stops import StopConditionError, check_evidence_for_stops, raise_if_stop
 from runner.verdict import Decision, Verdict, resolve
@@ -47,6 +53,50 @@ class GateResult:
 
 def load_rules() -> dict[str, Any]:
     return json.loads(RULES.read_text(encoding="utf-8"))
+
+
+def run_fabrication_detectors(
+    evidence: dict[str, Any], evidence_path: Path | None
+) -> tuple[Verdict, list[str]]:
+    """Invoke the UPTM-002 detectors from the gate path (UPTM-002c wiring).
+
+    Wiring only: the detectors decide nothing. They return verdicts, this
+    function folds them, and resolution stays with runner.verdict.resolve.
+
+    Packs are evaluated only when the evidence carries them. Evidence that
+    declares no market data and no PnL is left exactly as the gate treated it
+    before — see the recorded limit on omission in constitution/capital-rules.json.
+    """
+    reasons: list[str] = []
+    verdicts: list[Verdict] = []
+
+    calendars = {k: set(v) for k, v in (evidence.get("calendars") or {}).items()}
+    default_root = evidence_path.parent if evidence_path else Path(".")
+
+    md = evidence.get("market_data")
+    if md is not None:
+        root = Path(md.get("snapshot_root") or default_root)
+        outcomes = detect_fabricated_market_data(
+            md, snapshot_root=root, calendars=calendars
+        )
+        verdict = worst(outcomes)
+        verdicts.append(verdict)
+        for o in outcomes:
+            if o.verdict is not Verdict.PASS:
+                label = "fabricated_market_data" if o.stop_condition_raised else "unverifiable"
+                reasons.append(f"{label}: {o.check_id} {o.verdict.value} — {o.detail}")
+
+    pl = evidence.get("pnl")
+    if pl is not None:
+        outcomes = detect_fabricated_pnl(pl)
+        verdict = worst(outcomes)
+        verdicts.append(verdict)
+        for o in outcomes:
+            if o.verdict is not Verdict.PASS:
+                label = "fabricated_pnl" if o.stop_condition_raised else "unverifiable"
+                reasons.append(f"{label}: {o.check_id} {o.verdict.value} — {o.detail}")
+
+    return (worst_verdict(verdicts) if verdicts else Verdict.PASS), reasons
 
 
 def evaluate_gate(
@@ -137,8 +187,23 @@ def evaluate_gate(
     if high > high_max:
         reasons.append(f"HIGH={high} exceeds max {high_max}")
 
+    # Detectors run last, so gate_reasons holds every pre-existing gate reason.
+    gate_reasons = list(reasons)
+    fabrication_verdict, fabrication_reasons = run_fabrication_detectors(
+        evidence, evidence_path
+    )
+    reasons.extend(fabrication_reasons)
+
+    # FAIL dominates UNKNOWN dominates PASS. Every pre-existing gate reason is a
+    # demonstrated violation, so it contributes FAIL; the detectors may contribute
+    # UNKNOWN, which denies without asserting a violation and must not be
+    # reported as FAIL.
+    contributing = [Verdict.FAIL] if gate_reasons else []
+    contributing.append(fabrication_verdict)
+    verdict = worst_verdict(contributing)
+
     return GateResult(
-        verdict=Verdict.PASS if not reasons else Verdict.FAIL,
+        verdict=verdict,
         reasons=reasons or ["gate passed"],
         critical=critical,
         high=high,

@@ -178,15 +178,15 @@
     }
   ],
   "control_plane_stop_condition_status": {
-    "note": "Verified by reading runner/stops.py and runner/fsm.py. Declared != detected (P9). A detector that exists but is never invoked is not detection either: fabricated_market_data and fabricated_pnl have a tested detector (runner/detectors/fabrication.py, UPTM-002) that no runtime path calls, so they remain DECLARATIVE until wired.",
+    "note": "Verified by reading runner/stops.py, runner/fsm.py and runner/gates.py. Declared != detected (P9), and a detector nothing calls is not detection either. fabricated_market_data and fabricated_pnl are PARTIAL as of UPTM-002c: the gate invokes the detectors and its verdict follows them, but evidence that declares no pack bypasses them entirely (omission_bypass), and local consistency is not external authenticity.",
     "live_trading_enablement_attempt": "ENFORCED",
     "wave_skip_attempt": "ENFORCED",
     "evidence_forgery_detected": "PARTIAL",
     "unauthorized_pr_merge": "PARTIAL",
     "safety_control_weakening": "DECLARATIVE",
     "gate_bypass_attempt": "DECLARATIVE",
-    "fabricated_market_data": "DECLARATIVE",
-    "fabricated_pnl": "DECLARATIVE"
+    "fabricated_market_data": "PARTIAL",
+    "fabricated_pnl": "PARTIAL"
   },
   "preexisting_capability_status": {
     "note": "Capabilities that exist in UPTM predate this constitution. Under P12/P14 they are unverified against it, not unusable.",
@@ -218,12 +218,18 @@
     "spec": "docs/specs/UPTM-002-fabrication-stop-conditions.md",
     "checks": 13,
     "acceptance_cases_passing": 34,
-    "status": "IMPLEMENTED_AND_VERIFIED_NOT_INVOKED",
-    "blocks_promotion_to_partial": "no runtime path invokes the detector",
-    "max_status_after_wiring": "PARTIAL",
+    "status": "INVOKED_BY_GATE",
+    "invocation_path": "runner.gates.evaluate_gate -> run_fabrication_detectors",
+    "reachability_proof": "tests/test_detector_invocation.py: a spy asserts the gate calls each detector, and a disconnection test asserts the gate's verdict changes when the detector's return value changes - import alone proves nothing.",
+    "open_limits": {
+      "omission_bypass": "Evidence that declares neither market_data nor pnl never reaches the detectors. Closing this needs an evidence-schema declaration that a run which used market data must carry the pack, with absence resolving to UNKNOWN. That changes the evidence schema and is a separate decision.",
+      "local_consistency_only": "A fully consistent forged snapshot with matching ledger and marks passes all 13 checks. Closing this needs source-authenticated provenance."
+    },
+    "max_status": "PARTIAL",
     "upgrade_to_enforced_requires": [
       "source_authenticated_provenance",
-      "external_append_only_anchor"
+      "external_append_only_anchor",
+      "no_omission_bypass"
     ]
   }
 }
