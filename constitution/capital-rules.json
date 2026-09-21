@@ -178,7 +178,7 @@
     }
   ],
   "control_plane_stop_condition_status": {
-    "note": "Verified by reading runner/stops.py and runner/fsm.py. Declared != detected (P9).",
+    "note": "Verified by reading runner/stops.py and runner/fsm.py. Declared != detected (P9). A detector that exists but is never invoked is not detection either: fabricated_market_data and fabricated_pnl have a tested detector (runner/detectors/fabrication.py, UPTM-002) that no runtime path calls, so they remain DECLARATIVE until wired.",
     "live_trading_enablement_attempt": "ENFORCED",
     "wave_skip_attempt": "ENFORCED",
     "evidence_forgery_detected": "PARTIAL",
@@ -212,5 +212,18 @@
     "DECLARATIVE": 2,
     "MISSING": 5,
     "CONFLICT": 0
+  },
+  "uptm002_detector": {
+    "module": "runner/detectors/fabrication.py",
+    "spec": "docs/specs/UPTM-002-fabrication-stop-conditions.md",
+    "checks": 13,
+    "acceptance_cases_passing": 34,
+    "status": "IMPLEMENTED_AND_VERIFIED_NOT_INVOKED",
+    "blocks_promotion_to_partial": "no runtime path invokes the detector",
+    "max_status_after_wiring": "PARTIAL",
+    "upgrade_to_enforced_requires": [
+      "source_authenticated_provenance",
+      "external_append_only_anchor"
+    ]
   }
 }

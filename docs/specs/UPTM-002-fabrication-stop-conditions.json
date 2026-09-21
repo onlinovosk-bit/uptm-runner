@@ -3,7 +3,7 @@
   "spec_id": "UPTM-002",
   "spec": "docs/specs/UPTM-002-fabrication-stop-conditions.md",
   "status": "PREREGISTERED",
-  "detector_exists": false,
+  "detector_exists": true,
   "stop_conditions": [
     "fabricated_market_data",
     "fabricated_pnl"
@@ -318,5 +318,8 @@
     "A compromised or dishonest upstream data source.",
     "Genuine historical data replayed as a different period, calendar-consistent with the claimed one.",
     "Fabrication upstream of the snapshot; this checks the snapshot, not the world."
-  ]
+  ],
+  "detector_module": "runner/detectors/fabrication.py",
+  "detector_invoked_by_runtime": false,
+  "detector_status": "IMPLEMENTED_AND_VERIFIED_NOT_INVOKED: all 34 preregistered acceptance cases pass, but no gate, FSM path or stop-condition check calls the module, so nothing in the runtime can reach it. Wiring it into the control-plane stop path is a separate Founder decision."
 }

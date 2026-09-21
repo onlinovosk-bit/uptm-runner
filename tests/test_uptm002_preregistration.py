@@ -80,12 +80,20 @@ def test_limits_are_declared_before_implementation():
     assert len(_spec()["declared_limits"]) >= 4
 
 
-def test_preregistration_does_not_change_capability_status():
-    """Writing a specification is not enforcement: the stop conditions stay DECLARATIVE."""
+def test_capability_status_tracks_detector_reachability():
+    """Writing a specification is not enforcement — and neither is writing a detector
+    that nothing calls. Status may only advance once the runtime can reach it, and
+    never past PARTIAL (upgrade_by_green_tests_forbidden)."""
     spec = _spec()
-    assert spec["detector_exists"] is False
-    status = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))["control_plane_stop_condition_status"]
+    status = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))[
+        "control_plane_stop_condition_status"
+    ]
+    reachable = spec.get("detector_invoked_by_runtime", False)
     for condition in spec["stop_conditions"]:
-        assert status[condition] == "DECLARATIVE", (
-            f"{condition} was upgraded without a detector"
+        assert status[condition] != "ENFORCED", (
+            f"{condition} may never be ENFORCED under this preregistration"
         )
+        if not reachable:
+            assert status[condition] == "DECLARATIVE", (
+                f"{condition} was promoted although no runtime path invokes the detector"
+            )
