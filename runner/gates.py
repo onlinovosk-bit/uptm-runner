@@ -15,15 +15,34 @@ from runner.evidence import (
 )
 from runner.paths import RULES
 from runner.stops import StopConditionError, check_evidence_for_stops, raise_if_stop
+from runner.verdict import Decision, Verdict, resolve
 
 
 @dataclass
 class GateResult:
-    passed: bool
+    """Outcome of a gate evaluation.
+
+    ``verdict`` is the canonical state; ``passed`` and ``decision`` are derived
+    from it, so the two can never disagree. Nothing assigns ``passed``
+    directly — a gate that both "passed" and returned UNKNOWN would be a
+    governance bug by construction.
+    """
+
+    verdict: Verdict
     reasons: list[str] = field(default_factory=list)
     critical: int = 0
     high: int = 0
     evidence_path: str | None = None
+
+    @property
+    def passed(self) -> bool:
+        """Backwards-compatible boolean view. Derived, never stored."""
+        return self.verdict is Verdict.PASS
+
+    @property
+    def decision(self) -> Decision:
+        """Resolution through the one canonical path."""
+        return resolve(self.verdict)
 
 
 def load_rules() -> dict[str, Any]:
@@ -53,25 +72,25 @@ def evaluate_gate(
             evidence = load_evidence(evidence_path)
         except (OSError, json.JSONDecodeError, EvidenceError) as exc:
             return GateResult(
-                False,
+                Verdict.FAIL,
                 [f"fail-closed: cannot load evidence: {exc}"],
                 evidence_path=str(evidence_path),
             )
 
     if evidence is None:
-        return GateResult(False, ["fail-closed: missing evidence artifact"])
+        return GateResult(Verdict.FAIL, ["fail-closed: missing evidence artifact"])
 
     path_str = str(evidence_path) if evidence_path else evidence.get("evidence_id")
 
     try:
         raise_if_stop(check_evidence_for_stops(evidence))
     except StopConditionError as exc:
-        return GateResult(False, [f"stop: {exc}"], evidence_path=path_str)
+        return GateResult(Verdict.FAIL, [f"stop: {exc}"], evidence_path=path_str)
 
     structural = validate_evidence_structure(evidence)
     if structural:
         return GateResult(
-            False,
+            Verdict.FAIL,
             [f"fail-closed: {e}" for e in structural],
             evidence_path=path_str,
         )
@@ -118,9 +137,8 @@ def evaluate_gate(
     if high > high_max:
         reasons.append(f"HIGH={high} exceeds max {high_max}")
 
-    passed = len(reasons) == 0
     return GateResult(
-        passed=passed,
+        verdict=Verdict.PASS if not reasons else Verdict.FAIL,
         reasons=reasons or ["gate passed"],
         critical=critical,
         high=high,

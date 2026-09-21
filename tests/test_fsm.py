@@ -4,6 +4,7 @@ import pytest
 
 from runner.fsm import FSMError, RunnerFSM, State
 from runner.gates import GateResult
+from runner.verdict import Verdict
 
 
 def test_fsm_happy_path_to_wave_ready():
@@ -35,7 +36,7 @@ def test_fsm_full_cycle_to_gate_pass_unlocks_next():
         State.EVIDENCE,
     ):
         fsm.transition(st)
-    gate = GateResult(passed=True, reasons=["ok"], critical=0, high=0)
+    gate = GateResult(verdict=Verdict.PASS, reasons=["ok"], critical=0, high=0)
     out = fsm.apply_gate(gate)
     assert out == State.WAVE_READY
     assert 1 in fsm.unlocked_waves
@@ -63,7 +64,7 @@ def test_patch_limit_then_human_review():
         State.EVIDENCE,
     ):
         fsm.transition(st)
-    fail = GateResult(passed=False, reasons=["CRITICAL=1"], critical=1, high=0)
+    fail = GateResult(verdict=Verdict.FAIL, reasons=["CRITICAL=1"], critical=1, high=0)
     for i in range(3):
         # after first fail we go PATCH_LOOP then need to get back to WAVE_GATE
         state = fsm.apply_gate(fail, cluster_id="c1")
