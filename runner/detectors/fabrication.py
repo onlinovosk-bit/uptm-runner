@@ -384,12 +384,21 @@ def detect_fabricated_pnl(pack: dict[str, Any]) -> list[CheckOutcome]:
     ]
 
 
-def worst(outcomes: Iterable[CheckOutcome]) -> Verdict:
-    """FAIL dominates UNKNOWN dominates PASS. Both non-PASS states deny; only
-    FAIL asserts a violation, so FAIL is reported when both are present."""
-    seen = {o.verdict for o in outcomes}
+def worst_verdict(verdicts: Iterable[Verdict]) -> Verdict:
+    """FAIL dominates UNKNOWN dominates PASS.
+
+    Both non-PASS states deny; only FAIL asserts a violation, so FAIL is
+    reported when both are present. An empty set is not proof and yields
+    UNKNOWN.
+    """
+    seen = set(verdicts)
     if Verdict.FAIL in seen:
         return Verdict.FAIL
     if Verdict.UNKNOWN in seen:
         return Verdict.UNKNOWN
     return Verdict.PASS if seen else Verdict.UNKNOWN
+
+
+def worst(outcomes: Iterable[CheckOutcome]) -> Verdict:
+    """worst_verdict over a set of check outcomes."""
+    return worst_verdict(o.verdict for o in outcomes)

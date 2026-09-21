@@ -320,6 +320,7 @@
     "Fabrication upstream of the snapshot; this checks the snapshot, not the world."
   ],
   "detector_module": "runner/detectors/fabrication.py",
-  "detector_invoked_by_runtime": false,
-  "detector_status": "IMPLEMENTED_AND_VERIFIED_NOT_INVOKED: all 34 preregistered acceptance cases pass, but no gate, FSM path or stop-condition check calls the module, so nothing in the runtime can reach it. Wiring it into the control-plane stop path is a separate Founder decision."
+  "detector_invoked_by_runtime": true,
+  "detector_status": "INVOKED_BY_GATE: runner.gates.evaluate_gate calls the detectors and its verdict follows what they return, proven by a disconnection test. Evidence that declares no market_data and no pnl pack does not reach them - see omission_bypass.",
+  "invocation_path": "runner.gates.evaluate_gate -> run_fabrication_detectors -> detect_* -> worst_verdict"
 }
