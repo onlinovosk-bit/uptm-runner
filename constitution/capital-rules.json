@@ -1,0 +1,216 @@
+{
+  "schema_version": "1.0.0",
+  "constitution": "constitution/CONSTITUTION-CAPITAL.md",
+  "constitution_version": "1.0",
+  "governance": "constitution/GOVERNANCE.md",
+  "governance_version": "1.0",
+  "plane": "capital_capability",
+  "declarative_is_never_pass": true,
+  "enforcement_states": [
+    "ENFORCED",
+    "PARTIAL",
+    "DECLARATIVE",
+    "MISSING",
+    "CONFLICT"
+  ],
+  "conflict_resolution": {
+    "unknown_resolves_to": "DENY",
+    "silence_resolves_to": "DENY",
+    "matrix": [
+      {
+        "cp": "ALLOW",
+        "cc": "ALLOW",
+        "result": "ALLOW"
+      },
+      {
+        "cp": "ALLOW",
+        "cc": "DENY",
+        "result": "DENY"
+      },
+      {
+        "cp": "DENY",
+        "cc": "ALLOW",
+        "result": "DENY"
+      },
+      {
+        "cp": "DENY",
+        "cc": "DENY",
+        "result": "DENY"
+      },
+      {
+        "cp": "UNKNOWN",
+        "cc": "ALLOW",
+        "result": "DENY"
+      },
+      {
+        "cp": "UNKNOWN",
+        "cc": "DENY",
+        "result": "DENY"
+      },
+      {
+        "cp": "UNKNOWN",
+        "cc": "UNKNOWN",
+        "result": "DENY"
+      },
+      {
+        "cp": "ALLOW",
+        "cc": "UNKNOWN",
+        "result": "DENY"
+      },
+      {
+        "cp": "DENY",
+        "cc": "UNKNOWN",
+        "result": "DENY"
+      }
+    ],
+    "definitional_conflict": "capital_capability_defines_floor_control_plane_may_only_tighten"
+  },
+  "boundary_rule": "Capital Capability Gates may consume Control Plane evidence, but may never grant, weaken, bypass, or modify Control Plane authority.",
+  "live_capability": {
+    "default": "DENY",
+    "requires_all": [
+      "cp_live_trading_true",
+      "cc_live_capability_lease_valid",
+      "founder_approval_valid",
+      "all_required_capital_gates_pass"
+    ],
+    "lease": {
+      "granted": false,
+      "expires_at": null,
+      "on_expiry": "DENY",
+      "silence_is_renewal": false
+    },
+    "lease_may_replace_cp_flag": false,
+    "cp_flag_may_replace_lease": false,
+    "kill_switch_drill_required": true,
+    "kill_switch_drill_cadence_days": null
+  },
+  "capital_gates": {
+    "track": "parallel",
+    "not_waves": true,
+    "defined": [],
+    "note": "No capital gate is defined yet. Gate criteria are written just-in-time, immediately before evidence collection for that gate (P4)."
+  },
+  "principles": [
+    {
+      "id": "P1",
+      "name": "Reality over Architecture",
+      "enforcement": "MISSING",
+      "mechanism": null
+    },
+    {
+      "id": "P2",
+      "name": "Same Validated Path",
+      "enforcement": "MISSING",
+      "mechanism": null
+    },
+    {
+      "id": "P3",
+      "name": "Data Before Evidence",
+      "enforcement": "MISSING",
+      "mechanism": null
+    },
+    {
+      "id": "P4",
+      "name": "Preregistered Gates",
+      "enforcement": "PARTIAL",
+      "mechanism": "waves/*.yaml exit_criteria fixed before execution; no rule forbids post-hoc amendment"
+    },
+    {
+      "id": "P5",
+      "name": "Independence of Verification",
+      "enforcement": "PARTIAL",
+      "mechanism": "runner/gates.py evaluate_gate: rejects agent PASS without probes/results/before-after digests, detects severity downgrade. NOT full P5: evidence.agent_claim (verdict + free-text notes) is a required field of the evidence schema, so any verifier reading an evidence pack also reads the producer's conclusion. Harmless for the deterministic verifier; exactly what P5 forbids for an agent verifier."
+    },
+    {
+      "id": "P6",
+      "name": "No Self-Expansion",
+      "enforcement": "DECLARATIVE",
+      "mechanism": null
+    },
+    {
+      "id": "P7",
+      "name": "LIVE as Leased Capability",
+      "enforcement": "PARTIAL",
+      "mechanism": "constitution/rules.json live_trading=false + runner/stops.py check_live_trading; lease itself not implemented"
+    },
+    {
+      "id": "P8",
+      "name": "Independent Kill Switch",
+      "enforcement": "DECLARATIVE",
+      "mechanism": null
+    },
+    {
+      "id": "P9",
+      "name": "No Progress Illusion",
+      "enforcement": "PARTIAL",
+      "mechanism": "this file: enforcement status per principle; no readiness board"
+    },
+    {
+      "id": "P10",
+      "name": "Validation Capital",
+      "enforcement": "MISSING",
+      "mechanism": null
+    },
+    {
+      "id": "P11",
+      "name": "Uncertainty Halts",
+      "enforcement": "PARTIAL",
+      "mechanism": "constitution/rules.json fail_closed=true; runner/gates.py fails closed on missing/unloadable evidence; State.HUMAN_REVIEW_REQUIRED. Covers the evidence dimension only. P11 also binds orders, positions, accounts, execution and data; no such runtime exists yet, so those are unenforced rather than satisfied."
+    },
+    {
+      "id": "P12",
+      "name": "Evidence Has Commit & Expiry",
+      "enforcement": "PARTIAL",
+      "mechanism": "evidence before/after digests and commit_sha; STALE invalidation on dependency change not implemented"
+    },
+    {
+      "id": "P13",
+      "name": "No Model in Pre-Trade Path",
+      "enforcement": "MISSING",
+      "mechanism": null
+    },
+    {
+      "id": "P14",
+      "name": "Versioned Amendment",
+      "enforcement": "PARTIAL",
+      "mechanism": "capital and governance documents versioned; control-plane CONSTITUTION.md versioned as of this change; no amendment log"
+    }
+  ],
+  "control_plane_stop_condition_status": {
+    "note": "Verified by reading runner/stops.py and runner/fsm.py. Declared != detected (P9).",
+    "live_trading_enablement_attempt": "ENFORCED",
+    "wave_skip_attempt": "ENFORCED",
+    "evidence_forgery_detected": "PARTIAL",
+    "unauthorized_pr_merge": "PARTIAL",
+    "safety_control_weakening": "DECLARATIVE",
+    "gate_bypass_attempt": "DECLARATIVE",
+    "fabricated_market_data": "DECLARATIVE",
+    "fabricated_pnl": "DECLARATIVE"
+  },
+  "preexisting_capability_status": {
+    "note": "Capabilities that exist in UPTM predate this constitution. Under P12/P14 they are unverified against it, not unusable.",
+    "default_state": "STALE",
+    "items": [
+      "control_plane_fsm",
+      "gates",
+      "evidence_ledger",
+      "receipt_journal",
+      "backtest",
+      "walk_forward",
+      "paper_loop",
+      "strategy_approval",
+      "kelly_sizing",
+      "slippage_controls",
+      "adversarial_tests"
+    ]
+  },
+  "enforcement_summary": {
+    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet.",
+    "ENFORCED": 0,
+    "PARTIAL": 7,
+    "DECLARATIVE": 2,
+    "MISSING": 5,
+    "CONFLICT": 0
+  }
+}

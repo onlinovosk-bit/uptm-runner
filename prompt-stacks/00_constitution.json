@@ -1,8 +1,14 @@
 {
   "stack_id": "00",
   "name": "constitution",
-  "role": "Immutable control-plane rules binding all subsequent stacks",
-  "binds": ["constitution/CONSTITUTION.md", "constitution/rules.json"],
+  "role": "Immutable rules of both governance planes, binding all subsequent stacks",
+  "binds": [
+    "constitution/CONSTITUTION.md",
+    "constitution/rules.json",
+    "constitution/CONSTITUTION-CAPITAL.md",
+    "constitution/capital-rules.json",
+    "constitution/GOVERNANCE.md"
+  ],
   "must_enforce": [
     "live_trading=false",
     "no_auto_merge",
@@ -10,8 +16,16 @@
     "evidence_required",
     "agent_self_report_never_sufficient",
     "fail_closed",
-    "pr4_not_mergeable"
+    "pr4_not_mergeable",
+    "capital_capability_may_never_grant_or_weaken_control_plane_authority",
+    "unknown_resolves_to_deny",
+    "silence_resolves_to_deny",
+    "declarative_is_never_pass",
+    "live_requires_all_four_conditions",
+    "constitution_amended_by_founder_only"
   ],
-  "outputs": ["constitution_ack"],
+  "outputs": [
+    "constitution_ack"
+  ],
   "contract": "Any agent or adapter that cannot acknowledge these rules is refused."
 }

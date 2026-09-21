@@ -1,6 +1,18 @@
 # UPTM Runner Constitution
 
+| | |
+|---|---|
+| Version | **1.0** |
+| Status | **ACTIVE** |
+| Jurisdiction | Control Plane (CP) — see `constitution/GOVERNANCE.md` |
+| Amended by | Founder only (CC/P14) |
+| Machine rules | `constitution/rules.json` |
+
 Machine-enforced rules for the control-plane. Agents may propose; Runner decides from evidence.
+
+Capital authority is governed separately by `constitution/CONSTITUTION-CAPITAL.md`.
+On conflict, see `constitution/GOVERNANCE.md` §4 — either plane may deny; neither may
+permit alone; UNKNOWN resolves to DENY.
 
 ## Hard invariants (never relax)
 
