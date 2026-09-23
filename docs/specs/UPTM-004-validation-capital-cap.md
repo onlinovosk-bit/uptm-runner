@@ -4,7 +4,7 @@
 |---|---|
 | Principle | **P10 — €700 as Validation Capital** |
 | Today | `MISSING` (`capital-rules.json` `principles[].mechanism: null`) |
-| Status of this document | **PREREGISTERED, NOT IMPLEMENTED** |
+| Status of this document | **IMPLEMENTED** — `runner/detectors/validation_capital.py`, invoked by `runner.gates.evaluate_gate` |
 | Constitution | `constitution/CONSTITUTION-CAPITAL.md` v1.0 (LOCKED) |
 
 Written before evidence collection, as P4 requires. This document does not change any
@@ -144,6 +144,16 @@ faster.
   detector may make.
 - **Fees, funding and slippage** are inside `at_risk` only if the declaration includes
   them. UPTM-002's PL-M2 already covers whether they were accounted for.
+- **The gate that never declares itself.** VC-I1 closes the omission for a gate
+  that says `capital_gate: true` and then carries no pack. It does not reach a
+  gate that never sets the flag at all. That is the same hole P8 has, one level
+  up, and it is why P10 lands on `PARTIAL` — see §8.
+- **Criteria outside the wave file.** VC-R1 reads `exit_criteria` from
+  `waves/wave{N}.yaml` plus anything the evidence declares in `gate_criteria`.
+  A criterion agreed somewhere else is not seen.
+- **Free-text justification.** VC-R2 reads `agent_claim.basis`, a structured
+  list. A PASS argued for in prose is not parsed, deliberately: matching prose
+  would produce false positives on exactly the honest reporting P10 wants.
 
 ---
 
@@ -167,20 +177,52 @@ must be set deliberately, by the person whose money it is.
 
 `applies_to` is the substantive choice. "€700" means three different ceilings depending
 on which of the three it binds, and picking one for the Founder would be choosing their
-risk appetite for them. Until it is set, VC-P1 returns `UNKNOWN` and every capital gate
-denies.
+risk appetite for them.
+
+**Still unset as shipped.** The key exists in `capital-rules.json` with null
+values so the slot is visible, and nothing is half-configured: VC-P1 returns
+`UNKNOWN` and **every capital gate denies** until all three are set. That is the
+fail-closed default working, not an unfinished implementation — the detector,
+its wiring and its proof are complete and tested against a tranche supplied by
+the test, so the logic is proven while the live configuration stays shut.
 
 ---
 
-## 8. Capability outcome and reachability proof
+## 8. Capability outcome — `PARTIAL`, not `ENFORCED`
 
-On implementation, P10 moves `MISSING → ENFORCED`.
+The preregistered version promised `ENFORCED`. It is not claimed, for the same
+reason UPTM-003 did not claim it, and the reason is worth stating precisely
+because it is the one thing standing between this repository and its first
+enforced principle.
 
-Not complete until, following UPTM-002c:
+**Delivered:** P10 moves `MISSING → PARTIAL`. A ceiling that aggregates, a
+currency rule that refuses to invent a rate, and a criterion ban that permits
+measurement while forbidding judgement — all invoked from the gate path, all
+load-bearing under mutation.
 
-- the detector is invoked from `runner.gates.evaluate_gate`, and
-- `tests/` carries a spy asserting the gate calls it, **and a disconnection test asserting
-  the gate's verdict changes when the detector's return value changes.**
+**Closed here:** UPTM-002's recorded `omission_bypass`, for a gate that declares
+`capital_gate: true` and then carries no `capital` pack. That resolves to
+`UNKNOWN`, not to silence.
 
-With UPTM-003 and the P7 lease, this would be among the first principles to leave
-`0 ENFORCED`.
+**Why still not `ENFORCED`.** A gate that never sets `capital_gate` at all is
+never examined. The omission moved up a level rather than disappearing. A
+principle a caller can step around by leaving a flag out is not enforced.
+
+**What would close it, for P8 and P10 together.** One declaration in the
+evidence schema saying which gates are capital- and LIVE-bearing, with absence
+resolving to `UNKNOWN` rather than to "not applicable". That is a schema change,
+a separate decision, and a separate wall — and it is the single change that
+would move two principles at once.
+
+### Reachability proof
+
+- `tests/test_detector_invocation.py` spies on `evaluate_gate` and asserts it
+  calls both `detect_validation_capital` and `detect_return_as_criterion`, that
+  the first receives the tranche read from `capital-rules.json`, and that the
+  second receives `exit_criteria` read from `waves/wave3.yaml`.
+- A disconnection test stubs the detector's return value and asserts the gate's
+  verdict follows it.
+- Four mutations against the finished suite — dropping the verdict from the
+  fold, neutering VC-I3, neutering VC-R1, and letting VC-I4 compare across
+  currencies — each turn the suite red at the tests naming that property and no
+  others.

@@ -149,8 +149,8 @@
     {
       "id": "P10",
       "name": "Validation Capital",
-      "enforcement": "MISSING",
-      "mechanism": null
+      "enforcement": "PARTIAL",
+      "mechanism": "runner/detectors/validation_capital.py invoked by runner.gates.evaluate_gate -> run_validation_capital_detectors; an aggregating ceiling, a currency rule that refuses to convert, and a ban on return as a gate criterion that still permits reporting PnL. PARTIAL because a gate that never sets capital_gate is never examined."
     },
     {
       "id": "P11",
@@ -206,11 +206,11 @@
     ]
   },
   "enforcement_summary": {
-    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet. P8 is PARTIAL: mechanised and invoked, but evidence omitting the pack is never examined.",
+    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet. P8 and P10 are PARTIAL: mechanised, invoked and proven load-bearing, but a caller that omits the declaration is never examined. One evidence-schema change would move both.",
     "ENFORCED": 0,
-    "PARTIAL": 8,
+    "PARTIAL": 9,
     "DECLARATIVE": 1,
-    "MISSING": 5,
+    "MISSING": 4,
     "CONFLICT": 0
   },
   "uptm002_detector": {
@@ -252,20 +252,30 @@
     }
   },
   "uptm004_detector": {
-    "module": null,
+    "module": "runner/detectors/validation_capital.py",
     "spec": "docs/specs/UPTM-004-validation-capital-cap.md",
     "principle": "P10",
-    "checks_preregistered": 9,
-    "status": "PREREGISTERED_NOT_IMPLEMENTED",
-    "invocation_path": null,
-    "reachability_proof": null,
-    "enforcement_unchanged": "P10 stays MISSING until the implementation PR lands with its reachability proof.",
-    "founder_parameter_required": "validation_capital is undeclared. amount, currency and applies_to must be set; applies_to is the substantive choice and is not inferred.",
-    "closes_from_uptm002": "omission_bypass, for capital gates only: a gate marked capital=true whose evidence carries no capital pack resolves to UNKNOWN rather than passing unexamined.",
+    "checks": 9,
+    "status": "INVOKED_BY_GATE",
+    "invocation_path": "runner.gates.evaluate_gate -> run_validation_capital_detectors",
+    "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_validation_capital and detect_return_as_criterion, that the first receives the tranche read from this file and the second the exit_criteria read from waves/wave3.yaml; a disconnection test asserts the gate's verdict follows the detector. Four mutations - dropping the verdict from the fold, neutering VC-I3, neutering VC-R1, letting VC-I4 compare across currencies - each turn the suite red at the tests naming that property.",
+    "founder_parameter_required": "validation_capital.amount, .currency and .applies_to are unset. Every capital gate denies until all three are set.",
+    "closes_from_uptm002": "omission_bypass, for a gate declaring capital_gate=true and carrying no capital pack: UNKNOWN rather than silence.",
+    "why_not_enforced": "A gate that never sets capital_gate at all is never examined - the omission moved up a level rather than disappearing. One evidence-schema declaration of which gates are capital- and LIVE-bearing would close it for P8 and P10 together; that is a separate decision.",
     "open_limits": {
-      "disguised_return_criteria": "A criterion phrased as equity curve or account balance encodes return without naming it. VC-R1 matches declared return keys and thresholds on declared PnL fields; a reviewer still has to read the criteria.",
+      "gate_that_never_declares_itself": "VC-I1 reaches a gate that says capital_gate=true and brings no pack. It does not reach one that never sets the flag.",
+      "disguised_return_criteria": "VC-R1 matches named return metrics compared against a number. A criterion phrased as an equity curve or an account balance encodes return without naming it and is not caught; a reviewer still has to read the criteria.",
       "under_declared_exposure": "This detector binds declarations. Whether a declaration matches reality is UPTM-002's job; neither substitutes for the other.",
+      "criteria_outside_the_wave_file": "VC-R1 reads waves/wave{N}.yaml exit_criteria plus evidence gate_criteria. A criterion agreed elsewhere is not seen.",
+      "free_text_justification": "VC-R2 reads agent_claim.basis, a structured list. A PASS argued in prose is not parsed - deliberately, since matching prose would produce false positives on the honest reporting P10 wants.",
       "leverage_and_notional": "Whether a notional position with a protective stop counts as the stop distance or the notional is a Founder decision recorded in applies_to, not an inference."
     }
+  },
+  "validation_capital": {
+    "amount": null,
+    "currency": null,
+    "applies_to": [],
+    "set_by": "founder",
+    "note": "Unset. VC-P1 returns UNKNOWN and every capital gate denies until amount, currency and applies_to are all set. applies_to is the substantive choice: per_position_at_risk | aggregate_open_exposure | cumulative_realised_loss, or a combination. The constitution names 700 EUR in P10's heading; a heading is prose, and the value that gates money is set deliberately."
   }
 }

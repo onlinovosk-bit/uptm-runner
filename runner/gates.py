@@ -25,6 +25,10 @@ from runner.detectors.kill_switch import (
     detect_kill_switch_drill,
     stop_is_engaged,
 )
+from runner.detectors.validation_capital import (
+    detect_return_as_criterion,
+    detect_validation_capital,
+)
 from runner.paths import CAPITAL_RULES, RULES
 from runner.stops import StopConditionError, check_evidence_for_stops, raise_if_stop
 from runner.verdict import Decision, Verdict, resolve
@@ -151,6 +155,56 @@ def run_kill_switch_detectors(evidence: dict[str, Any]) -> tuple[Verdict, list[s
     return worst(outcomes), reasons
 
 
+def wave_exit_criteria(evidence: dict[str, Any]) -> list[Any]:
+    """The gate's preregistered criteria, read from where they actually live.
+
+    waves/wave{N}.yaml carries exit_criteria (P4: fixed before execution).
+    Evidence may declare additional criteria for a gate that has none there.
+    """
+    criteria: list[Any] = list(evidence.get("gate_criteria") or [])
+    wave_id = evidence.get("wave_id")
+    if isinstance(wave_id, int) and not isinstance(wave_id, bool):
+        try:
+            from runner.fsm import load_wave
+
+            criteria.extend(load_wave(wave_id).get("exit_criteria") or [])
+        except (OSError, ValueError, KeyError):
+            pass
+    return criteria
+
+
+def run_validation_capital_detectors(evidence: dict[str, Any]) -> tuple[Verdict, list[str]]:
+    """Invoke the UPTM-004 detectors from the gate path.
+
+    Wiring only: the detectors decide nothing. Evaluated when the evidence
+    declares a capital gate or carries a capital pack; a gate that is neither is
+    left exactly as the gate treated it before.
+    """
+    pack = evidence.get("capital")
+    if pack is None and evidence.get("capital_gate") is not True:
+        return Verdict.PASS, []
+
+    try:
+        tranche = load_capital_rules().get("validation_capital") or {}
+    except (OSError, json.JSONDecodeError):
+        tranche = {}
+
+    outcomes = detect_validation_capital(evidence, pack or {}, tranche)
+    outcomes.extend(
+        detect_return_as_criterion(
+            wave_exit_criteria(evidence), evidence.get("agent_claim") or {}, pack or {}
+        )
+    )
+
+    reasons = [
+        f"{'validation_capital' if o.stop_condition_raised else 'unverifiable'}: "
+        f"{o.check_id} {o.verdict.value} — {o.detail}"
+        for o in outcomes
+        if o.verdict is not Verdict.PASS
+    ]
+    return worst(outcomes), reasons
+
+
 def evaluate_gate(
     evidence: dict[str, Any] | None,
     *,
@@ -256,6 +310,11 @@ def evaluate_gate(
     contributing = [Verdict.FAIL] if gate_reasons else []
     contributing.append(fabrication_verdict)
     contributing.append(kill_switch_verdict)
+
+    capital_verdict, capital_reasons = run_validation_capital_detectors(evidence)
+    reasons.extend(capital_reasons)
+    contributing.append(capital_verdict)
+
     verdict = worst_verdict(contributing)
 
     # KS-I3b — the invariant, not the mechanism. KS-I3 is what denies while the
