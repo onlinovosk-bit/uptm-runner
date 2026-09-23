@@ -14,12 +14,18 @@ from runner.evidence import (
     validate_evidence_structure,
 )
 from runner.detectors.fabrication import (
+    CheckOutcome,
     detect_fabricated_market_data,
     detect_fabricated_pnl,
     worst,
     worst_verdict,
 )
-from runner.paths import RULES
+from runner.detectors.kill_switch import (
+    detect_kill_switch,
+    detect_kill_switch_drill,
+    stop_is_engaged,
+)
+from runner.paths import CAPITAL_RULES, RULES
 from runner.stops import StopConditionError, check_evidence_for_stops, raise_if_stop
 from runner.verdict import Decision, Verdict, resolve
 
@@ -97,6 +103,52 @@ def run_fabrication_detectors(
                 reasons.append(f"{label}: {o.check_id} {o.verdict.value} — {o.detail}")
 
     return (worst_verdict(verdicts) if verdicts else Verdict.PASS), reasons
+
+
+def load_capital_rules() -> dict[str, Any]:
+    return json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
+
+
+def run_kill_switch_detectors(evidence: dict[str, Any]) -> tuple[Verdict, list[str]]:
+    """Invoke the UPTM-003 detectors from the gate path.
+
+    Wiring only: the detectors decide nothing. They return verdicts, this
+    function folds them, and resolution stays with runner.verdict.resolve.
+
+    The pack is evaluated only when the evidence carries it. Evidence that
+    declares no kill switch is left exactly as the gate treated it before — see
+    the recorded limit on omission in constitution/capital-rules.json.
+    """
+    pack = evidence.get("kill_switch")
+    if pack is None:
+        return Verdict.PASS, []
+
+    reasons: list[str] = []
+    outcomes = detect_kill_switch(pack)
+
+    drill = evidence.get("kill_switch_drill")
+    if drill is None:
+        outcomes.append(
+            CheckOutcome(
+                "KS-D0",
+                Verdict.UNKNOWN,
+                "undeclared preregistered parameter(s): kill_switch_drill — "
+                "an untested kill switch does not exist",
+            )
+        )
+    else:
+        try:
+            cadence = load_capital_rules()["live_capability"]["kill_switch_drill_cadence_days"]
+        except (OSError, json.JSONDecodeError, KeyError):
+            cadence = None
+        outcomes.extend(detect_kill_switch_drill(drill, pack.get("stop_state") or {}, cadence))
+
+    for o in outcomes:
+        if o.verdict is not Verdict.PASS:
+            label = "kill_switch" if o.stop_condition_raised else "unverifiable"
+            reasons.append(f"{label}: {o.check_id} {o.verdict.value} — {o.detail}")
+
+    return worst(outcomes), reasons
 
 
 def evaluate_gate(
@@ -198,9 +250,22 @@ def evaluate_gate(
     # demonstrated violation, so it contributes FAIL; the detectors may contribute
     # UNKNOWN, which denies without asserting a violation and must not be
     # reported as FAIL.
+    kill_switch_verdict, kill_switch_reasons = run_kill_switch_detectors(evidence)
+    reasons.extend(kill_switch_reasons)
+
     contributing = [Verdict.FAIL] if gate_reasons else []
     contributing.append(fabrication_verdict)
+    contributing.append(kill_switch_verdict)
     verdict = worst_verdict(contributing)
+
+    # KS-I3b — the invariant, not the mechanism. KS-I3 is what denies while the
+    # stop is engaged; this refuses to emit PASS if some later change to the
+    # folding above ever let one through. It can only fire on a governance bug.
+    if verdict is Verdict.PASS and stop_is_engaged(evidence.get("kill_switch") or {}):
+        verdict = Verdict.FAIL
+        reasons.append(
+            "gate_bypass_attempt: a PASS verdict was produced while the kill switch reads ENGAGED"
+        )
 
     return GateResult(
         verdict=verdict,

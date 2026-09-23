@@ -83,7 +83,7 @@
     "lease_may_replace_cp_flag": false,
     "cp_flag_may_replace_lease": false,
     "kill_switch_drill_required": true,
-    "kill_switch_drill_cadence_days": null
+    "kill_switch_drill_cadence_days": 7
   },
   "capital_gates": {
     "track": "parallel",
@@ -137,8 +137,8 @@
     {
       "id": "P8",
       "name": "Independent Kill Switch",
-      "enforcement": "DECLARATIVE",
-      "mechanism": null
+      "enforcement": "PARTIAL",
+      "mechanism": "runner/detectors/kill_switch.py invoked by runner.gates.evaluate_gate -> run_kill_switch_detectors; stop state must not be writable by this process, unreadable denies, reading does not mutate, ENGAGED denies, and a drill must show a real transition within the cadence against a pinned commit. PARTIAL because evidence omitting the pack is never examined."
     },
     {
       "id": "P9",
@@ -206,10 +206,10 @@
     ]
   },
   "enforcement_summary": {
-    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet.",
+    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet. P8 is PARTIAL: mechanised and invoked, but evidence omitting the pack is never examined.",
     "ENFORCED": 0,
-    "PARTIAL": 7,
-    "DECLARATIVE": 2,
+    "PARTIAL": 8,
+    "DECLARATIVE": 1,
     "MISSING": 5,
     "CONFLICT": 0
   },
@@ -233,19 +233,22 @@
     ]
   },
   "uptm003_detector": {
-    "module": null,
+    "module": "runner/detectors/kill_switch.py",
     "spec": "docs/specs/UPTM-003-kill-switch-independence.md",
     "principle": "P8",
-    "checks_preregistered": 10,
-    "status": "PREREGISTERED_NOT_IMPLEMENTED",
-    "invocation_path": null,
-    "reachability_proof": null,
-    "enforcement_unchanged": "P8 stays DECLARATIVE. Preregistration is not enforcement; only the implementation PR, with the spy and disconnection test of UPTM-003 section 7, may change principles[].enforcement.",
-    "founder_parameter_required": "live_capability.kill_switch_drill_cadence_days is null; until it is set, KS-D1 returns UNKNOWN and LIVE stays DENY.",
+    "checks": 10,
+    "status": "INVOKED_BY_GATE",
+    "invocation_path": "runner.gates.evaluate_gate -> run_kill_switch_detectors",
+    "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_kill_switch and detect_kill_switch_drill and that the drill detector receives the cadence from this file; a disconnection test asserts the gate's verdict follows the detector's return value. Three mutations - dropping the verdict from the fold, deleting the KS-I3b invariant, neutering the KS-I1 probe - each turn the suite red at the tests naming that property. Import alone proves nothing.",
+    "founder_parameter": "live_capability.kill_switch_drill_cadence_days = 7, set by the Founder 2026-09-23",
+    "amendments_before_evidence": "A1: KS-I1 probes os.access rather than scanning runner/ sources - a scan is forgeable and would evidence tidy code, not the capability. A2: preregistered case 13 contradicted case 3; the engaged stop now FAILs with a detail naming it as the switch working, and a separate gate invariant refuses any PASS produced while ENGAGED. Both made before the detector produced a verdict; see spec section 5a.",
+    "why_not_enforced": "Evidence that omits the kill_switch pack is never examined. A principle a caller can step around by leaving a key out is not enforced, whatever the detector does when the key is present. Closing it needs an evidence-schema declaration of which gates are LIVE-bearing - a separate decision.",
     "open_limits": {
       "deployment_topology": "A process cannot certify its own deployment. That the stop path is not co-located with the Runner, under the same credentials and failure domain, is a Founder attestation recorded with a date - never a PASS produced by code.",
-      "drill_against_mock": "A drill that exercised a stand-in rather than the real stop path still shows a valid before/after transition. KS-D4 narrows this by pinning the commit; it does not close it.",
-      "time_source": "KS-D2 trusts the clock it is given. A forged last_drill_at inside an otherwise consistent pack is not detected here."
+      "root": "For uid 0 the writability probe reports writable whatever the file mode says. That is the correct answer - a Runner running as root can clear its own stop - but nothing here prevents that deployment; it only refuses to pass the gate.",
+      "drill_against_mock": "A drill that exercised a stand-in rather than the real stop path still shows a valid before/after transition. KS-D4 narrows this by pinning the commit and the path; it does not close it.",
+      "time_source": "KS-D2 trusts the clock it is given. A forged last_drill_at inside an otherwise consistent pack is not detected here.",
+      "omission_bypass": "Evidence carrying no kill_switch pack never reaches these checks. Same hole UPTM-002 recorded; the reason P8 is PARTIAL rather than ENFORCED."
     }
   },
   "uptm004_detector": {

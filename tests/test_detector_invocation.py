@@ -202,3 +202,148 @@ def test_fail_dominates_unknown_in_the_gate(evidence):
     ev["market_data"].pop("calendar_id")          # UNKNOWN
     ev["pnl"]["fills"][0]["order_id"] = "orphan"  # FAIL
     assert evaluate_gate(ev).verdict is Verdict.FAIL
+
+
+# ==========================================================================
+# UPTM-003 — the same proof for the kill-switch detectors.
+# ==========================================================================
+
+
+@pytest.fixture
+def sealed_stop(tmp_path, monkeypatch):
+    """A stop state this process cannot write, whatever uid the suite runs as.
+
+    `can_write` is stubbed rather than relying on file modes: for uid 0 the OS
+    reports every path writable, and that is the correct answer, not a bug —
+    a Runner running as root can clear its own stop. Stubbing keeps the
+    invocation proof about wiring instead of about who ran pytest.
+    """
+    import runner.detectors.kill_switch as ks
+
+    monkeypatch.setattr(ks, "can_write", lambda _path: False)
+
+    def _make(state: str = "CLEAR"):
+        path = tmp_path / "stop.state"
+        path.write_text(state, encoding="utf-8")
+        return {
+            "stop_state": {
+                "path": str(path),
+                "owner": "ops@revolis",
+                "runner_writable": False,
+            }
+        }
+
+    return _make
+
+
+@pytest.fixture
+def ks_evidence(evidence, sealed_stop):
+    def _make(state: str = "CLEAR"):
+        ev = copy.deepcopy(evidence)
+        pack = sealed_stop(state)
+        ev["kill_switch"] = pack
+        ev["kill_switch_drill"] = {
+            "last_drill_at": "2026-09-22T12:00:00Z",
+            "drill_commit": "c9ae2aa",
+            "drill_stop_path": pack["stop_state"]["path"],
+            "before": {"state": "RUNNING", "artifact_digest": "a" * 64},
+            "after": {"state": "STOPPED", "artifact_digest": "b" * 64},
+        }
+        return ev
+
+    return _make
+
+
+def test_gate_actually_calls_the_kill_switch_detector(ks_evidence, monkeypatch):
+    calls: list[dict] = []
+
+    def spy(pack, **kwargs):
+        calls.append(pack)
+        return [CheckOutcome("KS-I1", Verdict.FAIL, "forced by spy")]
+
+    monkeypatch.setattr(gates, "detect_kill_switch", spy)
+    result = evaluate_gate(ks_evidence())
+
+    assert len(calls) == 1, "the gate did not invoke the kill-switch detector"
+    assert calls[0]["stop_state"]["owner"] == "ops@revolis"
+    assert result.verdict is Verdict.FAIL
+    assert any("forced by spy" in r for r in result.reasons)
+
+
+def test_gate_verdict_depends_on_what_the_kill_switch_detector_returns(
+    ks_evidence, monkeypatch
+):
+    """Disconnect the detector's judgement and the gate's outcome must change."""
+    broken = ks_evidence()
+    broken["kill_switch"]["stop_state"]["runner_writable"] = True
+    assert evaluate_gate(broken).verdict is Verdict.FAIL
+
+    monkeypatch.setattr(
+        gates,
+        "detect_kill_switch",
+        lambda pack, **kwargs: [CheckOutcome("KS-P2", Verdict.PASS, "stub")],
+    )
+    assert evaluate_gate(broken).verdict is Verdict.PASS, (
+        "the gate's verdict did not follow the detector — it is computing this elsewhere"
+    )
+
+
+def test_gate_actually_calls_the_drill_detector(ks_evidence, monkeypatch):
+    calls: list[tuple] = []
+    monkeypatch.setattr(
+        gates,
+        "detect_kill_switch_drill",
+        lambda drill, stop, cadence: calls.append((drill, stop, cadence))
+        or [CheckOutcome("KS-D1", Verdict.UNKNOWN, "spy")],
+    )
+    result = evaluate_gate(ks_evidence())
+    assert len(calls) == 1, "the gate did not invoke the drill detector"
+    assert calls[0][2] == 7, "the gate did not read the Founder's cadence from capital-rules.json"
+    assert result.verdict is Verdict.UNKNOWN
+    assert resolve(result.verdict) is Decision.DENY
+
+
+def test_engaged_stop_denies_through_the_gate(ks_evidence):
+    result = evaluate_gate(ks_evidence("ENGAGED"))
+    assert result.verdict is Verdict.FAIL
+    assert result.decision is Decision.DENY
+    assert any("kill_switch_engaged" in r for r in result.reasons), result.reasons
+
+
+def test_clear_stop_with_a_recent_drill_passes_the_gate(ks_evidence):
+    result = evaluate_gate(ks_evidence("CLEAR"))
+    assert result.verdict is Verdict.PASS, result.reasons
+
+
+def test_missing_drill_denies_without_accusing(ks_evidence):
+    ev = ks_evidence()
+    ev.pop("kill_switch_drill")
+    result = evaluate_gate(ev)
+    assert result.verdict is Verdict.UNKNOWN
+    assert resolve(result.verdict) is Decision.DENY
+    assert any("KS-D0" in r and "unverifiable" in r for r in result.reasons), result.reasons
+
+
+def test_ks_i3b_refuses_a_pass_produced_while_the_stop_is_engaged(ks_evidence, monkeypatch):
+    """The invariant, not the mechanism.
+
+    Stub the detector into reporting a clean bill of health while the stop on
+    disk reads ENGAGED. A gate that emitted PASS here would be the bypass P8
+    exists to prevent, so the fold must refuse it.
+    """
+    monkeypatch.setattr(
+        gates,
+        "detect_kill_switch",
+        lambda pack, **kwargs: [CheckOutcome("KS-I3", Verdict.PASS, "stub says all clear")],
+    )
+    result = evaluate_gate(ks_evidence("ENGAGED"))
+    assert result.verdict is Verdict.FAIL
+    assert any("gate_bypass_attempt" in r for r in result.reasons), result.reasons
+
+
+def test_evidence_without_a_kill_switch_pack_is_untouched(evidence):
+    """The omission path is left exactly as the gate treated it before."""
+    assert "kill_switch" not in evidence
+    result = evaluate_gate(evidence)
+    assert result.verdict is Verdict.PASS
+    assert not any("kill_switch" in r or r.startswith("KS-") for r in result.reasons)
