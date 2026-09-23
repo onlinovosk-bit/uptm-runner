@@ -15,71 +15,91 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
-## [2026-09-22] DEC-UPTM-003 — P8 Independent Kill Switch: build, with a named ceiling
+## [2026-09-23] DEC-UPTM-DUP — UPTM-003 was built twice, in parallel
 
-**Decided:** build WALL 1 / UPTM-003 in full — detector, gate wiring, mutation
-proof, `capital-rules.json` update.
+**What happened.** Two sessions implemented WALL 1 at the same time, neither
+aware of the other. One landed via PR #8 (merged to `main`, `97acd62`); the other
+became PR #9, which sat green and mergeable for a day and was then in conflict
+against a `main` that had grown its own kill-switch detector — and a
+validation-capital detector besides.
 
-**Parameter set by the Founder:**
+**Decided:** `main`'s implementation stands. PR #9 **closed unmerged**. Two
+detectors for one principle do not merge, and resolving the conflict would have
+produced exactly that.
 
-```yaml
-live_capability:
-  kill_switch_drill_cadence_days: 14
-```
+**Ported from the closed branch, on instruction, because both were in the
+original brief for this wall and `main` lacked them** (PR #12):
 
-**Re-verification beyond the window.** A drill is required again immediately —
-however recent the last one — after a change to `deployment_ref`,
-`credentials_ref`, `kill_switch_path_digest` or `gate_path_digest`. A drill
-against a deployment that no longer exists proves nothing about the one that does.
+- **KS-D5** — a drill is invalidated by a change to `deployment_ref`,
+  `credentials_ref` or `gate_path_digest`, independently of the cadence window.
+  `main`'s KS-D4 covered only the stop path.
+- **KS-D6** — deployment independence as a **dated operator attestation**,
+  checked for existence and currency, never for truth. `main` declared this as a
+  limit but did not check it.
 
-**The boundary the Founder drew:** *deployment independence is not to be
-certified by code.* Whether the kill switch runs outside the runner's process,
-credentials and topology stays an **explicit operator attestation carrying a
-date**. KS-D4 checks that one exists, is dated, and does not predate the last
-relevant change. It cannot check that it is true, and no test in this repository
-claims otherwise.
+Nothing else was ported: the machine-readable spec JSON, the
+preregistration-integrity tests, the omission-bypass closure under a LIVE
+capability claim, and the malformed-shape hardening stay in the closed branch.
 
-**Status moved:** `P8: DECLARATIVE → PARTIAL`,
-`gate_bypass_attempt: DECLARATIVE → PARTIAL`.
-Summary: `ENFORCED 0 / PARTIAL 8 / DECLARATIVE 1 / MISSING 5`.
+**Two things `main` does better**, recorded so the closure is not read as a
+verdict on quality:
 
-Moved **after** the suite was green, on the Founder's condition that the status
-change only if every preregistered UPTM-003 criterion actually passes. `PARTIAL`
-is the ceiling; `upgrade_by_green_tests_forbidden` stays `true`.
+- `can_write` probes writability **in fact**, rather than trusting a declared
+  `runner_write_paths` list.
+- `gate_bypass_attempt` was left `DECLARATIVE`. The closed branch promoted it to
+  `PARTIAL` on the strength of a single detection path; that promotion did not
+  survive, and should not have been made.
 
-**Artifacts:** `docs/specs/UPTM-003-kill-switch.{md,json}` ·
-`runner/detectors/kill_switch.py` · `runner/gates.py` ·
-`constitution/capital-rules.json` · `audits/uptm/uptm003-implementation-report.md` ·
-PR #9 (`5c3daac`, 236 tests passing).
+**The cost, stated plainly.** This is the second time the same failure has been
+recorded on this stack — `RealitkaAI/memory/decisions.md` carries
+*"Bus was designed twice"* from 2026-09-21. Two sessions working the same
+backlog without a shared claim on the work produce two implementations and one
+of them is thrown away. That is the finding, not the detector.
 
-### Why this is not a P14 amendment
-
-`CONSTITUTION-CAPITAL.md` v1.0 is **LOCKED** and its text is unchanged, so no
-`constitution_version` bump and no PASS results invalidated to `STALE` under P12.
-
-`kill_switch_drill_required: true` was already in `live_capability`; the cadence
-sat at `null`. Filling in a parameter the constitution already demanded is
-parameterisation, not amendment. Recorded here so that nobody has to reconstruct
-the distinction later.
-
-### Defect found while building, kept on the record
-
-The first design let KS-S1 read the stop state and KS-S2 read it again.
-Acceptance case MUT-03 — a reader that writes — **passed when it should have
-failed**: the first read had already made the change, so the second read's
-digests matched. The stop state is now read exactly once per evaluation,
-bracketed by a digest either side, and `test_the_stop_state_is_read_exactly_once`
-pins it.
-
-The point worth keeping: the mutation case caught this, not the design review.
+**Artifacts:** PR #8 (merged) · PR #9 (closed) · PR #12 (ported checks).
 
 ---
 
-## [2026-09-22] DEC-UPTM-004-PRE — Validation capital parameters, preregistered
+## [2026-09-23] DEC-UPTM-003 — P8 Independent Kill Switch: cadence and ceiling
 
-**Preregistered, not built.** WALL 2 / UPTM-004 (P10) is not started. These
-parameters are recorded now so the acceptance criteria cannot drift once evidence
-starts arriving (P4).
+**Parameter in force:**
+
+```yaml
+live_capability:
+  kill_switch_drill_cadence_days: 7
+```
+
+Set by the Founder 2026-09-23. **This supersedes the 14 given on 2026-09-22**,
+against which the closed PR #9 was built. Both values were Founder-attributed;
+the later one governs. Recorded because two dated parameters for one safety
+control is exactly the thing that becomes unreconstructable in a month.
+
+**Re-verification beyond the window.** A drill is required again immediately —
+however recent the last one — after a change to the stop path (KS-D4) or to
+`deployment_ref`, `credentials_ref` or `gate_path_digest` (KS-D5, PR #12). A
+drill against a deployment that no longer exists proves nothing about the one
+that does.
+
+**The boundary the Founder drew:** *deployment independence is not to be
+certified by code.* Whether the kill switch runs outside the Runner's process,
+credentials and failure domain stays an **explicit operator attestation carrying
+a date**. KS-D6 checks that one exists, is dated, is not dated in the future,
+and is not older than the deployment it describes. It cannot check that it is
+true, and no test in this repository claims otherwise.
+
+**Status:** `P8: DECLARATIVE → PARTIAL`, landed with PR #8.
+`PARTIAL` is the ceiling. It is not `ENFORCED` for a stated reason:
+evidence that omits the `kill_switch` pack is never examined
+(`open_limits.omission_bypass`). A principle a caller can step around by leaving
+a key out is not enforced, whatever the detector does when the key is present.
+
+**Artifacts:** `docs/specs/UPTM-003-kill-switch-independence.md` ·
+`runner/detectors/kill_switch.py` · `runner/gates.py` ·
+`constitution/capital-rules.json`.
+
+---
+
+## [2026-09-22] DEC-UPTM-004-PRE — Validation capital parameters, preregistered and still unset
 
 ```yaml
 validation_capital:
@@ -94,13 +114,25 @@ validation_capital:
   by the stricter aggregate-open-exposure limit.
 - **PnL may be reported. Profit and loss may not be used as an acceptance
   criterion** of the validation experiment. €700 is the size of the test, not the
-  size of the opportunity; a result that passes because it made money is a
-  result that has measured the wrong thing.
+  size of the opportunity; a result that passes because it made money has
+  measured the wrong thing.
 
-**Ordering, as decided:** UPTM-003 → full ENFORCEMENT evidence → *then* UPTM-004.
-The middle step is its own deliverable and is not the same as merging PR #9.
+**State of the repository:** the UPTM-004 **detectors exist** on `main` (PR #8,
+`1227ded`) and are invoked by the gate. The **parameters above are not set** —
+`validation_capital.amount`, `.currency` and `.applies_to` are `null`/`[]`, VC-P1
+returns `UNKNOWN`, and every capital gate denies until the Founder sets them.
 
-**Artifact:** none yet. This is a plan, and says so.
+That is the correct state. `capital-rules.json` records why: the constitution
+names €700 in P10's *heading*, and a heading is prose. The value that gates money
+is set deliberately, not parsed out of a title.
+
+**Ordering, as decided:** UPTM-003 → full ENFORCEMENT evidence → *then*
+UPTM-004. Writing these parameters into `capital-rules.json` is the act that
+starts WALL 2, so it has not been done. The detectors landing early does not
+advance that order; it only means the code is waiting.
+
+**Artifact:** detectors on `main`. Parameters: none — this half is still a plan,
+and says so.
 
 ---
 
