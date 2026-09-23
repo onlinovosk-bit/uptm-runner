@@ -1,4 +1,4 @@
-"""CLI: uptm-runner baseline | wave-status | evaluate-gate | smoke"""
+"""CLI: uptm-runner baseline | wave-status | evaluate-gate | smoke | enforcement-evidence"""
 
 from __future__ import annotations
 
@@ -7,6 +7,9 @@ import json
 import sys
 from pathlib import Path
 
+import tempfile
+
+from runner.enforcement import manifest, run_routes, unproven_claims
 from runner.fsm import RunnerFSM, load_baseline, run_baseline_ack, wave_status
 from runner.gates import evaluate_gate
 from runner.paths import ROOT
@@ -43,6 +46,37 @@ def cmd_evaluate_gate(args: argparse.Namespace) -> int:
     }
     print(json.dumps(payload, indent=2))
     return 0 if result.passed else 1
+
+
+def cmd_enforcement_evidence(args: argparse.Namespace) -> int:
+    """Emit UPTM-006 evidence for the ENFORCED claims, and fail if one is unearned.
+
+    Exits non-zero when a claim has no routes, when any route reaches PASS, or
+    when a route denies for a reason other than its own. Silence is not
+    permission: an artifact that cannot be produced is not a passing run.
+    """
+    with tempfile.TemporaryDirectory() as scratch:
+        results = run_routes(Path(scratch))
+
+    payload = manifest(results, commit=args.commit)
+    passing = [r["route_id"] for r in results if r["verdict"] == "PASS"]
+    misattributed = [
+        r["route_id"]
+        for r in results
+        if not r["denied_by_its_own_check"] and r["blocked_by"] is None
+    ]
+    payload["ok"] = not (passing or misattributed or payload["unproven_claims"])
+    payload["routes_reaching_pass"] = passing
+    payload["routes_denied_for_another_reason"] = misattributed
+
+    out = Path(args.out) if args.out else ROOT / "evidence" / "enforcement" / f"{args.commit}.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({k: payload[k] for k in ("ok", "commit", "expires_at", "unproven_claims",
+                                              "routes_reaching_pass",
+                                              "routes_denied_for_another_reason")}, indent=2))
+    print(f"written: {out}", file=sys.stderr)
+    return 0 if payload["ok"] else 1
 
 
 def cmd_smoke(_: argparse.Namespace) -> int:
@@ -120,6 +154,13 @@ def build_parser() -> argparse.ArgumentParser:
     g = sub.add_parser("evaluate-gate", help="Evaluate gate from evidence artifact")
     g.add_argument("--evidence", type=str, required=False, help="Path to evidence JSON")
     g.set_defaults(func=cmd_evaluate_gate)
+
+    e = sub.add_parser(
+        "enforcement-evidence", help="Emit UPTM-006 evidence for the ENFORCED claims"
+    )
+    e.add_argument("--commit", required=True, help="Commit the evidence is pinned to (P12)")
+    e.add_argument("--out", default=None, help="Output path (default evidence/enforcement/)")
+    e.set_defaults(func=cmd_enforcement_evidence)
 
     s = sub.add_parser("smoke", help="Smoke checks (no live trading)")
     s.set_defaults(func=cmd_smoke)

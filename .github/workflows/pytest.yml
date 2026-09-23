@@ -26,3 +26,6 @@ jobs:
 
       - name: Run pytest
         run: python -m pytest
+
+      - name: Enforcement evidence (UPTM-006)
+        run: python -m runner.cli enforcement-evidence --commit "${{ github.sha }}"
