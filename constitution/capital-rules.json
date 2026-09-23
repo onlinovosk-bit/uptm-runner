@@ -238,20 +238,21 @@
     "module": "runner/detectors/kill_switch.py",
     "spec": "docs/specs/UPTM-003-kill-switch-independence.md",
     "principle": "P8",
-    "checks": 10,
+    "checks": 12,
     "status": "INVOKED_BY_GATE",
     "invocation_path": "runner.gates.evaluate_gate -> run_kill_switch_detectors",
-    "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_kill_switch and detect_kill_switch_drill and that the drill detector receives the cadence from this file; a disconnection test asserts the gate's verdict follows the detector's return value. Three mutations - dropping the verdict from the fold, deleting the KS-I3b invariant, neutering the KS-I1 probe - each turn the suite red at the tests naming that property. Import alone proves nothing.",
+    "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_kill_switch and detect_kill_switch_drill and that the drill detector receives the cadence from this file; a disconnection test asserts the gate's verdict follows the detector's return value. Eight mutations - dropping the verdict from the fold, deleting the KS-I3b invariant, neutering the KS-I1 probe, and five that neuter KS-D5 or KS-D6 after a change they alone catch - each turn the suite red at the tests naming that property. Import alone proves nothing.",
     "founder_parameter": "live_capability.kill_switch_drill_cadence_days = 7, set by the Founder 2026-09-23",
     "amendments_before_evidence": "A1: KS-I1 probes os.access rather than scanning runner/ sources - a scan is forgeable and would evidence tidy code, not the capability. A2: preregistered case 13 contradicted case 3; the engaged stop now FAILs with a detail naming it as the switch working, and a separate gate invariant refuses any PASS produced while ENGAGED. Both made before the detector produced a verdict; see spec section 5a.",
-    "why_not_enforced": "Evidence that omits the kill_switch pack is never examined. A principle a caller can step around by leaving a key out is not enforced, whatever the detector does when the key is present. Closing it needs an evidence-schema declaration of which gates are LIVE-bearing - a separate decision.",
     "open_limits": {
-      "deployment_topology": "A process cannot certify its own deployment. That the stop path is not co-located with the Runner, under the same credentials and failure domain, is a Founder attestation recorded with a date - never a PASS produced by code.",
+      "deployment_topology": "A process cannot certify its own deployment. That the stop path is not co-located with the Runner, under the same credentials and failure domain, is a Founder attestation recorded with a date - never a PASS produced by code. KS-D6 checks that such an attestation exists, is dated and is not older than the deployment it describes; it cannot check that it is true.",
       "root": "For uid 0 the writability probe reports writable whatever the file mode says. That is the correct answer - a Runner running as root can clear its own stop - but nothing here prevents that deployment; it only refuses to pass the gate.",
-      "drill_against_mock": "A drill that exercised a stand-in rather than the real stop path still shows a valid before/after transition. KS-D4 narrows this by pinning the commit and the path; it does not close it.",
+      "drill_against_mock": "A drill that exercised a stand-in rather than the real stop path still shows a valid before/after transition. KS-D4 narrows this by pinning the commit and the path, and KS-D5 by pinning the deployment, credentials and gate path; neither closes it.",
       "time_source": "KS-D2 trusts the clock it is given. A forged last_drill_at inside an otherwise consistent pack is not detected here.",
-      "omission_bypass": "Evidence carrying no kill_switch pack never reaches these checks. Same hole UPTM-002 recorded; the reason P8 is PARTIAL rather than ENFORCED."
-    }
+      "omission_bypass": "CLOSED by UPTM-005. Evidence carrying no kill_switch pack once bypassed these checks entirely; the scope declaration is now mandatory and unconditional, and its absence resolves to UNKNOWN. Kept as a closed entry rather than removed so the hole and its closure stay auditable together."
+    },
+    "ported_checks": "KS-D5 (drill invalidated by a change to deployment_ref, credentials_ref or gate_path_digest, independently of the cadence window) and KS-D6 (dated operator attestation of deployment independence, checked for existence and currency, never for truth) were ported from the parallel implementation in PR #9, closed unmerged, on the Founder's instruction 2026-09-23. Both were in the Founder's original brief for this wall. See spec section 7a.",
+    "enforced_since": "UPTM-005 (PR #10). P8 was PARTIAL for one stated reason - evidence omitting the kill_switch pack was never examined - and the mandatory scope declaration closed it. The old why_not_enforced text was left behind by that upgrade and is removed here rather than kept as a rationale for a status that no longer holds."
   },
   "uptm004_detector": {
     "module": "runner/detectors/validation_capital.py",

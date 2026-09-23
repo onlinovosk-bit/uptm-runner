@@ -89,7 +89,10 @@ KS-I3 is the check that makes the switch a switch. Without it "engaged" is a lab
 ### 4.1 Declarations required
 
 `cadence_days` (from `capital-rules.json` `live_capability.kill_switch_drill_cadence_days`),
-`last_drill_at`, `drill_commit`, `before`, `after`, `artifact_digest`.
+`last_drill_at`, `drill_commit`, `before`, `after`, `artifact_digest`,
+`drill.environment` and `stop_state.environment` (each declaring `deployment_ref`,
+`credentials_ref`, `gate_path_digest`), and `stop_state.independence_attestation`
+(`by`, `at`).
 
 ### 4.2 Checks
 
@@ -99,6 +102,20 @@ KS-I3 is the check that makes the switch a switch. Without it "engaged" is a lab
 | **KS-D2** | `now - last_drill_at <= cadence_days` | older → `FAIL`; `last_drill_at` absent → `UNKNOWN` |
 | **KS-D3** | The drill record shows a transition: `before.state` is running and `after.state` is stopped, each carrying an artifact digest | a record whose only content is a claim (`"drill": "ok"`, a verdict with no before/after) → `FAIL` `evidence_forgery_detected` |
 | **KS-D4** | `drill_commit` is present and the declared `stop_state.path` at that commit equals the one in force now | differs or absent → `UNKNOWN` (P12: evidence has commit and expiry) |
+| **KS-D5** | `drill.environment` equals `stop_state.environment` on `deployment_ref`, `credentials_ref` and `gate_path_digest` | differs or either undeclared → `UNKNOWN` |
+| **KS-D6** | `stop_state.independence_attestation` exists, carries `by` and `at`, is not future-dated, and is not older than `environment.changed_at` | absent, undated or stale → `UNKNOWN` |
+
+KS-D5 and KS-D4 answer different questions. KS-D2 asks whether the drill is
+recent; KS-D5 asks whether it is still *about* the system in force. The two are
+independent — a drill performed an hour ago against yesterday's credentials is
+fresh and worthless. KS-D4 already covered the stop path; KS-D5 covers the rest
+of the blast radius.
+
+KS-D6 does not certify deployment independence, and §0 explains why nothing here
+could. It checks the one thing code can check about an attestation: that one
+exists, that it is dated, and that it is not older than the deployment it
+purports to describe. A PASS means there is a current attestation, not that it
+is true.
 
 KS-D3 mirrors the rule the gate already applies to agent PASS claims: a self-report with
 no probes is not evidence. A drill is a probe of the one control that matters most.
@@ -125,13 +142,18 @@ its results are known.
 8. Stop state unreadable, or the file is absent.
 9. `stop_state.owner` undeclared.
 10. `drill_commit` absent, or naming a commit whose stop-state path differs from today's.
+10a. `deployment_ref`, `credentials_ref` or `gate_path_digest` changed since the drill — **even when the drill is minutes old**.
+10b. Either environment undeclared.
+10c. `independence_attestation` absent, missing `by` or `at`, dated in the future, or older than `environment.changed_at`.
 
 Each of these denies. None of them accuses.
 
 ### Must return `PASS` — false-positive protection
 
-11. A well-formed pack: `runner_writable: false`, no write path in `runner/`, stop state readable and `CLEAR`, digest stable, drill within cadence with a real before/after transition and a matching commit.
+11. A well-formed pack: `runner_writable: false`, no write path in `runner/`, stop state readable and `CLEAR`, digest stable, drill within cadence with a real before/after transition, a matching commit, an
+   unchanged environment, and a current independence attestation.
 12. A drill performed *more* often than the cadence.
+12a. An attestation dated after the last deployment change, by an operator whose diligence code cannot assess — KS-D6 passes on currency, never on truth.
 13. A stop state that reads `ENGAGED` **and** a gate that correctly resolves to DENY — the switch working is not a violation. This case exists to stop a naive implementation from treating `ENGAGED` itself as FAIL.
 
 ---
@@ -235,6 +257,27 @@ Following UPTM-002c — import proves nothing:
   turn the suite red, at the tests that name that property and no others.
 
 ---
+
+## 7a. KS-D5 and KS-D6 — ported after the fact
+
+These two checks were not in the original preregistration. They were written in a
+parallel UPTM-003 implementation (PR #9, closed unmerged) and ported here on the
+Founder's instruction, because the Founder's original brief for this wall
+required both: *a drill must be re-required after a change to deployment,
+credentials or the kill-switch/gate path*, and *physical separation remains an
+explicit operator attestation with a date*.
+
+Recorded as an addition rather than folded into §4.2 silently, because a
+specification that quietly becomes whatever was built stops being a
+specification (the rule §5a already applies to the two earlier amendments).
+
+No evidence had been graded against §4.2 when this landed.
+
+Neither check changes P8's status. P8 reached `ENFORCED` through UPTM-005, which
+made the evidence scope declaration mandatory and closed the omission bypass
+that had held it at `PARTIAL`. KS-D5 and KS-D6 narrow what a valid drill and a
+current attestation mean; they do not touch the reason the principle is
+enforced.
 
 ## 8. Founder parameter — set
 

@@ -44,6 +44,16 @@ def pack(stop_file):
             "path": str(stop_file(state)),
             "owner": "ops@revolis",
             "runner_writable": False,
+            "environment": {
+                "deployment_ref": "dep-1",
+                "credentials_ref": "cred-1",
+                "gate_path_digest": "gate-1",
+                "changed_at": "2026-09-01T00:00:00Z",
+            },
+            "independence_attestation": {
+                "by": "ops@revolis",
+                "at": "2026-09-10T00:00:00Z",
+            },
         }
         stop.update(stop_overrides)
         return {"stop_state": stop}
@@ -60,6 +70,12 @@ def drill():
             "drill_stop_path": None,  # filled by the caller to match the pack
             "before": {"state": "RUNNING", "artifact_digest": "a" * 64},
             "after": {"state": "STOPPED", "artifact_digest": "b" * 64},
+            "environment": {
+                "deployment_ref": "dep-1",
+                "credentials_ref": "cred-1",
+                "gate_path_digest": "gate-1",
+                "changed_at": "2026-09-01T00:00:00Z",
+            },
         }
         base.update(overrides)
         return base
@@ -235,3 +251,96 @@ def test_case13_engaged_is_reported_as_the_switch_working(pack):
     assert all(o.verdict is Verdict.PASS for o in others), (
         "engaging the switch must not make every other check fail"
     )
+
+
+# ------------------------------------------------------------ KS-D5 / KS-D6
+#
+# Ported from the parallel UPTM-003 implementation (closed PR #9) on the
+# Founder's instruction. KS-D4 already invalidates a drill run against a
+# different stop path; these extend the same reasoning to the rest of the blast
+# radius, and add the one thing code can check about an attestation.
+
+
+def _drill_for(p, d):
+    """A drill record consistent with the pack it was run against."""
+    d = dict(d)
+    d["drill_stop_path"] = p["stop_state"]["path"]
+    return d
+
+
+@pytest.mark.parametrize("key", ["deployment_ref", "credentials_ref", "gate_path_digest"])
+def test_a_relevant_change_invalidates_an_otherwise_fresh_drill(pack, drill, key):
+    """Recent and worthless are not mutually exclusive."""
+    p = pack()
+    p["stop_state"]["environment"][key] = "changed-after-the-drill"
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+
+    assert _outcome(outcomes, "KS-D5").verdict is Verdict.UNKNOWN
+    assert key in _outcome(outcomes, "KS-D5").detail
+    assert resolve(_outcome(outcomes, "KS-D5").verdict) is Decision.DENY
+    # freshness is untouched — staleness is not why this denied
+    assert _outcome(outcomes, "KS-D2").verdict is Verdict.PASS
+
+
+def test_an_undeclared_environment_is_unknown_never_assumed_equal(pack, drill):
+    p = pack()
+    d = _drill_for(p, drill())
+    d.pop("environment")
+    assert _outcome(detect_kill_switch_drill(d, p["stop_state"], CADENCE), "KS-D5").verdict is (
+        Verdict.UNKNOWN
+    )
+
+
+def test_a_matching_environment_passes(pack, drill):
+    p = pack()
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    assert _outcome(outcomes, "KS-D5").verdict is Verdict.PASS
+
+
+def test_a_missing_attestation_is_unknown(pack, drill):
+    p = pack()
+    p["stop_state"].pop("independence_attestation")
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    assert _outcome(outcomes, "KS-D6").verdict is Verdict.UNKNOWN
+    assert "dated operator claim" in _outcome(outcomes, "KS-D6").detail
+
+
+@pytest.mark.parametrize("field", ["by", "at"])
+def test_an_undated_or_unsigned_attestation_is_unknown(pack, drill, field):
+    p = pack()
+    p["stop_state"]["independence_attestation"].pop(field)
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    assert _outcome(outcomes, "KS-D6").verdict is Verdict.UNKNOWN
+
+
+def test_an_attestation_predating_the_deployment_it_describes_is_unknown(pack, drill):
+    """An attestation older than the deployment describes a system that is gone."""
+    p = pack()
+    p["stop_state"]["environment"]["changed_at"] = "2026-09-20T00:00:00Z"  # after the attestation
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    assert _outcome(outcomes, "KS-D6").verdict is Verdict.UNKNOWN
+    assert "covering today's deployment" in _outcome(outcomes, "KS-D6").detail
+
+
+def test_an_attestation_dated_after_the_last_change_passes(pack, drill):
+    p = pack()
+    p["stop_state"]["independence_attestation"]["at"] = "2026-09-02T00:00:00Z"
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    assert _outcome(outcomes, "KS-D6").verdict is Verdict.PASS
+
+
+def test_a_future_dated_attestation_is_unknown(pack, drill):
+    p = pack()
+    p["stop_state"]["independence_attestation"]["at"] = "2099-01-01T00:00:00Z"
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    assert _outcome(outcomes, "KS-D6").verdict is Verdict.UNKNOWN
+
+
+def test_neither_check_claims_deployment_independence_is_true(pack, drill):
+    """The boundary, asserted: a PASS here means an attestation exists and is
+    current. It does not mean the switch is beyond the Runner's blast radius —
+    no code in this repository establishes that."""
+    p = pack()
+    p["stop_state"]["independence_attestation"]["by"] = "someone who never checked"
+    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    assert _outcome(outcomes, "KS-D6").verdict is Verdict.PASS
