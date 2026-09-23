@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "spec_id": "UPTM-003",
+  "spec": "P8 — Independent Kill Switch",
+  "status": "PREREGISTERED",
+  "detector_exists": true,
+  "stop_conditions": [
+    "gate_bypass_attempt",
+    "evidence_forgery_detected"
+  ],
+  "claim_boundary": "These checks never report that a kill switch is physically independent of the runner. They report that the stop state is readable and determinate, that reading it does not change it, that no write path to it is declared for the runner, that a drill with a demonstrated transition happened inside the cadence and has not been invalidated by a relevant change, and that an operator has attested physical separation with a date. Deployment independence is not certified by code.",
+  "verdicts": [
+    "PASS",
+    "FAIL",
+    "UNKNOWN"
+  ],
+  "verdict_semantics": {
+    "PASS": "the property demonstrably holds",
+    "FAIL": "the property is demonstrably violated; raises the check's stop condition",
+    "UNKNOWN": "the property cannot be evaluated from the preregistered evidence; denies without accusing"
+  },
+  "gate_passes_only_if": "every check returns PASS",
+  "missing_parameter_verdict": "UNKNOWN",
+  "live_claim_without_pack_verdict": "UNKNOWN",
+  "checks": [
+    {
+      "id": "KS-P1",
+      "layer": "DECLARATION",
+      "stop_condition": "gate_bypass_attempt",
+      "required_params": [
+        "stop_state_ref",
+        "stop_state_read_via",
+        "runner_write_paths",
+        "drill",
+        "operator_attestation"
+      ],
+      "property": "The kill-switch pack declares the five fields the remaining checks read."
+    },
+    {
+      "id": "KS-S1",
+      "layer": "STOP_STATE",
+      "stop_condition": "gate_bypass_attempt",
+      "required_params": [
+        "stop_state_ref",
+        "declared_states"
+      ],
+      "property": "The stop state is readable and resolves to exactly one declared state. Unreadable or unrecognised is UNKNOWN, never an assumed DISENGAGED."
+    },
+    {
+      "id": "KS-S2",
+      "layer": "STOP_STATE",
+      "stop_condition": "gate_bypass_attempt",
+      "required_params": [
+        "stop_state_ref"
+      ],
+      "property": "Reading the stop state does not change it. The digest before and after the read must be identical."
+    },
+    {
+      "id": "KS-S3",
+      "layer": "INDEPENDENCE",
+      "stop_condition": "gate_bypass_attempt",
+      "required_params": [
+        "runner_write_paths"
+      ],
+      "property": "The runner declares no write path to the stop state. A declared write path is a kill switch the runner can disable (CC/P8)."
+    },
+    {
+      "id": "KS-D1",
+      "layer": "DRILL",
+      "stop_condition": "evidence_forgery_detected",
+      "required_params": [
+        "drill_completed_at_utc",
+        "evaluated_at_utc",
+        "cadence_days"
+      ],
+      "property": "The last drill is no older than live_capability.kill_switch_drill_cadence_days. An undeclared cadence is UNKNOWN, never a default."
+    },
+    {
+      "id": "KS-D2",
+      "layer": "DRILL",
+      "stop_condition": "evidence_forgery_detected",
+      "required_params": [
+        "drill_before_state",
+        "drill_after_state"
+      ],
+      "property": "The drill records a real state transition: two declared states that differ, ending in ENGAGED. A drill that never engaged the switch demonstrates nothing."
+    },
+    {
+      "id": "KS-D3",
+      "layer": "DRILL",
+      "stop_condition": "evidence_forgery_detected",
+      "required_params": [
+        "drill_environment",
+        "current_environment"
+      ],
+      "property": "The drill is invalidated by a change to deployment, credentials, the kill-switch path or the gate path, independently of the cadence window."
+    },
+    {
+      "id": "KS-D4",
+      "layer": "ATTESTATION",
+      "stop_condition": "evidence_forgery_detected",
+      "required_params": [
+        "operator_attestation_by",
+        "operator_attestation_at_utc"
+      ],
+      "property": "Physical independence is an operator attestation with a date, and the attestation must not predate the last relevant change. Code never certifies deployment independence."
+    },
+    {
+      "id": "KS-D5",
+      "layer": "DRILL",
+      "stop_condition": "evidence_forgery_detected",
+      "required_params": [
+        "drill_result"
+      ],
+      "property": "A declared drill verdict is substantiated by the transition. result=PASS with no recorded transition is evidence_forgery_detected — the claim is the evidence."
+    },
+    {
+      "id": "KS-G1",
+      "layer": "GATE_COMPOSITION",
+      "stop_condition": "gate_bypass_attempt",
+      "required_params": [
+        "stop_state_ref"
+      ],
+      "property": "A gate that would otherwise PASS while the stop state is ENGAGED is a gate_bypass_attempt. Evaluated in runner.gates.evaluate_gate over the composed verdict of every other contribution."
+    }
+  ],
+  "acceptance_cases": {
+    "must_fail": [
+      {
+        "id": "MUT-01",
+        "check": "KS-S1",
+        "mutation": "stop state file holds a token outside declared_states"
+      },
+      {
+        "id": "MUT-02",
+        "check": "KS-S1",
+        "mutation": "stop state file absent or unreadable"
+      },
+      {
+        "id": "MUT-03",
+        "check": "KS-S2",
+        "mutation": "the configured reader writes to the stop state while reading it"
+      },
+      {
+        "id": "MUT-04",
+        "check": "KS-S3",
+        "mutation": "runner_write_paths declares a path to the stop state"
+      },
+      {
+        "id": "MUT-05",
+        "check": "KS-D1",
+        "mutation": "last drill completed 15 days before evaluation under a 14-day cadence"
+      },
+      {
+        "id": "MUT-06",
+        "check": "KS-D2",
+        "mutation": "drill declares result PASS with before_state == after_state"
+      },
+      {
+        "id": "MUT-07",
+        "check": "KS-D5",
+        "mutation": "drill declares result PASS and records no transition at all"
+      },
+      {
+        "id": "MUT-08",
+        "check": "KS-D3",
+        "mutation": "deployment_ref changed since the drill"
+      },
+      {
+        "id": "MUT-09",
+        "check": "KS-D3",
+        "mutation": "credentials_ref changed since the drill"
+      },
+      {
+        "id": "MUT-10",
+        "check": "KS-D3",
+        "mutation": "kill_switch_path_digest changed since the drill"
+      },
+      {
+        "id": "MUT-11",
+        "check": "KS-D3",
+        "mutation": "gate_path_digest changed since the drill"
+      },
+      {
+        "id": "MUT-12",
+        "check": "KS-D4",
+        "mutation": "operator attestation predates the last relevant change"
+      },
+      {
+        "id": "MUT-13",
+        "check": "KS-G1",
+        "mutation": "stop state ENGAGED while every other gate contribution would PASS"
+      }
+    ],
+    "must_unknown": [
+      {
+        "id": "MUT-14",
+        "check": "KS-P1",
+        "missing_param": "stop_state_ref"
+      },
+      {
+        "id": "MUT-15",
+        "check": "KS-P1",
+        "missing_param": "stop_state_read_via"
+      },
+      {
+        "id": "MUT-16",
+        "check": "KS-P1",
+        "missing_param": "runner_write_paths"
+      },
+      {
+        "id": "MUT-17",
+        "check": "KS-P1",
+        "missing_param": "drill"
+      },
+      {
+        "id": "MUT-18",
+        "check": "KS-P1",
+        "missing_param": "operator_attestation"
+      },
+      {
+        "id": "MUT-19",
+        "check": "KS-S1",
+        "missing_param": "stop_state_ref"
+      },
+      {
+        "id": "MUT-20",
+        "check": "KS-S1",
+        "missing_param": "declared_states"
+      },
+      {
+        "id": "MUT-21",
+        "check": "KS-S2",
+        "missing_param": "stop_state_ref"
+      },
+      {
+        "id": "MUT-22",
+        "check": "KS-S3",
+        "missing_param": "runner_write_paths"
+      },
+      {
+        "id": "MUT-23",
+        "check": "KS-D1",
+        "missing_param": "drill_completed_at_utc"
+      },
+      {
+        "id": "MUT-24",
+        "check": "KS-D1",
+        "missing_param": "evaluated_at_utc"
+      },
+      {
+        "id": "MUT-25",
+        "check": "KS-D1",
+        "missing_param": "cadence_days"
+      },
+      {
+        "id": "MUT-26",
+        "check": "KS-D2",
+        "missing_param": "drill_before_state"
+      },
+      {
+        "id": "MUT-27",
+        "check": "KS-D2",
+        "missing_param": "drill_after_state"
+      },
+      {
+        "id": "MUT-28",
+        "check": "KS-D3",
+        "missing_param": "drill_environment"
+      },
+      {
+        "id": "MUT-29",
+        "check": "KS-D3",
+        "missing_param": "current_environment"
+      },
+      {
+        "id": "MUT-30",
+        "check": "KS-D4",
+        "missing_param": "operator_attestation_by"
+      },
+      {
+        "id": "MUT-31",
+        "check": "KS-D4",
+        "missing_param": "operator_attestation_at_utc"
+      },
+      {
+        "id": "MUT-32",
+        "check": "KS-D5",
+        "missing_param": "drill_result"
+      },
+      {
+        "id": "MUT-33",
+        "check": "KS-G1",
+        "missing_param": "stop_state_ref"
+      }
+    ],
+    "must_pass": [
+      {
+        "id": "NEG-01",
+        "check": "KS-D1",
+        "case": "drill completed exactly at the 14-day boundary is still valid"
+      },
+      {
+        "id": "NEG-02",
+        "check": "KS-S1",
+        "case": "DISENGAGED is a determinate declared state and passes"
+      },
+      {
+        "id": "NEG-03",
+        "check": "KS-D2",
+        "case": "drill records DISENGAGED -> ENGAGED -> DISENGAGED and passes"
+      },
+      {
+        "id": "NEG-04",
+        "check": "KS-S3",
+        "case": "an explicitly empty runner_write_paths passes; declared-empty is not undeclared"
+      },
+      {
+        "id": "NEG-05",
+        "check": "KS-D4",
+        "case": "attestation dated after the last relevant change passes"
+      },
+      {
+        "id": "NEG-06",
+        "check": "KS-G1",
+        "case": "ENGAGED while another contribution already denies adds no bypass accusation"
+      },
+      {
+        "id": "NEG-07",
+        "check": "KS-D5",
+        "case": "result PASS with a recorded transition is substantiated, not forgery"
+      }
+    ]
+  },
+  "target_capability": "PARTIAL",
+  "upgrade_by_green_tests_forbidden": true,
+  "upgrade_to_enforced_requires": [
+    "deployment_independence_certified_out_of_band",
+    "undeclared_write_path_detection",
+    "drill_transition_externally_witnessed",
+    "no_omission_bypass"
+  ],
+  "declared_limits": {
+    "deployment_independence_not_certified_by_code": "Physical and topological separation of the kill switch from the runner's credentials is an operator attestation with a date. No check here proves it.",
+    "attestation_is_a_human_claim": "KS-D4 verifies that an attestation exists and is not older than the last relevant change. It cannot verify that the attestation is true.",
+    "declared_write_paths_only": "KS-S3 reads a declaration. A write path the operator did not declare is not detected; closing this needs runtime capability introspection.",
+    "drill_is_self_reported": "KS-D2 verifies that a transition was recorded and is internally consistent, not that a human physically engaged the switch. Closing this needs an external witness of the transition.",
+    "omission_bypass_outside_live_claim": "Evidence that neither sets live_capability_claim nor carries a kill_switch pack never reaches this detector. Under a LIVE claim an absent pack resolves to UNKNOWN, so the omission is closed on the path P8 protects and open everywhere else."
+  },
+  "detector_module": "runner/detectors/kill_switch.py",
+  "detector_invoked_by_runtime": true,
+  "detector_status": "INVOKED_BY_GATE",
+  "invocation_path": "runner.gates.evaluate_gate -> run_kill_switch_detector"
+}

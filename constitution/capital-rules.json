@@ -83,6 +83,14 @@
     "lease_may_replace_cp_flag": false,
     "cp_flag_may_replace_lease": false,
     "kill_switch_drill_required": true,
+    "kill_switch_drill_cadence_days": 14,
+    "kill_switch_drill_reverify_on": [
+      "deployment_ref",
+      "credentials_ref",
+      "kill_switch_path_digest",
+      "gate_path_digest"
+    ],
+    "kill_switch_drill_reverify_note": "The cadence window is not the only trigger. A change to any listed reference requires a new drill immediately, however recent the last one was: a drill against a deployment that no longer exists proves nothing about the one that does."
     "kill_switch_drill_cadence_days": 7
   },
   "capital_gates": {
@@ -137,6 +145,8 @@
     {
       "id": "P8",
       "name": "Independent Kill Switch",
+      "enforcement": "PARTIAL",
+      "mechanism": "runner/detectors/kill_switch.py, invoked by runner.gates.evaluate_gate via run_kill_switch_detector; KS-G1 evaluated in the gate itself. PARTIAL is the ceiling: deployment independence is an operator attestation with a date, not a code assertion."
       "enforcement": "ENFORCED",
       "mechanism": "runner/detectors/kill_switch.py invoked by runner.gates.evaluate_gate -> run_kill_switch_detectors; stop state must not be writable by this process, unreadable denies, reading does not mutate, ENGAGED denies, and a drill must show a real transition within the cadence against a pinned commit. Reached on every gate via UPTM-005: the scope declaration is mandatory, absence resolves to UNKNOWN, a declared bearing requires its pack, and carrying a pack while declaring the gate does not bear it is a gate_bypass_attempt.",
       "residual": "Not avoidable by omission. What remains is a gate stating something untrue in signed evidence, which is forgery rather than avoidance and belongs to UPTM-002's class of problem."
@@ -180,13 +190,13 @@
     }
   ],
   "control_plane_stop_condition_status": {
-    "note": "Verified by reading runner/stops.py, runner/fsm.py and runner/gates.py. Declared != detected (P9), and a detector nothing calls is not detection either. fabricated_market_data and fabricated_pnl are PARTIAL as of UPTM-002c: the gate invokes the detectors and its verdict follows them, but evidence that declares no pack bypasses them entirely (omission_bypass), and local consistency is not external authenticity.",
+    "note": "Verified by reading runner/stops.py, runner/fsm.py and runner/gates.py. Declared != detected (P9), and a detector nothing calls is not detection either. fabricated_market_data and fabricated_pnl are PARTIAL as of UPTM-002c: the gate invokes the detectors and its verdict follows them, but evidence that declares no pack bypasses them entirely (omission_bypass), and local consistency is not external authenticity. gate_bypass_attempt is PARTIAL as of UPTM-003: it is detected on the kill-switch path — an ENGAGED stop state can no longer coexist with a PASS, and a runner-writable or unreadable stop state denies — but no other route around a gate is detected, and evidence outside a LIVE claim never reaches the check.",
     "live_trading_enablement_attempt": "ENFORCED",
     "wave_skip_attempt": "ENFORCED",
     "evidence_forgery_detected": "PARTIAL",
     "unauthorized_pr_merge": "PARTIAL",
     "safety_control_weakening": "DECLARATIVE",
-    "gate_bypass_attempt": "DECLARATIVE",
+    "gate_bypass_attempt": "PARTIAL",
     "fabricated_market_data": "PARTIAL",
     "fabricated_pnl": "PARTIAL"
   },
@@ -208,6 +218,11 @@
     ]
   },
   "enforcement_summary": {
+    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet. P8 is PARTIAL as of UPTM-003: the gate reads the stop state, refuses to pass while it is ENGAGED, and requires a drill with a demonstrated transition inside a 14-day cadence — but physical independence from the runner rests on a dated operator attestation, which code does not verify.",
+    "ENFORCED": 0,
+    "PARTIAL": 8,
+    "DECLARATIVE": 1,
+    "MISSING": 5,
     "note": "Counted from principles[].enforcement. P8 and P10 are ENFORCED: mechanised, invoked, proven load-bearing under mutation, and no longer avoidable by omission. What remains for them is a false declaration, which is forgery rather than avoidance.",
     "ENFORCED": 2,
     "PARTIAL": 7,
@@ -236,6 +251,28 @@
   },
   "uptm003_detector": {
     "module": "runner/detectors/kill_switch.py",
+    "spec": "docs/specs/UPTM-003-kill-switch.md",
+    "principle": "P8",
+    "checks": 10,
+    "acceptance_cases_passing": 40,
+    "status": "INVOKED_BY_GATE",
+    "invocation_path": "runner.gates.evaluate_gate -> run_kill_switch_detector; KS-G1 in runner.gates.apply_ks_g1",
+    "drill_cadence_days": 14,
+    "reachability_proof": "tests/test_kill_switch_invocation.py: a spy asserts the gate calls the detector and passes it the cadence read from this file; a disconnection test asserts the gate's verdict follows the detector's return value; and a mutation test asserts, for all eleven detector-owned mutations plus KS-G1, that removing the detector turns a denying gate into a passing one - import alone proves nothing.",
+    "open_limits": {
+      "deployment_independence_not_certified_by_code": "Physical and topological separation of the kill switch from the runner's process, credentials and topology is an operator attestation carrying a date. No check proves it. This is a founder decision, not an omission.",
+      "attestation_is_a_human_claim": "KS-D4 verifies an attestation exists, is dated, and does not predate the last relevant change. It cannot verify that it is true.",
+      "declared_write_paths_only": "KS-S3 reads a declaration. A write path the operator did not declare is not detected; closing this needs runtime capability introspection.",
+      "drill_is_self_reported": "KS-D2 verifies a transition was recorded and is internally consistent, not that a human physically engaged the switch. Closing this needs an external witness.",
+      "omission_bypass_outside_live_claim": "Evidence that neither sets live_capability_claim nor carries a kill_switch pack never reaches the detector. Under a LIVE claim an absent pack is UNKNOWN, so the omission is closed on the path P8 protects and open everywhere else."
+    },
+    "max_status": "PARTIAL",
+    "upgrade_to_enforced_requires": [
+      "deployment_independence_certified_out_of_band",
+      "undeclared_write_path_detection",
+      "drill_transition_externally_witnessed",
+      "no_omission_bypass"
+    ]
     "spec": "docs/specs/UPTM-003-kill-switch-independence.md",
     "principle": "P8",
     "checks": 12,
