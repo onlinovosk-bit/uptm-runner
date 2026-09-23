@@ -1,12 +1,101 @@
 {
+  "schema_version": "1.0.0",
+  "digest_algorithm": "sha256",
+  "canonical_body": "json: sorted compact JSON; markdown: LF normalized, single trailing newline",
+  "role_taxonomy": {
+    "commander": {
+      "allowed_stack_ids": ["00", "01", "02", "03", "04", "05", "06", "07"],
+      "description": "Full control-plane visibility; still cannot bypass evidence gates."
+    },
+    "planner": {
+      "allowed_stack_ids": ["00", "01", "02", "03"],
+      "description": "Planning and preregistration only; no execution or gate authority."
+    },
+    "executor": {
+      "allowed_stack_ids": ["00", "04"],
+      "description": "Wave-local execution handoff; no verify/adversarial/exit stacks."
+    },
+    "verifier": {
+      "allowed_stack_ids": ["00", "04", "05", "06", "07"],
+      "description": "Verification, adversarial verification, and exit evidence review."
+    },
+    "red_team": {
+      "allowed_stack_ids": ["00", "05", "06"],
+      "description": "Adversarial checks only; no dispatch or planning authority."
+    }
+  },
   "stacks": [
-    {"id": "00", "file": "00_constitution.json", "name": "constitution"},
-    {"id": "01", "file": "01_discover.md", "name": "discover"},
-    {"id": "02", "file": "02_baseline.md", "name": "baseline"},
-    {"id": "03", "file": "03_plan.md", "name": "plan"},
-    {"id": "04", "file": "04_dispatch.md", "name": "dispatch"},
-    {"id": "05", "file": "05_verify.md", "name": "verify"},
-    {"id": "06", "file": "06_adversarial.md", "name": "adversarial"},
-    {"id": "07", "file": "07_exit.md", "name": "exit"}
+    {
+      "id": "00",
+      "file": "00_constitution.json",
+      "name": "constitution",
+      "version": "0.1.0",
+      "body_sha256": "848312053ac684f39191bcd1cead87b7e7fecd1c0e761ac8983ff6a45c71b3e2",
+      "depends_on": [],
+      "required_roles": ["commander", "planner", "executor", "verifier", "red_team"]
+    },
+    {
+      "id": "01",
+      "file": "01_discover.md",
+      "name": "discover",
+      "version": "0.1.0",
+      "body_sha256": "16a12bf266d31238b030e2c896cca6dec6a969cb3c4bf30fde9c9b198a0e72ef",
+      "depends_on": ["00"],
+      "required_roles": ["commander", "planner"]
+    },
+    {
+      "id": "02",
+      "file": "02_baseline.md",
+      "name": "baseline",
+      "version": "0.1.0",
+      "body_sha256": "e6c89ce8cadd52a841a194e9df8bcca512d5eb59387d2a837b2c453d62c63411",
+      "depends_on": ["00", "01"],
+      "required_roles": ["commander", "planner"]
+    },
+    {
+      "id": "03",
+      "file": "03_plan.md",
+      "name": "plan",
+      "version": "0.1.0",
+      "body_sha256": "9aa170e17f8c647e65e0cc016417deff4f84ed17299972ecd2e29c5d6e4db9c7",
+      "depends_on": ["00", "01", "02"],
+      "required_roles": ["commander", "planner"]
+    },
+    {
+      "id": "04",
+      "file": "04_dispatch.md",
+      "name": "dispatch",
+      "version": "0.1.0",
+      "body_sha256": "2e0dad34dedf54e22f058e96924aa63362ddb9a59b5f147ac0e2335038ecd195",
+      "depends_on": ["00"],
+      "required_roles": ["commander", "executor", "verifier"]
+    },
+    {
+      "id": "05",
+      "file": "05_verify.md",
+      "name": "verify",
+      "version": "0.1.0",
+      "body_sha256": "88604d69ba2abc2eb36b1a068418ef1b1aa7a7b5efc8d1cb7c8ef61fd6922539",
+      "depends_on": ["00"],
+      "required_roles": ["commander", "verifier", "red_team"]
+    },
+    {
+      "id": "06",
+      "file": "06_adversarial.md",
+      "name": "adversarial",
+      "version": "0.1.0",
+      "body_sha256": "46e059465c32b6b0d60b9dfc658e717a5a81e62ad879fc57805033b40511efd8",
+      "depends_on": ["00", "05"],
+      "required_roles": ["commander", "verifier", "red_team"]
+    },
+    {
+      "id": "07",
+      "file": "07_exit.md",
+      "name": "exit",
+      "version": "0.1.0",
+      "body_sha256": "ec3c6d5630637e2553c7c74e78d2f7fd95a9c3a2d7130558e54c57c23f7a9f71",
+      "depends_on": ["00", "05", "06"],
+      "required_roles": ["commander", "verifier"]
+    }
   ]
 }

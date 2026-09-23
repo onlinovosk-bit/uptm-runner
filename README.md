@@ -66,4 +66,6 @@ invariants holding. Live trading remains disabled.
 
 ## Trust
 
-See [docs/TRUST_MODEL.md](docs/TRUST_MODEL.md). Runner makes **no** immutability claims for local-only state.
+See [docs/TRUST_MODEL.md](docs/TRUST_MODEL.md) and
+[docs/AGENTIC_PROMPT_STACKS.md](docs/AGENTIC_PROMPT_STACKS.md). Runner makes
+**no** immutability claims for local-only state.

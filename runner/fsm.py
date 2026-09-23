@@ -30,6 +30,7 @@ class State(str, Enum):
     NEXT_WAVE = "NEXT_WAVE"
     PATCH_LOOP = "PATCH_LOOP"
     HUMAN_REVIEW_REQUIRED = "HUMAN_REVIEW_REQUIRED"
+    EXIT = "EXIT"
     COMPLETE = "COMPLETE"
     STOPPED = "STOPPED"
 
@@ -66,6 +67,7 @@ ALLOWED_TRANSITIONS: dict[State, set[State]] = {
         State.PATCH_LOOP,
         State.HUMAN_REVIEW_REQUIRED,
         State.STOPPED,
+        State.EXIT,
         State.COMPLETE,
     },
     State.NEXT_WAVE: {
@@ -80,6 +82,7 @@ ALLOWED_TRANSITIONS: dict[State, set[State]] = {
         State.STOPPED,
     },
     State.HUMAN_REVIEW_REQUIRED: set(),
+    State.EXIT: set(),
     State.COMPLETE: set(),
     State.STOPPED: set(),
 }
@@ -97,6 +100,7 @@ class RunnerFSM:
     patch_attempts: dict[str, int] = field(default_factory=dict)
     max_patch_attempts: int = 3
     unlocked_waves: set[int] = field(default_factory=lambda: {0})
+    passed_waves: set[int] = field(default_factory=set)
     history: list[str] = field(default_factory=list)
     last_gate: GateResult | None = None
 
@@ -110,12 +114,12 @@ class RunnerFSM:
     def assert_wave_unlocked(self, wave_id: int) -> None:
         if wave_id not in self.unlocked_waves:
             raise FSMError(f"wave_skip_attempt: wave {wave_id} not unlocked")
-        if wave_id > 0 and (wave_id - 1) not in self.unlocked_waves:
-            raise FSMError(f"wave_skip_attempt: wave {wave_id - 1} not gated")
+        if wave_id > 0 and (wave_id - 1) not in self.passed_waves:
+            raise FSMError(f"wave_skip_attempt: wave {wave_id - 1} not gated PASS")
 
     def unlock_next_wave(self) -> None:
         if self.current_wave >= self.max_wave:
-            self.transition(State.COMPLETE)
+            self.transition(State.EXIT)
             return
         nxt = self.current_wave + 1
         self.unlocked_waves.add(nxt)
@@ -135,17 +139,75 @@ class RunnerFSM:
     def apply_gate(self, gate: GateResult, cluster_id: str = "default") -> State:
         self.last_gate = gate
         self.transition(State.WAVE_GATE)
-        if gate.passed:
+        gate_passed = gate.passed and gate.critical == 0 and gate.high == 0
+        if gate_passed:
+            self.passed_waves.add(self.current_wave)
             if self.current_wave >= self.max_wave:
-                self.transition(State.COMPLETE)
+                self.transition(State.EXIT)
             else:
                 self.unlock_next_wave()
             return self.state
         return self.record_patch(cluster_id)
 
+    def is_terminal(self) -> bool:
+        return self.state in {
+            State.HUMAN_REVIEW_REQUIRED,
+            State.EXIT,
+            State.COMPLETE,
+            State.STOPPED,
+        }
+
+    def run_until_terminal(self, gate_provider: Any, *, max_steps: int = 256) -> State:
+        """Drive the control loop until EXIT or a terminal stop.
+
+        ``gate_provider`` is called as ``gate_provider(fsm)`` at each WAVE_GATE.
+        It must return a ``GateResult`` produced from complete evidence. The
+        step cap is a safety assertion: an infinite control loop is a bug.
+        """
+        steps = 0
+        while not self.is_terminal():
+            steps += 1
+            if steps > max_steps:
+                raise FSMError("non_terminating_fsm: step cap exceeded")
+
+            if self.state is State.DISCOVER:
+                self.transition(State.BASELINE)
+            elif self.state is State.BASELINE:
+                self.transition(State.PLAN)
+            elif self.state is State.PLAN:
+                self.assert_wave_unlocked(self.current_wave)
+                self.transition(State.WAVE_READY)
+            elif self.state is State.WAVE_READY:
+                self.assert_wave_unlocked(self.current_wave)
+                self.transition(State.PARALLEL_DISPATCH)
+            elif self.state is State.PARALLEL_DISPATCH:
+                self.transition(State.EXECUTION)
+            elif self.state is State.EXECUTION:
+                self.transition(State.COLLECT)
+            elif self.state is State.COLLECT:
+                self.transition(State.VERIFY)
+            elif self.state is State.VERIFY:
+                self.transition(State.ADVERSARIAL_VERIFY)
+            elif self.state is State.ADVERSARIAL_VERIFY:
+                self.transition(State.EVIDENCE)
+            elif self.state is State.EVIDENCE:
+                self.apply_gate(gate_provider(self), cluster_id=f"wave{self.current_wave}")
+            elif self.state is State.PATCH_LOOP:
+                self.transition(State.PARALLEL_DISPATCH)
+            elif self.state is State.NEXT_WAVE:
+                self.transition(State.WAVE_READY)
+            else:
+                raise FSMError(f"non_terminating_fsm: unhandled state {self.state.value}")
+        return self.state
+
     def stop(self, reason: str) -> None:
         self.history.append(f"STOP:{reason}")
-        if self.state not in (State.HUMAN_REVIEW_REQUIRED, State.STOPPED, State.COMPLETE):
+        if self.state not in (
+            State.HUMAN_REVIEW_REQUIRED,
+            State.STOPPED,
+            State.EXIT,
+            State.COMPLETE,
+        ):
             # force via allowed path when possible
             if State.STOPPED in ALLOWED_TRANSITIONS.get(self.state, set()):
                 self.transition(State.STOPPED)
@@ -188,6 +250,7 @@ def wave_status(fsm: RunnerFSM | None = None) -> dict[str, Any]:
         "state": fsm.state.value,
         "current_wave": fsm.current_wave,
         "unlocked_waves": sorted(fsm.unlocked_waves),
+        "passed_waves": sorted(fsm.passed_waves),
         "patch_attempts": dict(fsm.patch_attempts),
         "waves": waves,
         "live_trading": False,
