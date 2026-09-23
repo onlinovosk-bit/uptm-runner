@@ -137,8 +137,9 @@
     {
       "id": "P8",
       "name": "Independent Kill Switch",
-      "enforcement": "PARTIAL",
-      "mechanism": "runner/detectors/kill_switch.py invoked by runner.gates.evaluate_gate -> run_kill_switch_detectors; stop state must not be writable by this process, unreadable denies, reading does not mutate, ENGAGED denies, and a drill must show a real transition within the cadence against a pinned commit. PARTIAL because evidence omitting the pack is never examined."
+      "enforcement": "ENFORCED",
+      "mechanism": "runner/detectors/kill_switch.py invoked by runner.gates.evaluate_gate -> run_kill_switch_detectors; stop state must not be writable by this process, unreadable denies, reading does not mutate, ENGAGED denies, and a drill must show a real transition within the cadence against a pinned commit. Reached on every gate via UPTM-005: the scope declaration is mandatory, absence resolves to UNKNOWN, a declared bearing requires its pack, and carrying a pack while declaring the gate does not bear it is a gate_bypass_attempt.",
+      "residual": "Not avoidable by omission. What remains is a gate stating something untrue in signed evidence, which is forgery rather than avoidance and belongs to UPTM-002's class of problem."
     },
     {
       "id": "P9",
@@ -149,8 +150,9 @@
     {
       "id": "P10",
       "name": "Validation Capital",
-      "enforcement": "PARTIAL",
-      "mechanism": "runner/detectors/validation_capital.py invoked by runner.gates.evaluate_gate -> run_validation_capital_detectors; an aggregating ceiling, a currency rule that refuses to convert, and a ban on return as a gate criterion that still permits reporting PnL. PARTIAL because a gate that never sets capital_gate is never examined."
+      "enforcement": "ENFORCED",
+      "mechanism": "runner/detectors/validation_capital.py invoked by runner.gates.evaluate_gate -> run_validation_capital_detectors; an aggregating ceiling, a currency rule that refuses to convert, and a ban on return as a gate criterion that still permits reporting PnL. Reached on every gate via UPTM-005: the scope declaration is mandatory, absence resolves to UNKNOWN, a declared bearing requires its pack, and carrying a pack while declaring the gate does not bear it is a gate_bypass_attempt.",
+      "residual": "Not avoidable by omission. What remains is a gate stating something untrue in signed evidence, which is forgery rather than avoidance and belongs to UPTM-002's class of problem."
     },
     {
       "id": "P11",
@@ -206,9 +208,9 @@
     ]
   },
   "enforcement_summary": {
-    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet. P8 and P10 are PARTIAL: mechanised, invoked and proven load-bearing, but a caller that omits the declaration is never examined. One evidence-schema change would move both.",
-    "ENFORCED": 0,
-    "PARTIAL": 9,
+    "note": "Counted from principles[].enforcement. P8 and P10 are ENFORCED: mechanised, invoked, proven load-bearing under mutation, and no longer avoidable by omission. What remains for them is a false declaration, which is forgery rather than avoidance.",
+    "ENFORCED": 2,
+    "PARTIAL": 7,
     "DECLARATIVE": 1,
     "MISSING": 4,
     "CONFLICT": 0
@@ -278,5 +280,22 @@
     "applies_to": [],
     "set_by": "founder",
     "note": "Unset. VC-P1 returns UNKNOWN and every capital gate denies until amount, currency and applies_to are all set. applies_to is the substantive choice: per_position_at_risk | aggregate_open_exposure | cumulative_realised_loss, or a combination. The constitution names 700 EUR in P10's heading; a heading is prose, and the value that gates money is set deliberately."
+  },
+  "uptm005_detector": {
+    "module": "runner/detectors/scope.py",
+    "spec": "docs/specs/UPTM-005-evidence-scope-declaration.md",
+    "principles": [
+      "P8",
+      "P10"
+    ],
+    "checks": 4,
+    "status": "INVOKED_BY_GATE",
+    "invocation_path": "runner.gates.evaluate_gate -> run_scope_detector (unconditional)",
+    "founder_decision": "absence of the declaration resolves to UNKNOWN, not to 'not applicable' (2026-09-23)",
+    "reachability_proof": "tests/test_scope_declaration.py: a spy asserts the gate calls detect_scope on every gate, and a disconnection test asserts the gate's verdict follows its return value. Four mutations - dropping the verdict from the fold, letting SC-P1 accept a missing declaration, disabling SC-I3, and dropping the required-pack rule - each turn the suite red at the tests naming that property.",
+    "breaking_change": "Evidence written before this wall carries no scope and denies until declared. runner.fsm.run_baseline_ack now emits the declaration, so a regenerated wave 0 ack is declared at the producer rather than patched afterwards.",
+    "open_limits": {
+      "false_declaration": "This wall makes the declaration mandatory and self-consistent. It cannot tell whether the declaration is true. A gate declaring live_bearing false while actually bearing LIVE has not avoided the check - it has lied in signed evidence."
+    }
   }
 }
