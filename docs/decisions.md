@@ -15,6 +15,36 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-23] DEC-UPTM-005 — the scope declaration, and what it unlocked
+
+**Decided:** the evidence scope declaration is mandatory, and **its absence
+resolves to `UNKNOWN`, not to "not applicable"** (Founder, 2026-09-23).
+
+That single choice is what moved **P8 and P10 to `ENFORCED`**. Both had been
+held at `PARTIAL` for one stated reason: evidence that simply omitted the
+`kill_switch` pack, or never set `capital_gate`, was never examined. A principle
+a caller can step around by leaving a key out is not enforced, whatever the
+detector does when the key is present. Making the declaration unconditional
+closes that.
+
+**Enforcement summary:** `ENFORCED 2 / PARTIAL 7 / DECLARATIVE 1 / MISSING 4`.
+The first two `ENFORCED` entries this system has had.
+
+**Breaking, deliberately:** evidence written before this wall carries no scope
+and denies until declared. `runner.fsm.run_baseline_ack` now emits the
+declaration, so wave 0 is declared at the producer rather than patched
+afterwards.
+
+**The limit that remains** is recorded and is the right one: the wall makes the
+declaration mandatory and self-consistent, and cannot tell whether it is *true*.
+A gate declaring `live_bearing: false` while actually bearing LIVE has not
+avoided the check — it has lied in signed evidence.
+
+**Artifacts:** `docs/specs/UPTM-005-evidence-scope-declaration.md` ·
+`runner/detectors/scope.py` · `runner/gates.py` · `runner/fsm.py` · PR #10.
+
+---
+
 ## [2026-09-23] DEC-UPTM-DUP — UPTM-003 was built twice, in parallel
 
 **What happened.** Two sessions implemented WALL 1 at the same time, neither
@@ -87,11 +117,14 @@ a date**. KS-D6 checks that one exists, is dated, is not dated in the future,
 and is not older than the deployment it describes. It cannot check that it is
 true, and no test in this repository claims otherwise.
 
-**Status:** `P8: DECLARATIVE → PARTIAL`, landed with PR #8.
-`PARTIAL` is the ceiling. It is not `ENFORCED` for a stated reason:
-evidence that omits the `kill_switch` pack is never examined
-(`open_limits.omission_bypass`). A principle a caller can step around by leaving
-a key out is not enforced, whatever the detector does when the key is present.
+**Status:** `DECLARATIVE → PARTIAL` with PR #8, then **`PARTIAL → ENFORCED`**
+with UPTM-005 (PR #10, see `DEC-UPTM-005`). The ceiling recorded on 2026-09-22 —
+that `PARTIAL` was as far as this could go — held only for as long as the
+omission bypass did. Closing the hole, rather than adding checks, is what
+enforced the principle.
+
+Neither KS-D5 nor KS-D6 moved that status. They narrow what a valid drill and a
+current attestation mean; P8 is enforced for a different reason entirely.
 
 **Artifacts:** `docs/specs/UPTM-003-kill-switch-independence.md` ·
 `runner/detectors/kill_switch.py` · `runner/gates.py` ·
@@ -118,9 +151,14 @@ validation_capital:
   measured the wrong thing.
 
 **State of the repository:** the UPTM-004 **detectors exist** on `main` (PR #8,
-`1227ded`) and are invoked by the gate. The **parameters above are not set** —
-`validation_capital.amount`, `.currency` and `.applies_to` are `null`/`[]`, VC-P1
-returns `UNKNOWN`, and every capital gate denies until the Founder sets them.
+`1227ded`), are invoked by the gate, and P10 is now `ENFORCED` (UPTM-005). The
+**parameters above are still not set** — `validation_capital.amount`,
+`.currency` and `.applies_to` are `null`/`[]`, VC-P1 returns `UNKNOWN`, and every
+capital gate denies until the Founder sets them.
+
+`ENFORCED` and *unset* are not in tension: the machinery is enforced, and it is
+enforcing a denial. That is the correct reading of a capability that has not been
+granted.
 
 That is the correct state. `capital-rules.json` records why: the constitution
 names €700 in P10's *heading*, and a heading is prose. The value that gates money
@@ -131,8 +169,8 @@ UPTM-004. Writing these parameters into `capital-rules.json` is the act that
 starts WALL 2, so it has not been done. The detectors landing early does not
 advance that order; it only means the code is waiting.
 
-**Artifact:** detectors on `main`. Parameters: none — this half is still a plan,
-and says so.
+**Artifact:** detectors on `main`, P10 `ENFORCED`. Parameters: none — this half
+is still a plan, and says so.
 
 ---
 
