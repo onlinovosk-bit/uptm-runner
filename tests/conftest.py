@@ -41,6 +41,9 @@ def valid_evidence_factory():
             "after": {"digest": "c" * 64, "summary": "after"},
             "agent_claim": {"verdict": "PASS", "notes": "ok"},
             "live_trading": False,
+            # UPTM-005: every gate declares what it bears. This one bears
+            # neither, which is the common and legitimate case.
+            "scope": {"capital_bearing": False, "live_bearing": False},
             "signature": None,
         }
         base.update(overrides)

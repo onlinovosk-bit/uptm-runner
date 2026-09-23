@@ -224,6 +224,11 @@ def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
     ack = {
         "evidence_id": "wave0-baseline-ack",
         "wave_id": 0,
+        # UPTM-005: every gate declares what it bears. Wave 0 locks a baseline —
+        # it puts no capital at risk and carries no LIVE capability. The
+        # declaration is emitted by the producer, not patched onto the artifact
+        # afterwards, so a regenerated ack is declared too.
+        "scope": {"capital_bearing": False, "live_bearing": False},
         "commit_sha": "local-scaffold-0000000",
         "branch": "scaffold/uptm-runner",
         "pr": None,

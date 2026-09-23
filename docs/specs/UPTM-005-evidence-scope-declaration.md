@@ -4,7 +4,7 @@
 |---|---|
 | Principles | **P8** (Independent Kill Switch) and **P10** (Validation Capital) |
 | Today | both `PARTIAL` — mechanised and invoked, steppable around by omission |
-| Status of this document | **PREREGISTERED** |
+| Status of this document | **IMPLEMENTED** — `runner/detectors/scope.py`, invoked unconditionally by `runner.gates.evaluate_gate` |
 | Founder decision | absence of the declaration resolves to `UNKNOWN` (2026-09-23) |
 
 Written before the detector existed, as P4 requires.
@@ -122,7 +122,7 @@ repository.
 
 ## 7. Capability outcome
 
-If the checks hold, P8 and P10 move `PARTIAL → ENFORCED` — the first enforced
+The checks hold. **P8 and P10 move `PARTIAL → ENFORCED`** — the first enforced
 principles in this repository.
 
 The claim being made is precise: **the principle can no longer be avoided by
@@ -131,8 +131,15 @@ key out now denies. What remains is a caller who states something untrue in
 signed evidence, which is forgery rather than avoidance, and which UPTM-002
 exists to address.
 
-That distinction is the whole basis for the state change, so if it does not hold
-under the tests, the state does not change.
+That distinction is the whole basis for the state change. Under test, every
+route that previously let a caller skip the checks by leaving a key out now
+denies: undeclared evidence, a declared bearing with no pack, and an opt-out
+while carrying the pack. A gate that bears neither still passes, so the wall is
+not a tax.
+
+**Retrofit, as predicted.** `runner.fsm.run_baseline_ack` now emits the
+declaration, and `evidence/wave0/baseline_ack.json` carries it. The producer was
+changed rather than the artifact patched, so a regenerated ack is declared too.
 
 ### Reachability proof
 
