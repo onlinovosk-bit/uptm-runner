@@ -61,6 +61,84 @@ second guard is `VC-P2`, which is structural. Recorded in
 
 ---
 
+## [2026-09-23] DEC-UPTM-W8 — W8 specification accepted with two amendments; implementation still refused
+
+**Decided:** accept the W8 specification review
+(`onlinovosk-bit-uptm/docs/W8_SPECIFICATION_REVIEW.md`, PR #27 in that
+repository) with two additions, and **do not implement W8 even so**.
+
+**Amendment 1 — P2, Same Validated Path.** The specification asked for *"a single
+deterministic end-to-end integration path"* without requiring it to be the path a
+real run would take. An integration harness is by construction a mechanism for
+producing a second code path. Now required: the same entrypoints as the paper
+path, an enumerated list of every deliberate divergence with what each could
+hide, and a test showing an unlisted divergence being caught.
+
+**Amendment 2 — P13, No Model in Pre-Trade Path.** The specification restricted
+*which strategy* may be promoted, not *what kind of thing* may sit between a
+decision and its execution. Now required: no non-deterministic model in that
+path, the pre-trade call chain recorded in the evidence, and determinism
+demonstrated by a byte-identical repeat run rather than asserted.
+
+Both principles are `MISSING` — enforced nowhere in either repository — which is
+why they had to be written into the contract rather than assumed.
+
+**Implementation refused, and the reason sharpened.** Not "a good stopping
+point". P2 is unenforced, so an integration harness built now would produce a
+result that does not describe the path a real run takes — and the Safety
+Envelope cannot protect against that, because such a run costs the same money
+and answers a different question. The cheaper order is P2 first.
+
+**Two things measured while reviewing it, both worth keeping:**
+
+- The specification is good, and in one respect better than this repository's
+  own work. Evidence Rule A forbids an artifact from carrying any field meaning
+  "the commit that contains me"; the UPTM-006 manifest here takes its commit as
+  a CLI argument and can therefore attest to its own freshness. That is a real
+  defect in UPTM-006, found by reading the other repository's rules.
+- **"W7 PASS" does not mean the W7 wave passed.** `W7-H1` and `W7-H2` are two
+  defensive tests. The artifact carrying them records `gate_status: UNKNOWN`,
+  scopes itself to waves W1 and W4, and says in its own field: *"Do not start W8
+  or W9 from this defensive re-verification evidence."* The trading repository's
+  README agrees — *"Wave 7: Red Team expansion is not started."*
+
+**Artifacts:** `onlinovosk-bit-uptm/docs/W8_SPECIFICATION_REVIEW.md` §Amendments
+on acceptance · `docs/architecture/governance-map.md`.
+
+---
+
+## [2026-09-23] DEC-UPTM-MAP — the two repositories are mapped; five questions are left open
+
+**Decided:** write down which constitution governs which system, because nothing
+did.
+
+Measured: the W8 specification mentions P1–P14, `validation_capital` and the kill
+switch exactly **zero** times, and `onlinovosk-bit-uptm` has no `constitution/`
+directory. Two sets of rules, two sets of `PASS` verdicts, no reference in either
+direction.
+
+**The gap in one sentence:** the constitution is enforced against evidence
+documents, and nothing requires the trading system to produce one.
+
+**Recorded in `docs/architecture/governance-map.md`:** what each repository
+holds, where authority actually sits, and the name collisions — `W7` meaning two
+different waves, "evidence" meaning two different contracts, and €700 (the
+validation tranche here) versus €750 (the paper account's capital there) being
+different numbers that nothing relates.
+
+**Five questions the map deliberately does not answer**, because they are Founder
+decisions: whether a trading-system wave gate must satisfy the capital
+constitution; which repository's verdict wins on disagreement; how €700 and €750
+relate; whether Evidence Rule A applies here; and which wave vocabulary is
+canonical.
+
+**Not an amendment.** `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED and unchanged;
+no P12 invalidation follows.
+
+**Artifact:** `docs/architecture/governance-map.md`.
+
+---
+
 ## [2026-09-23] DEC-UPTM-005 — the scope declaration, and what it unlocked
 
 **Decided:** the evidence scope declaration is mandatory, and **its absence
