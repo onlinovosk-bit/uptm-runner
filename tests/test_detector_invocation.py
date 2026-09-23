@@ -230,6 +230,16 @@ def sealed_stop(tmp_path, monkeypatch):
                 "path": str(path),
                 "owner": "ops@revolis",
                 "runner_writable": False,
+                "environment": {
+                    "deployment_ref": "dep-1",
+                    "credentials_ref": "cred-1",
+                    "gate_path_digest": "gate-1",
+                    "changed_at": "2026-09-01T00:00:00Z",
+                },
+                "independence_attestation": {
+                    "by": "ops@revolis",
+                    "at": "2026-09-10T00:00:00Z",
+                },
             }
         }
 
@@ -248,6 +258,7 @@ def ks_evidence(evidence, sealed_stop):
             "drill_stop_path": pack["stop_state"]["path"],
             "before": {"state": "RUNNING", "artifact_digest": "a" * 64},
             "after": {"state": "STOPPED", "artifact_digest": "b" * 64},
+            "environment": dict(pack["stop_state"]["environment"]),
         }
         return ev
 
@@ -475,3 +486,73 @@ def test_evidence_without_capital_is_untouched(evidence):
     result = evaluate_gate(evidence)
     assert result.verdict is Verdict.PASS
     assert not any(r.startswith("validation_capital") or "VC-" in r for r in result.reasons)
+
+
+# ------------------------------------------------- KS-D5 / KS-D6 reachability
+#
+# The checks ported from the closed PR #9 get the same treatment as the rest:
+# not "is it imported" but "does the gate's verdict change when it is removed".
+
+
+@pytest.mark.parametrize(
+    "case,mutate,check",
+    [
+        (
+            "deployment changed since the drill",
+            lambda ev: ev["kill_switch"]["stop_state"]["environment"].update(
+                deployment_ref="dep-2"
+            ),
+            "check_ks_d5_environment_unchanged",
+        ),
+        (
+            "credentials changed since the drill",
+            lambda ev: ev["kill_switch"]["stop_state"]["environment"].update(
+                credentials_ref="cred-2"
+            ),
+            "check_ks_d5_environment_unchanged",
+        ),
+        (
+            "gate path changed since the drill",
+            lambda ev: ev["kill_switch"]["stop_state"]["environment"].update(
+                gate_path_digest="gate-2"
+            ),
+            "check_ks_d5_environment_unchanged",
+        ),
+        (
+            "no independence attestation",
+            lambda ev: ev["kill_switch"]["stop_state"].pop("independence_attestation"),
+            "check_ks_d6_independence_attested",
+        ),
+        (
+            "attestation predates the deployment",
+            lambda ev: ev["kill_switch"]["stop_state"]["environment"].update(
+                changed_at="2026-09-20T00:00:00Z"
+            ),
+            "check_ks_d6_independence_attested",
+        ),
+    ],
+)
+def test_removing_the_ported_check_turns_a_denying_gate_into_a_passing_one(
+    ks_evidence, monkeypatch, case, mutate, check
+):
+    import runner.detectors.kill_switch as ks
+
+    ev = ks_evidence()
+    mutate(ev)
+    assert evaluate_gate(ev).verdict is not Verdict.PASS, f"{case} was not caught at all"
+
+    monkeypatch.setattr(ks, check, lambda *a, **k: CheckOutcome(check, Verdict.PASS, "removed"))
+    assert evaluate_gate(ev).verdict is Verdict.PASS, (
+        f"{case}: removing {check} left the gate denying — it is not the thing catching this"
+    )
+
+
+def test_a_fresh_drill_against_a_dead_deployment_still_denies(ks_evidence):
+    """The property in one sentence: recent is not the same as still true."""
+    ev = ks_evidence()
+    ev["kill_switch_drill"]["last_drill_at"] = "2026-09-23T08:00:00Z"  # minutes old
+    ev["kill_switch"]["stop_state"]["environment"]["credentials_ref"] = "rotated"
+    result = evaluate_gate(ev)
+    assert result.verdict is Verdict.UNKNOWN, result.reasons
+    assert result.decision is Decision.DENY
+    assert any("KS-D5" in r for r in result.reasons), result.reasons

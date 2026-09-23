@@ -9,7 +9,8 @@ What these detectors claim
 That the Runner cannot write the state that stops it, that it denies when it
 cannot read that state, that reading does not change it, and that a drill which
 demonstrably stopped something was performed recently enough against a pinned
-commit.
+commit, against the deployment still in force, and that an operator has attested
+deployment independence with a date that is not older than that deployment.
 
 What they do not claim
 ----------------------
@@ -44,6 +45,12 @@ KNOWN_STATES = (CLEAR, ENGAGED)
 
 RUNNING_STATES = ("RUNNING", "UP", "ACTIVE")
 STOPPED_STATES = ("STOPPED", "HALTED", "DOWN")
+
+#: What a drill is a drill *of*. A change to any of these invalidates it at
+#: once, however recent it was: a drill against a deployment that no longer
+#: exists proves nothing about the one that does. KS-D4 already covers the stop
+#: path; these are the rest of the blast radius.
+ENVIRONMENT_KEYS = ("deployment_ref", "credentials_ref", "gate_path_digest")
 
 
 def _parse_iso(value: Any) -> datetime | None:
@@ -283,6 +290,89 @@ def check_ks_d4_commit_pinned(drill: dict[str, Any], stop: dict[str, Any]) -> Ch
     return _ok("KS-D4", f"drill pinned to {commit}")
 
 
+def check_ks_d5_environment_unchanged(
+    drill: dict[str, Any], stop: dict[str, Any]
+) -> CheckOutcome:
+    """The drill has not been invalidated by a change to what it was run against.
+
+    KS-D2 asks whether the drill is recent. This asks whether it is still *about*
+    the system in force. The two are independent: a drill performed an hour ago
+    against yesterday's credentials is fresh and worthless.
+
+    A mismatch is UNKNOWN rather than FAIL, matching KS-D4: we do not have a
+    valid drill for this deployment, which is not the same as having caught
+    someone. Either way the gate denies.
+    """
+    recorded = drill.get("environment")
+    in_force = stop.get("environment")
+    if not isinstance(recorded, dict) or not isinstance(in_force, dict):
+        return _unknown(
+            "KS-D5",
+            [
+                "drill.environment and kill_switch.stop_state.environment declaring "
+                + ", ".join(ENVIRONMENT_KEYS)
+            ],
+        )
+    undeclared = [
+        k for k in ENVIRONMENT_KEYS if recorded.get(k) is None or in_force.get(k) is None
+    ]
+    if undeclared:
+        return _unknown("KS-D5", sorted(undeclared))
+    changed = [k for k in ENVIRONMENT_KEYS if recorded[k] != in_force[k]]
+    if changed:
+        return _unknown(
+            "KS-D5",
+            [
+                "a drill against today's "
+                + ", ".join(sorted(changed))
+                + " — the recorded drill predates that change, so a new drill is "
+                "required regardless of the cadence window"
+            ],
+        )
+    return _ok("KS-D5", "drill environment matches the one in force")
+
+
+def check_ks_d6_independence_attested(
+    stop: dict[str, Any], *, now: datetime | None = None
+) -> CheckOutcome:
+    """An operator has attested deployment independence, with a date.
+
+    §0 of the specification is explicit that a process cannot certify its own
+    deployment topology, and this check does not try to. It checks the one thing
+    code *can* check about an attestation: that one exists, that it is dated,
+    and that it is not older than the deployment it purports to describe.
+
+    An attestation that predates the last relevant change describes a system
+    that is gone. That is UNKNOWN — no valid attestation — not an accusation.
+    """
+    attested = stop.get("independence_attestation")
+    if not isinstance(attested, dict):
+        return _unknown(
+            "KS-D6",
+            ["independence_attestation — deployment independence is a dated operator claim"],
+        )
+    absent = _missing(attested, "by", "at")
+    if absent:
+        return _unknown("KS-D6", sorted(absent))
+    at = _parse_iso(attested["at"])
+    if at is None:
+        return _unknown("KS-D6", ["at as an ISO-8601 timestamp"])
+    reference = now or datetime.now(timezone.utc)
+    if at > reference:
+        return _unknown("KS-D6", ["an attestation that is not dated in the future"])
+    in_force = stop.get("environment")
+    changed_at = _parse_iso(in_force.get("changed_at")) if isinstance(in_force, dict) else None
+    if changed_at is not None and at < changed_at:
+        return _unknown(
+            "KS-D6",
+            [
+                f"an attestation covering today's deployment: attested {attested['at']}, "
+                f"deployment changed {in_force.get('changed_at')}"
+            ],
+        )
+    return _ok("KS-D6", f"independence attested by {attested['by']} at {attested['at']}")
+
+
 # --------------------------------------------------------------------------
 
 
@@ -310,6 +400,8 @@ def detect_kill_switch_drill(
         check_ks_d2_drill_recent(pack, cadence_days),
         check_ks_d3_drill_demonstrated_a_stop(pack),
         check_ks_d4_commit_pinned(pack, stop),
+        check_ks_d5_environment_unchanged(pack, stop),
+        check_ks_d6_independence_attested(stop),
     ]
 
 
