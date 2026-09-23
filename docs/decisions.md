@@ -15,6 +15,52 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-23] DEC-UPTM-004 — the validation tranche is set; WALL 2 is open
+
+```yaml
+validation_capital:
+  currency: EUR
+  amount: 700
+  applies_to:
+    - aggregate_open_exposure
+    - cumulative_realised_loss
+```
+
+Set by the Founder 2026-09-23, superseding `DEC-UPTM-004-PRE`, where these were
+preregistered but deliberately unwritten. **Writing them is the act that opens
+WALL 2**, and it is why they were held back until UPTM-003 and the enforcement
+evidence were done — the order the Founder set.
+
+- **`per_position_at_risk` is not a separate cap**, by decision. It is covered by
+  the stricter aggregate-open-exposure limit, so a second number would say less
+  than the first.
+- **PnL may be reported; profit and loss may not be an acceptance criterion.**
+  €700 is the size of the test, not of the opportunity. A result that passes
+  because it made money has measured the wrong thing. `VC-R1` and `VC-R2`
+  enforce this, and UPTM-006 routes `P10-R5` and `P10-R9` prove they do.
+
+**What setting it changed, measured rather than assumed:**
+
+- Five new enforcement routes became possible (`P10-R4`, `R6`–`R9`). Until there
+  was a ceiling there was nothing to step over: `VC-P1` denied every capital
+  gate on the unset tranche before any other check was reached.
+- `P10-R5` was unblocked. It had been recorded as unable to demonstrate its own
+  guard for exactly that reason.
+- It exposed a defect in UPTM-006's own capital fixture, which had invented pack
+  field names the detector does not read. Nothing had ever got far enough to
+  read them.
+
+**And it refuted a prediction this project had written down four times.** The
+claim was that `P10-R2` is guarded twice only because the tranche is unset, and
+that setting it would leave one guard. Measured after: false — that route's
+second guard is `VC-P2`, which is structural. Recorded in
+`runner/enforcement.py` as `CORRECTED_PREDICTIONS`, under test.
+
+**Artifacts:** `constitution/capital-rules.json` · `runner/enforcement.py` ·
+`docs/specs/UPTM-006-enforcement-evidence.md`.
+
+---
+
 ## [2026-09-23] DEC-UPTM-005 — the scope declaration, and what it unlocked
 
 **Decided:** the evidence scope declaration is mandatory, and **its absence

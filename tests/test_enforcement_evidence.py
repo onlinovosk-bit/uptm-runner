@@ -15,6 +15,7 @@ import pytest
 from runner import gates
 from runner.enforcement import (
     CONDITIONAL_GUARDS,
+    CORRECTED_PREDICTIONS,
     ROUTES,
     apply_stubs,
     enforced_principles,
@@ -135,18 +136,35 @@ def test_the_doubly_guarded_routes_are_recorded_as_such():
     assert doubled == {"P8-R2", "P8-R4", "P10-R2"}
 
 
-def test_a_conditional_second_guard_is_named_as_conditional():
-    """P10-R2's second guard is not a mechanism, it is a circumstance.
+def test_no_guard_is_currently_conditional():
+    """The one entry this held was a prediction, and it was wrong. See below."""
+    assert CONDITIONAL_GUARDS == {}
 
-    run_validation_capital_detectors denies it only because the tranche is
-    unset. The day the Founder sets validation_capital, that guard falls away
-    and SC-I3 holds the route alone — the count drops from two to one with no
-    code change at all. A reassuring number that quietly decays is worse than
-    no number.
-    """
-    assert set(CONDITIONAL_GUARDS) == {"P10-R2"}
-    assert "Setting the tranche removes that guard" in CONDITIONAL_GUARDS["P10-R2"]
-    assert len(next(r for r in ROUTES if r.route_id == "P10-R2").guards) == 2
+
+def test_the_refuted_prediction_is_kept_in_the_record():
+    """A wall built on "claims must be checked" does not get to delete its own
+    failed claim. It was written into the spec, into capital-rules.json, into a
+    PR body and into a message to the Founder; deleting it quietly would be the
+    fabrication this module exists to catch, turned inward."""
+    entry = CORRECTED_PREDICTIONS["P10-R2-conditional-guard"]
+    assert "MEASURED AFTER SETTING IT: false" in entry
+    assert "VC-P2" in entry
+
+
+@pytest.mark.parametrize(
+    "route", [r for r in ROUTES if len(r.guards) > 1], ids=lambda r: r.route_id
+)
+def test_neither_guard_alone_opens_a_doubly_guarded_route(route, route_root, monkeypatch):
+    """The stronger form of the count: two guards means two, measured one at a time."""
+    evidence = route.build(route_root)
+    for guard in route.guards:
+        with apply_stubs(route.stubs):
+            monkeypatch.setattr(gates, guard, _neutral(guard))
+            assert evaluate_gate(evidence).verdict is not Verdict.PASS, (
+                f"{route.route_id} opened with {guard} alone neutered — it has one guard, not "
+                f"{len(route.guards)}"
+            )
+            monkeypatch.undo()
 
 
 def test_one_guard_alone_does_not_open_the_doubly_guarded_route(route_root, monkeypatch):
@@ -162,18 +180,21 @@ def test_one_guard_alone_does_not_open_the_doubly_guarded_route(route_root, monk
 # --------------------------------------------------- the blocked route, stated
 
 
-def test_the_blocked_route_still_denies_and_says_why(route_root):
-    """P10-R5 cannot demonstrate its own guard while the tranche is unset.
+def test_nothing_is_blocked_now_that_the_tranche_is_set():
+    """P10-R5 was blocked while validation_capital was unset: VC-P1 denied every
+    capital gate before VC-R1 could be reached, so its own guard could not be
+    shown to be load-bearing. Setting the tranche unblocked it, and it now
+    denies via VC-R1 like any other route."""
+    assert [r.route_id for r in ROUTES if r.blocked_by is not None] == []
+    r5 = next(r for r in ROUTES if r.route_id == "P10-R5")
+    assert r5.expect == "VC-R1"
 
-    It is kept, it denies, and the manifest reports it as blocked. Relabelling
-    it to whatever happens to fire would be the fabrication this repository
-    builds detectors against."""
-    blocked = [r for r in ROUTES if r.blocked_by is not None]
-    assert [r.route_id for r in blocked] == ["P10-R5"]
-    route = blocked[0]
-    assert "validation_capital is unset" in route.blocked_by
-    with apply_stubs(route.stubs):
-        assert evaluate_gate(route.build(route_root)).verdict is not Verdict.PASS
+
+def test_the_ceiling_itself_has_routes():
+    """Before the tranche was set there was no ceiling to step over, so no route
+    could test one. These are the routes that only became possible on 2026-09-23."""
+    expected = {"VC-I2", "VC-I3", "VC-I4", "VC-P1", "VC-R1", "VC-R2"}
+    assert expected <= {r.expect for r in ROUTES}
 
 
 # ------------------------------------------------------------- case 7: manifest
