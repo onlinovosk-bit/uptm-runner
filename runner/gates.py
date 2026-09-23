@@ -25,6 +25,7 @@ from runner.detectors.kill_switch import (
     detect_kill_switch_drill,
     stop_is_engaged,
 )
+from runner.detectors.scope import detect_scope
 from runner.detectors.validation_capital import (
     detect_return_as_criterion,
     detect_validation_capital,
@@ -205,6 +206,23 @@ def run_validation_capital_detectors(evidence: dict[str, Any]) -> tuple[Verdict,
     return worst(outcomes), reasons
 
 
+def run_scope_detector(evidence: dict[str, Any]) -> tuple[Verdict, list[str]]:
+    """Invoke the UPTM-005 detector from the gate path.
+
+    Runs on every gate, unconditionally. That is the point: the two walls it
+    serves were steppable around precisely because their detectors ran only when
+    the caller handed them something.
+    """
+    outcomes = detect_scope(evidence)
+    reasons = [
+        f"{'scope' if o.stop_condition_raised else 'unverifiable'}: "
+        f"{o.check_id} {o.verdict.value} — {o.detail}"
+        for o in outcomes
+        if o.verdict is not Verdict.PASS
+    ]
+    return worst(outcomes), reasons
+
+
 def evaluate_gate(
     evidence: dict[str, Any] | None,
     *,
@@ -314,6 +332,10 @@ def evaluate_gate(
     capital_verdict, capital_reasons = run_validation_capital_detectors(evidence)
     reasons.extend(capital_reasons)
     contributing.append(capital_verdict)
+
+    scope_verdict, scope_reasons = run_scope_detector(evidence)
+    reasons.extend(scope_reasons)
+    contributing.append(scope_verdict)
 
     verdict = worst_verdict(contributing)
 

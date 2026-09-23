@@ -182,5 +182,9 @@
     "wave4": "PARTIAL_DONE_ON_MAIN_AFTER_PR17",
     "wave5_plus": "NEXT_AFTER_CONSOLIDATE",
     "summary": "Trust/risk hardening spiral is complete at CLEAR on main after consolidation PR #17. Temporal/strategy/execution work for Waves 1-4 is addressed to the audit #16 CLEAR_FOR_MEDIUM_LOW_ONLY bar. Wave 5+ follows after consolidate."
+  },
+  "scope": {
+    "capital_bearing": false,
+    "live_bearing": false
   }
 }

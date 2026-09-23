@@ -241,6 +241,7 @@ def ks_evidence(evidence, sealed_stop):
     def _make(state: str = "CLEAR"):
         ev = copy.deepcopy(evidence)
         pack = sealed_stop(state)
+        ev["scope"] = {"capital_bearing": False, "live_bearing": True}
         ev["kill_switch"] = pack
         ev["kill_switch_drill"] = {
             "last_drill_at": "2026-09-22T12:00:00Z",
@@ -378,6 +379,7 @@ def declared_tranche(monkeypatch):
 def capital_evidence(evidence, declared_tranche):
     def _make(**capital_overrides):
         ev = copy.deepcopy(evidence)
+        ev["scope"] = {"capital_bearing": True, "live_bearing": False}
         ev["capital_gate"] = True
         ev["capital"] = {
             "at_risk": 250.0,
