@@ -83,7 +83,7 @@
     "lease_may_replace_cp_flag": false,
     "cp_flag_may_replace_lease": false,
     "kill_switch_drill_required": true,
-    "kill_switch_drill_cadence_days": null
+    "kill_switch_drill_cadence_days": 7
   },
   "capital_gates": {
     "track": "parallel",
@@ -137,8 +137,8 @@
     {
       "id": "P8",
       "name": "Independent Kill Switch",
-      "enforcement": "DECLARATIVE",
-      "mechanism": null
+      "enforcement": "PARTIAL",
+      "mechanism": "runner/detectors/kill_switch.py invoked by runner.gates.evaluate_gate -> run_kill_switch_detectors; stop state must not be writable by this process, unreadable denies, reading does not mutate, ENGAGED denies, and a drill must show a real transition within the cadence against a pinned commit. PARTIAL because evidence omitting the pack is never examined."
     },
     {
       "id": "P9",
@@ -149,8 +149,8 @@
     {
       "id": "P10",
       "name": "Validation Capital",
-      "enforcement": "MISSING",
-      "mechanism": null
+      "enforcement": "PARTIAL",
+      "mechanism": "runner/detectors/validation_capital.py invoked by runner.gates.evaluate_gate -> run_validation_capital_detectors; an aggregating ceiling, a currency rule that refuses to convert, and a ban on return as a gate criterion that still permits reporting PnL. PARTIAL because a gate that never sets capital_gate is never examined."
     },
     {
       "id": "P11",
@@ -206,11 +206,11 @@
     ]
   },
   "enforcement_summary": {
-    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet.",
+    "note": "Counted from principles[].enforcement. No principle is fully ENFORCED yet. P8 and P10 are PARTIAL: mechanised, invoked and proven load-bearing, but a caller that omits the declaration is never examined. One evidence-schema change would move both.",
     "ENFORCED": 0,
-    "PARTIAL": 7,
-    "DECLARATIVE": 2,
-    "MISSING": 5,
+    "PARTIAL": 9,
+    "DECLARATIVE": 1,
+    "MISSING": 4,
     "CONFLICT": 0
   },
   "uptm002_detector": {
@@ -231,5 +231,51 @@
       "external_append_only_anchor",
       "no_omission_bypass"
     ]
+  },
+  "uptm003_detector": {
+    "module": "runner/detectors/kill_switch.py",
+    "spec": "docs/specs/UPTM-003-kill-switch-independence.md",
+    "principle": "P8",
+    "checks": 10,
+    "status": "INVOKED_BY_GATE",
+    "invocation_path": "runner.gates.evaluate_gate -> run_kill_switch_detectors",
+    "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_kill_switch and detect_kill_switch_drill and that the drill detector receives the cadence from this file; a disconnection test asserts the gate's verdict follows the detector's return value. Three mutations - dropping the verdict from the fold, deleting the KS-I3b invariant, neutering the KS-I1 probe - each turn the suite red at the tests naming that property. Import alone proves nothing.",
+    "founder_parameter": "live_capability.kill_switch_drill_cadence_days = 7, set by the Founder 2026-09-23",
+    "amendments_before_evidence": "A1: KS-I1 probes os.access rather than scanning runner/ sources - a scan is forgeable and would evidence tidy code, not the capability. A2: preregistered case 13 contradicted case 3; the engaged stop now FAILs with a detail naming it as the switch working, and a separate gate invariant refuses any PASS produced while ENGAGED. Both made before the detector produced a verdict; see spec section 5a.",
+    "why_not_enforced": "Evidence that omits the kill_switch pack is never examined. A principle a caller can step around by leaving a key out is not enforced, whatever the detector does when the key is present. Closing it needs an evidence-schema declaration of which gates are LIVE-bearing - a separate decision.",
+    "open_limits": {
+      "deployment_topology": "A process cannot certify its own deployment. That the stop path is not co-located with the Runner, under the same credentials and failure domain, is a Founder attestation recorded with a date - never a PASS produced by code.",
+      "root": "For uid 0 the writability probe reports writable whatever the file mode says. That is the correct answer - a Runner running as root can clear its own stop - but nothing here prevents that deployment; it only refuses to pass the gate.",
+      "drill_against_mock": "A drill that exercised a stand-in rather than the real stop path still shows a valid before/after transition. KS-D4 narrows this by pinning the commit and the path; it does not close it.",
+      "time_source": "KS-D2 trusts the clock it is given. A forged last_drill_at inside an otherwise consistent pack is not detected here.",
+      "omission_bypass": "Evidence carrying no kill_switch pack never reaches these checks. Same hole UPTM-002 recorded; the reason P8 is PARTIAL rather than ENFORCED."
+    }
+  },
+  "uptm004_detector": {
+    "module": "runner/detectors/validation_capital.py",
+    "spec": "docs/specs/UPTM-004-validation-capital-cap.md",
+    "principle": "P10",
+    "checks": 9,
+    "status": "INVOKED_BY_GATE",
+    "invocation_path": "runner.gates.evaluate_gate -> run_validation_capital_detectors",
+    "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_validation_capital and detect_return_as_criterion, that the first receives the tranche read from this file and the second the exit_criteria read from waves/wave3.yaml; a disconnection test asserts the gate's verdict follows the detector. Four mutations - dropping the verdict from the fold, neutering VC-I3, neutering VC-R1, letting VC-I4 compare across currencies - each turn the suite red at the tests naming that property.",
+    "founder_parameter_required": "validation_capital.amount, .currency and .applies_to are unset. Every capital gate denies until all three are set.",
+    "closes_from_uptm002": "omission_bypass, for a gate declaring capital_gate=true and carrying no capital pack: UNKNOWN rather than silence.",
+    "why_not_enforced": "A gate that never sets capital_gate at all is never examined - the omission moved up a level rather than disappearing. One evidence-schema declaration of which gates are capital- and LIVE-bearing would close it for P8 and P10 together; that is a separate decision.",
+    "open_limits": {
+      "gate_that_never_declares_itself": "VC-I1 reaches a gate that says capital_gate=true and brings no pack. It does not reach one that never sets the flag.",
+      "disguised_return_criteria": "VC-R1 matches named return metrics compared against a number. A criterion phrased as an equity curve or an account balance encodes return without naming it and is not caught; a reviewer still has to read the criteria.",
+      "under_declared_exposure": "This detector binds declarations. Whether a declaration matches reality is UPTM-002's job; neither substitutes for the other.",
+      "criteria_outside_the_wave_file": "VC-R1 reads waves/wave{N}.yaml exit_criteria plus evidence gate_criteria. A criterion agreed elsewhere is not seen.",
+      "free_text_justification": "VC-R2 reads agent_claim.basis, a structured list. A PASS argued in prose is not parsed - deliberately, since matching prose would produce false positives on the honest reporting P10 wants.",
+      "leverage_and_notional": "Whether a notional position with a protective stop counts as the stop distance or the notional is a Founder decision recorded in applies_to, not an inference."
+    }
+  },
+  "validation_capital": {
+    "amount": null,
+    "currency": null,
+    "applies_to": [],
+    "set_by": "founder",
+    "note": "Unset. VC-P1 returns UNKNOWN and every capital gate denies until amount, currency and applies_to are all set. applies_to is the substantive choice: per_position_at_risk | aggregate_open_exposure | cumulative_realised_loss, or a combination. The constitution names 700 EUR in P10's heading; a heading is prose, and the value that gates money is set deliberately."
   }
 }
