@@ -264,15 +264,15 @@
     "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_validation_capital and detect_return_as_criterion, that the first receives the tranche read from this file and the second the exit_criteria read from waves/wave3.yaml; a disconnection test asserts the gate's verdict follows the detector. Four mutations - dropping the verdict from the fold, neutering VC-I3, neutering VC-R1, letting VC-I4 compare across currencies - each turn the suite red at the tests naming that property.",
     "founder_parameter_required": "validation_capital.amount, .currency and .applies_to are unset. Every capital gate denies until all three are set.",
     "closes_from_uptm002": "omission_bypass, for a gate declaring capital_gate=true and carrying no capital pack: UNKNOWN rather than silence.",
-    "why_not_enforced": "A gate that never sets capital_gate at all is never examined - the omission moved up a level rather than disappearing. One evidence-schema declaration of which gates are capital- and LIVE-bearing would close it for P8 and P10 together; that is a separate decision.",
     "open_limits": {
-      "gate_that_never_declares_itself": "VC-I1 reaches a gate that says capital_gate=true and brings no pack. It does not reach one that never sets the flag.",
+      "gate_that_never_declares_itself": "CLOSED by UPTM-005. A gate that declared nothing once bypassed these checks entirely; the scope declaration is now mandatory and unconditional, and its absence resolves to UNKNOWN. Kept as a closed entry rather than removed so the hole and its closure stay auditable together.",
       "disguised_return_criteria": "VC-R1 matches named return metrics compared against a number. A criterion phrased as an equity curve or an account balance encodes return without naming it and is not caught; a reviewer still has to read the criteria.",
       "under_declared_exposure": "This detector binds declarations. Whether a declaration matches reality is UPTM-002's job; neither substitutes for the other.",
       "criteria_outside_the_wave_file": "VC-R1 reads waves/wave{N}.yaml exit_criteria plus evidence gate_criteria. A criterion agreed elsewhere is not seen.",
       "free_text_justification": "VC-R2 reads agent_claim.basis, a structured list. A PASS argued in prose is not parsed - deliberately, since matching prose would produce false positives on the honest reporting P10 wants.",
       "leverage_and_notional": "Whether a notional position with a protective stop counts as the stop distance or the notional is a Founder decision recorded in applies_to, not an inference."
-    }
+    },
+    "enforced_since": "UPTM-005 (PR #10). P10 was PARTIAL for one stated reason - a gate that never set capital_gate was never examined - and the mandatory scope declaration closed it. The old why_not_enforced text was left behind by that upgrade and is removed here rather than kept as a rationale for a status that no longer holds. Matches the correction made to uptm003_detector in PR #12."
   },
   "validation_capital": {
     "amount": null,
@@ -296,6 +296,34 @@
     "breaking_change": "Evidence written before this wall carries no scope and denies until declared. runner.fsm.run_baseline_ack now emits the declaration, so a regenerated wave 0 ack is declared at the producer rather than patched afterwards.",
     "open_limits": {
       "false_declaration": "This wall makes the declaration mandatory and self-consistent. It cannot tell whether the declaration is true. A gate declaring live_bearing false while actually bearing LIVE has not avoided the check - it has lied in signed evidence."
+    }
+  },
+  "uptm006_enforcement_evidence": {
+    "module": "runner/enforcement.py",
+    "spec": "docs/specs/UPTM-006-enforcement-evidence.md",
+    "serves": [
+      "P9",
+      "P12"
+    ],
+    "subject": "the ENFORCED claims in this file",
+    "claims_checked": [
+      "P8",
+      "P10"
+    ],
+    "routes": 13,
+    "status": "INVOKED_BY_CI",
+    "invocation_path": "tests/test_enforcement_evidence.py on every run; python -m runner.cli enforcement-evidence --commit <sha> as a CI step",
+    "claim_gate": "A principle reading ENFORCED with no registered routes fails the suite. ENFORCED is no longer a word that can be typed into this file - it has to be earned. The guard is itself tested against a fabricated P99 claim, because a guard that cannot fail is not a guard.",
+    "what_a_route_must_show": "It denies when driven through the real evaluate_gate; it denies via its own named check rather than an unrelated one; and neutering its named guards opens it. A route that still denies with its guards removed is denied by something else and names the wrong guard.",
+    "found_not_designed": "P8-R2 and P10-R2 were preregistered with one guard each. The load-bearing test refused both - neutering run_scope_detector alone left each still denying - so the registry was corrected to what the gate does rather than the test loosened to what the spec guessed.",
+    "conditional_guard": "P10-R2 is guarded twice today, but its second guard is a circumstance: run_validation_capital_detectors denies it only because validation_capital is unset. Setting the tranche drops that route from two guards to one with no code change.",
+    "blocked_route": "P10-R5 (return as an acceptance criterion) denies, but VC-P1 fires first while the tranche is unset, so VC-R1 cannot be shown to be load-bearing. Recorded as blocked rather than relabelled to whatever check happens to fire.",
+    "expiry": "The manifest carries a commit and expires_at: null. No evidence lifetime is preregistered in this file, and inventing one at generation time would be the sourceless number UPTM-002 exists to catch. evidence_expiry_days is an open Founder parameter and is why P12 stays PARTIAL.",
+    "advances_no_status": "This wall makes two existing ENFORCED claims checkable. It does not make P9 or P12 ENFORCED, and it does not change any principle's enforcement value.",
+    "open_limits": {
+      "route_list_completeness": "Every enumerated route denies. A route nobody thought of is not covered, and no test closes that. This is the honest ceiling of the wall.",
+      "declaration_truth": "Inherited from UPTM-005: a gate that lies in signed evidence has not found a route, it has committed forgery. That belongs to UPTM-002.",
+      "no_expiry": "Without a preregistered lifetime the manifest is a record of a run, not standing evidence. P12 is satisfied on commit and unsatisfied on expiry."
     }
   }
 }

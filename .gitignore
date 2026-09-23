@@ -7,3 +7,7 @@ __pycache__/
 dist/
 build/
 .ruff_cache/
+
+# UPTM-006 evidence is generated per commit, never committed: an artifact
+# pinned to an older commit is stale the moment it lands (P12).
+evidence/enforcement/
