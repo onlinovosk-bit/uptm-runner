@@ -273,6 +273,12 @@ specification (the rule §5a already applies to the two earlier amendments).
 
 No evidence had been graded against §4.2 when this landed.
 
+Neither check changes P8's status. P8 reached `ENFORCED` through UPTM-005, which
+made the evidence scope declaration mandatory and closed the omission bypass
+that had held it at `PARTIAL`. KS-D5 and KS-D6 narrow what a valid drill and a
+current attestation mean; they do not touch the reason the principle is
+enforced.
+
 ## 8. Founder parameter — set
 
 ```
