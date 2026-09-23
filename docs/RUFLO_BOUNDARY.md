@@ -16,8 +16,12 @@ Ruflo may be unavailable in this environment. The Runner owns orchestration via
 
 ## Stub behavior
 
-`NullRufloAdapter.available() == False`. `publish` / `subscribe` raise
-`RufloUnavailableError`. No silent no-op success.
+`NullRufloAdapter.available() == False`. `publish` / `subscribe` /
+`dispatch_swarm` raise `RufloUnavailableError`. No silent no-op success.
+
+`SwarmDispatch` is a contract only: max 8 parallel agents, one wave per dispatch,
+non-overlapping file ownership, lease fields, and evidence skeleton paths. Ruflo
+fanout is never gate evidence.
 
 ## Integrating a real Ruflo later
 

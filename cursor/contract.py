@@ -22,7 +22,16 @@ class CursorTask:
     stack_id: str
     prompt_ref: str
     max_agents: int = 8
+    role: str = "executor"
     metadata: dict[str, Any] | None = None
+
+    def __post_init__(self) -> None:
+        metadata = dict(self.metadata or {})
+        metadata.setdefault("role", self.role)
+        metadata.setdefault("least_privilege", True)
+        metadata.setdefault("wave_id", self.wave_id)
+        metadata.setdefault("stack_id", self.stack_id)
+        object.__setattr__(self, "metadata", metadata)
 
 
 @dataclass(frozen=True)
@@ -83,7 +92,8 @@ class NullCursorExecutor(CursorExecutor):
             task=task,
             instructions=(
                 f"Execute wave {task.wave_id} stack {task.stack_id} "
-                f"using prompt {task.prompt_ref}. Return schema-valid evidence "
+                f"as role {task.role} using prompt {task.prompt_ref}. "
+                f"Return schema-valid evidence "
                 f"with probes; agent self-report alone will not pass Runner gates. "
                 f"live_trading must remain false. Max agents={task.max_agents}."
             ),

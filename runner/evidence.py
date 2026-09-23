@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from runner.paths import SCHEMAS
+from runner.prompt_stacks import validate_prompt_stack_binding
 
 
 class EvidenceError(ValueError):
@@ -48,6 +49,7 @@ def validate_evidence_structure(evidence: dict[str, Any]) -> list[str]:
             errors.append("probes must be a non-empty list")
     if "live_trading" in evidence and evidence.get("live_trading") is not False:
         errors.append("live_trading must be false")
+    errors.extend(validate_prompt_stack_binding(evidence))
     # Optional strict schema (does not replace adversarial severity logic)
     try:
         import jsonschema
