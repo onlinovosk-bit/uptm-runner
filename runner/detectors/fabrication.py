@@ -29,13 +29,27 @@ from __future__ import annotations
 
 import hashlib
 import statistics
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
-from runner.detectors import CheckOutcome, worst, worst_verdict
 from runner.verdict import Verdict
 
 OHLC = ("open", "high", "low", "close")
+
+
+@dataclass(frozen=True)
+class CheckOutcome:
+    """One preregistered check's result. Carries no decision."""
+
+    check_id: str
+    verdict: Verdict
+    detail: str
+
+    @property
+    def stop_condition_raised(self) -> bool:
+        """Only FAIL asserts a violation. UNKNOWN denies without accusing."""
+        return self.verdict is Verdict.FAIL
 
 
 def _missing(pack: dict[str, Any], *params: str) -> list[str]:
@@ -368,3 +382,23 @@ def detect_fabricated_pnl(pack: dict[str, Any]) -> list[CheckOutcome]:
         check_pl_m1_pnl_without_fills(pack),
         check_pl_m2_fees_and_slippage(pack),
     ]
+
+
+def worst_verdict(verdicts: Iterable[Verdict]) -> Verdict:
+    """FAIL dominates UNKNOWN dominates PASS.
+
+    Both non-PASS states deny; only FAIL asserts a violation, so FAIL is
+    reported when both are present. An empty set is not proof and yields
+    UNKNOWN.
+    """
+    seen = set(verdicts)
+    if Verdict.FAIL in seen:
+        return Verdict.FAIL
+    if Verdict.UNKNOWN in seen:
+        return Verdict.UNKNOWN
+    return Verdict.PASS if seen else Verdict.UNKNOWN
+
+
+def worst(outcomes: Iterable[CheckOutcome]) -> Verdict:
+    """worst_verdict over a set of check outcomes."""
+    return worst_verdict(o.verdict for o in outcomes)

@@ -13,14 +13,13 @@ from runner.evidence import (
     load_evidence,
     validate_evidence_structure,
 )
-from runner.detectors import worst, worst_verdict
 from runner.detectors.fabrication import (
     CheckOutcome,
     detect_fabricated_market_data,
     detect_fabricated_pnl,
+    worst,
+    worst_verdict,
 )
-from runner.detectors.kill_switch import detect_kill_switch, stop_state_is_engaged
-from runner.paths import CAPITAL_RULES, RULES, UPTM003_SPEC
 from runner.detectors.kill_switch import (
     detect_kill_switch,
     detect_kill_switch_drill,
@@ -67,87 +66,6 @@ def load_rules() -> dict[str, Any]:
     return json.loads(RULES.read_text(encoding="utf-8"))
 
 
-def load_capital_rules() -> dict[str, Any]:
-    return json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
-
-
-def drill_cadence_days() -> Any:
-    """The preregistered drill cadence, read from the governance artifact.
-
-    Unreadable or undeclared yields None, which the detector resolves to
-    UNKNOWN. A default here would be this module inventing a safety parameter.
-    """
-    try:
-        return load_capital_rules()["live_capability"]["kill_switch_drill_cadence_days"]
-    except (OSError, json.JSONDecodeError, KeyError, TypeError):
-        return None
-
-
-def _kill_switch_stop_conditions() -> dict[str, str]:
-    """check_id -> stop condition, read from the UPTM-003 preregistration.
-
-    The mapping lives in the spec the tests assert against, not in a second
-    copy here that could drift away from it.
-    """
-    try:
-        spec = json.loads(UPTM003_SPEC.read_text(encoding="utf-8"))
-        return {c["id"]: c["stop_condition"] for c in spec["checks"]}
-    except (OSError, json.JSONDecodeError, KeyError, TypeError):
-        return {}
-
-
-def run_kill_switch_detector(
-    evidence: dict[str, Any], evidence_path: Path | None
-) -> tuple[Verdict, list[str]]:
-    """Invoke the UPTM-003 kill-switch detector from the gate path.
-
-    Wiring only: the detector decides nothing. It returns verdicts, this
-    function folds them, and resolution stays with runner.verdict.resolve.
-
-    A LIVE capability claim with no kill_switch pack is UNKNOWN, not PASS: on
-    the one path P8 exists to protect, omission cannot buy silence. Evidence
-    that claims no LIVE capability and carries no pack is left exactly as the
-    gate treated it before — the recorded limit omission_bypass_outside_live_claim.
-    """
-    pack = evidence.get("kill_switch")
-    if pack is None:
-        if evidence.get("live_capability_claim"):
-            return Verdict.UNKNOWN, [
-                "unverifiable: KS-P1 UNKNOWN — LIVE capability claimed with no kill_switch pack"
-            ]
-        return Verdict.PASS, []
-
-    if not isinstance(pack, dict):
-        return Verdict.UNKNOWN, [
-            f"unverifiable: KS-P1 UNKNOWN — kill_switch is {type(pack).__name__}, not a pack"
-        ]
-
-    root = evidence_path.parent if evidence_path else Path(".")
-    try:
-        outcomes = detect_kill_switch(
-            pack, stop_state_root=root, cadence_days=drill_cadence_days()
-        )
-    except Exception as exc:  # a guard that cannot run has not cleared anything
-        return Verdict.UNKNOWN, [
-            f"unverifiable: kill-switch detector raised {type(exc).__name__}: {exc}"
-        ]
-    stop_for = _kill_switch_stop_conditions()
-
-    reasons: list[str] = []
-    for outcome in outcomes:
-        if outcome.verdict is Verdict.PASS:
-            continue
-        label = (
-            stop_for.get(outcome.check_id, "kill_switch")
-            if outcome.stop_condition_raised
-            else "unverifiable"
-        )
-        reasons.append(
-            f"{label}: {outcome.check_id} {outcome.verdict.value} — {outcome.detail}"
-        )
-    return worst(outcomes), reasons
-
-
 def run_fabrication_detectors(
     evidence: dict[str, Any], evidence_path: Path | None
 ) -> tuple[Verdict, list[str]]:
@@ -192,39 +110,6 @@ def run_fabrication_detectors(
     return (worst_verdict(verdicts) if verdicts else Verdict.PASS), reasons
 
 
-def apply_ks_g1(
-    evidence: dict[str, Any],
-    evidence_path: Path | None,
-    verdict: Verdict,
-    reasons: list[str],
-) -> tuple[Verdict, list[str]]:
-    """KS-G1 — the one check whose input is the gate's own composed verdict.
-
-    ENGAGED means the system is stopped. A gate that answers PASS while the stop
-    state is engaged is granting precisely the permission the stop state
-    withholds, so the PASS itself is the bypass attempt.
-
-    When the gate already denies, engagement is reported and nothing is
-    accused: no permission was granted, so none was bypassed.
-
-    An indeterminate stop state changes nothing here — KS-S1 has already made
-    the verdict non-PASS, and guessing at it would be the second reading of
-    UNKNOWN this codebase refuses to have.
-    """
-    pack = evidence.get("kill_switch")
-    if not isinstance(pack, dict):
-        return verdict, reasons
-    root = evidence_path.parent if evidence_path else Path(".")
-    if not stop_state_is_engaged(pack, stop_state_root=root):
-        return verdict, reasons
-    if verdict is Verdict.PASS:
-        return Verdict.FAIL, reasons + [
-            "gate_bypass_attempt: KS-G1 FAIL — stop state ENGAGED while every other "
-            "gate contribution would PASS"
-        ]
-    return verdict, reasons + [
-        "kill switch ENGAGED: KS-G1 PASS — the gate already denies, so no bypass is asserted"
-    ]
 def load_capital_rules() -> dict[str, Any]:
     return json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
 
@@ -437,18 +322,12 @@ def evaluate_gate(
     # demonstrated violation, so it contributes FAIL; the detectors may contribute
     # UNKNOWN, which denies without asserting a violation and must not be
     # reported as FAIL.
-    kill_switch_verdict, kill_switch_reasons = run_kill_switch_detector(
-        evidence, evidence_path
-    )
     kill_switch_verdict, kill_switch_reasons = run_kill_switch_detectors(evidence)
     reasons.extend(kill_switch_reasons)
 
     contributing = [Verdict.FAIL] if gate_reasons else []
     contributing.append(fabrication_verdict)
     contributing.append(kill_switch_verdict)
-    verdict = worst_verdict(contributing)
-
-    verdict, reasons = apply_ks_g1(evidence, evidence_path, verdict, reasons)
 
     capital_verdict, capital_reasons = run_validation_capital_detectors(evidence)
     reasons.extend(capital_reasons)
