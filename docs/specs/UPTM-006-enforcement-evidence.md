@@ -75,10 +75,23 @@ For every principle claiming `ENFORCED`:
 | Route | What the caller is doing | Guards |
 |---|---|---|
 | `P10-R1` | Submits evidence with no `scope` and no capital pack | `run_scope_detector` |
-| `P10-R2` | Declares `capital_bearing: false` while carrying a capital pack | `run_scope_detector`, `run_validation_capital_detectors` † |
+| `P10-R2` | Declares `capital_bearing: false` while carrying a capital pack | `run_scope_detector`, `run_validation_capital_detectors` |
 | `P10-R3` | Declares `capital_bearing: true` and brings no pack | `run_scope_detector` |
-| `P10-R4` | Brings a capital gate while the tranche is unset | `run_validation_capital_detectors` |
-| `P10-R5` | Uses return as an acceptance criterion | `run_validation_capital_detectors` |
+| `P10-R4` | Capital at risk above the tranche | `run_validation_capital_detectors` |
+| `P10-R5` | Return used as an acceptance criterion | `run_validation_capital_detectors` |
+| `P10-R6` | Cumulative realised loss above the tranche | `run_validation_capital_detectors` |
+| `P10-R7` | Exposure reported in a currency the ceiling is not denominated in | `run_validation_capital_detectors` |
+| `P10-R8` | The tranche cleared after having been set | `run_validation_capital_detectors` |
+| `P10-R9` | A PASS claim resting on what the run earned | `run_validation_capital_detectors` |
+
+**`P10-R4` and `R6`–`R9` did not exist before 2026-09-23.** Until the Founder set
+`validation_capital`, there was no ceiling to step over, so no route could test
+one: `VC-P1` denied every capital gate on the unset tranche before any other
+check was reached. Setting the parameter is what made the routes possible, and
+it is also what exposed a defect in this module's own capital fixture — it had
+invented the field names `aggregate_open_exposure` and `per_position_at_risk`,
+where the detector reads `at_risk`. Nothing noticed, because nothing had ever
+got far enough to read them.
 
 Three routes are guarded twice, and the evidence records the count because
 "how many independent things would have to fail" is the question a reader
@@ -90,12 +103,23 @@ neutering `run_scope_detector` alone left each still denying. The registry was
 corrected to what the gate actually does, rather than the test loosened to what
 the specification had guessed.
 
-**† `P10-R2`'s second guard is a circumstance, not a mechanism.**
-`run_validation_capital_detectors` denies it only because `validation_capital`
-is unset, so `VC-P1` fires first. The day the Founder sets the tranche that
-guard falls away and `SC-I3` holds the route alone — the count drops from two to
-one with no code change at all. A reassuring number that quietly decays is worse
-than no number, so the manifest flags this one as conditional.
+### A prediction this document made, and got wrong
+
+An earlier revision of this section said `P10-R2`'s second guard was a
+circumstance rather than a mechanism — that `run_validation_capital_detectors`
+denied it only because `validation_capital` was unset, and that setting the
+tranche would drop the route from two guards to one.
+
+**Measured after the tranche was set: false.** Neutering either guard alone
+still leaves the route denying. The capital detector's hold on `P10-R2` was
+never `VC-P1`, the unset tranche; it is `VC-P2` — a pack carried by evidence
+that does not declare `capital_gate` — which is structural and does not depend
+on the tranche at all. The reasoning was plausible and untested, and the count
+did not change.
+
+It is recorded in `runner/enforcement.py` as `CORRECTED_PREDICTIONS`, with a
+test asserting it stays there. A wall whose purpose is that claims must be
+checked does not get to drop its own failed claim out of the record.
 
 ## 4. What this evidence does **not** establish
 
@@ -122,12 +146,13 @@ than no number, so the manifest flags this one as conditional.
 
 ### Must PASS
 
-5. The thirteen routes above, each denying, each denying via its own named
+5. The seventeen routes above, each denying, each denying via its own named
    check, and each load-bearing — except a route explicitly recorded as blocked.
 6. A principle not claiming `ENFORCED` needs no routes.
 7. The manifest states `expires_at: null` and names the missing parameter.
-8. `P10-R5` denies, is recorded as blocked, and is not relabelled to whatever
-   check happens to fire.
+8. No route is recorded as blocked: `P10-R5` was unblocked by the tranche being
+   set and now denies via `VC-R1`.
+9. A doubly guarded route is opened by neither of its guards alone.
 
 ## 6. Ceiling
 

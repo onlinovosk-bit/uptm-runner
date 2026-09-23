@@ -275,11 +275,15 @@
     "enforced_since": "UPTM-005 (PR #10). P10 was PARTIAL for one stated reason - a gate that never set capital_gate was never examined - and the mandatory scope declaration closed it. The old why_not_enforced text was left behind by that upgrade and is removed here rather than kept as a rationale for a status that no longer holds. Matches the correction made to uptm003_detector in PR #12."
   },
   "validation_capital": {
-    "amount": null,
-    "currency": null,
-    "applies_to": [],
+    "amount": 700,
+    "currency": "EUR",
+    "applies_to": [
+      "aggregate_open_exposure",
+      "cumulative_realised_loss"
+    ],
     "set_by": "founder",
-    "note": "Unset. VC-P1 returns UNKNOWN and every capital gate denies until amount, currency and applies_to are all set. applies_to is the substantive choice: per_position_at_risk | aggregate_open_exposure | cumulative_realised_loss, or a combination. The constitution names 700 EUR in P10's heading; a heading is prose, and the value that gates money is set deliberately."
+    "note": "Set by the Founder 2026-09-23. EUR 700 is the size of the TEST, not the size of the opportunity. per_position_at_risk is deliberately NOT a separate cap: it is implicitly covered by the stricter aggregate-open-exposure limit, so adding it would be a second number saying less than the first. PnL may be reported; profit and loss may NOT be used as an acceptance criterion of the validation experiment - a result that passes because it made money has measured the wrong thing (P10, and VC-R1 enforces it).",
+    "set_at": "2026-09-23"
   },
   "uptm005_detector": {
     "module": "runner/detectors/scope.py",
@@ -310,20 +314,20 @@
       "P8",
       "P10"
     ],
-    "routes": 13,
+    "routes": 17,
     "status": "INVOKED_BY_CI",
     "invocation_path": "tests/test_enforcement_evidence.py on every run; python -m runner.cli enforcement-evidence --commit <sha> as a CI step",
     "claim_gate": "A principle reading ENFORCED with no registered routes fails the suite. ENFORCED is no longer a word that can be typed into this file - it has to be earned. The guard is itself tested against a fabricated P99 claim, because a guard that cannot fail is not a guard.",
     "what_a_route_must_show": "It denies when driven through the real evaluate_gate; it denies via its own named check rather than an unrelated one; and neutering its named guards opens it. A route that still denies with its guards removed is denied by something else and names the wrong guard.",
     "found_not_designed": "P8-R2 and P10-R2 were preregistered with one guard each. The load-bearing test refused both - neutering run_scope_detector alone left each still denying - so the registry was corrected to what the gate does rather than the test loosened to what the spec guessed.",
-    "conditional_guard": "P10-R2 is guarded twice today, but its second guard is a circumstance: run_validation_capital_detectors denies it only because validation_capital is unset. Setting the tranche drops that route from two guards to one with no code change.",
-    "blocked_route": "P10-R5 (return as an acceptance criterion) denies, but VC-P1 fires first while the tranche is unset, so VC-R1 cannot be shown to be load-bearing. Recorded as blocked rather than relabelled to whatever check happens to fire.",
+    "conditional_guard": "None. This field previously claimed P10-R2 was guarded twice only because validation_capital was unset, and that setting the tranche would drop it to one guard. Measured after setting it: false - the capital detector's hold on that route is VC-P2 (a pack carried without declaring capital_gate), which is structural. The refuted prediction is kept in runner/enforcement.py as CORRECTED_PREDICTIONS with a test asserting it stays there.",
     "expiry": "The manifest carries a commit and expires_at: null. No evidence lifetime is preregistered in this file, and inventing one at generation time would be the sourceless number UPTM-002 exists to catch. evidence_expiry_days is an open Founder parameter and is why P12 stays PARTIAL.",
     "advances_no_status": "This wall makes two existing ENFORCED claims checkable. It does not make P9 or P12 ENFORCED, and it does not change any principle's enforcement value.",
     "open_limits": {
       "route_list_completeness": "Every enumerated route denies. A route nobody thought of is not covered, and no test closes that. This is the honest ceiling of the wall.",
       "declaration_truth": "Inherited from UPTM-005: a gate that lies in signed evidence has not found a route, it has committed forgery. That belongs to UPTM-002.",
       "no_expiry": "Without a preregistered lifetime the manifest is a record of a run, not standing evidence. P12 is satisfied on commit and unsatisfied on expiry."
-    }
+    },
+    "routes_the_tranche_made_possible": "P10-R4 and P10-R6 through R9 did not exist before 2026-09-23. Until validation_capital was set there was no ceiling to step over, so no route could test one: VC-P1 denied every capital gate before any other check was reached. Setting it also exposed a defect in this module's own capital fixture, which had invented the pack field names aggregate_open_exposure and per_position_at_risk where the detector reads at_risk. Nothing had ever got far enough to read them."
   }
 }

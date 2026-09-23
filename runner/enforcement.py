@@ -170,15 +170,35 @@ def _live_bearing(root: Path, *, stop_overrides: Any = None, drill_overrides: An
     )
 
 
-def _capital_pack(**overrides: Any) -> dict[str, Any]:
-    pack = {
-        "currency": "EUR",
-        "aggregate_open_exposure": 0.0,
-        "cumulative_realised_loss": 0.0,
-        "per_position_at_risk": [],
-    }
+def _capital_pack(**overrides):
+    """A capital declaration well inside the tranche.
+
+    The field names are the detector's, not a guess: `at_risk` is the single
+    number VC-I2 compares against the ceiling. An earlier version of this
+    builder invented `aggregate_open_exposure` and `per_position_at_risk` as
+    pack fields and nothing noticed, because VC-P1 denied every capital route
+    on the unset tranche before any of them was read. Setting the tranche is
+    what exposed it.
+    """
+    pack = {"currency": "EUR", "at_risk": 100.0, "cumulative_realised_loss": 50.0}
     pack.update(overrides)
     return pack
+
+
+def _capital_gate(pack=None, **overrides):
+    return _base(
+        scope={"capital_bearing": True, "live_bearing": False},
+        capital=pack if pack is not None else _capital_pack(),
+        capital_gate=True,
+        **overrides,
+    )
+
+
+#: A tranche cleared after having been set. VC-P1 must still deny: a ceiling
+#: that can be removed by editing a file is not a ceiling.
+CLEARED_TRANCHE = (
+    ("runner.gates", "load_capital_rules", lambda: {"validation_capital": {}}),
+)
 
 
 # --------------------------------------------------------------------------
@@ -268,43 +288,66 @@ ROUTES: tuple[BypassRoute, ...] = (
     ),
     BypassRoute(
         "P10-R4", "P10",
-        "a capital gate submitted while the validation tranche is unset",
-        lambda root: _base(
-            scope={"capital_bearing": True, "live_bearing": False},
-            capital=_capital_pack(),
-            capital_gate=True,
-        ),
-        CAPITAL, "VC-P1",
+        "capital at risk above the validation tranche",
+        lambda root: _capital_gate(_capital_pack(at_risk=900.0)),
+        CAPITAL, "VC-I2",
     ),
     BypassRoute(
         "P10-R5", "P10",
         "return used as an acceptance criterion of the validation experiment",
-        lambda root: _base(
-            scope={"capital_bearing": True, "live_bearing": False},
-            capital=_capital_pack(),
-            capital_gate=True,
-            wave_exit_criteria=["cumulative_pnl > 0"],
-        ),
+        lambda root: _capital_gate(gate_criteria=["cumulative_pnl > 0"]),
         CAPITAL, "VC-R1",
-        blocked_by=(
-            "validation_capital is unset, so VC-P1 denies every capital gate before VC-R1 is "
-            "reached. The route denies, but its own guard cannot be shown to be load-bearing "
-            "until the Founder sets the tranche. Reported rather than relabelled to whatever "
-            "happens to fire."
+    ),
+    BypassRoute(
+        "P10-R6", "P10",
+        "cumulative realised loss above the validation tranche",
+        lambda root: _capital_gate(_capital_pack(cumulative_realised_loss=900.0)),
+        CAPITAL, "VC-I3",
+    ),
+    BypassRoute(
+        "P10-R7", "P10",
+        "exposure reported in a currency the ceiling is not denominated in",
+        lambda root: _capital_gate(_capital_pack(currency="USD", at_risk=650.0)),
+        CAPITAL, "VC-I4",
+    ),
+    BypassRoute(
+        "P10-R8", "P10",
+        "the tranche cleared after having been set",
+        lambda root: _capital_gate(),
+        CAPITAL, "VC-P1", CLEARED_TRANCHE,
+    ),
+    BypassRoute(
+        "P10-R9", "P10",
+        "a PASS claim resting on what the run earned",
+        lambda root: _capital_gate(
+            agent_claim={"verdict": "PASS", "notes": "ok", "basis": ["net profit"]}
         ),
+        CAPITAL, "VC-R2",
     ),
 )
 
 
-#: Routes whose second guard is a condition rather than a mechanism, and will
-#: therefore lose that guard when the condition changes. Recorded because "this
-#: route is denied twice" is only reassuring while both denials are permanent.
-CONDITIONAL_GUARDS = {
-    "P10-R2": (
-        "run_validation_capital_detectors denies this route today only because "
-        "validation_capital is unset (VC-P1). Setting the tranche removes that guard and "
-        "leaves SC-I3 alone holding the route. The count drops from two to one and nothing "
-        "in the code will have changed."
+#: Routes whose second guard is a circumstance rather than a mechanism, and so
+#: would fall away when the circumstance changes. Empty: the one entry this held
+#: was a prediction, and the prediction was wrong. See CORRECTED_PREDICTIONS.
+CONDITIONAL_GUARDS: dict[str, str] = {}
+
+#: Predictions this module made and the measurements that refuted them.
+#:
+#: Kept in code rather than quietly deleted. A wall whose whole purpose is that
+#: claims must be checked does not get to drop its own failed claim out of the
+#: record — that is the fabrication it exists to catch, applied to itself.
+CORRECTED_PREDICTIONS = {
+    "P10-R2-conditional-guard": (
+        "Predicted 2026-09-23, before the tranche was set: P10-R2 is guarded twice only "
+        "because validation_capital is unset, so setting it would drop the route from two "
+        "guards to one and leave SC-I3 holding it alone. This was stated in the spec, in "
+        "capital-rules.json, in PR #13 and to the Founder. "
+        "MEASURED AFTER SETTING IT: false. Neutering either guard alone still leaves the "
+        "route denying. The capital detector's hold on it was never VC-P1 (the unset "
+        "tranche) but VC-P2 — the pack is carried by evidence that does not declare "
+        "capital_gate — which is structural and does not depend on the tranche at all. "
+        "The reasoning was plausible and untested; the number of guards did not change."
     ),
 }
 
