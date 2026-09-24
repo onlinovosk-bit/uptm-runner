@@ -535,6 +535,7 @@ ROUTES: tuple[BypassRoute, ...] = (
         "a files entry that is not an object at all",
         lambda root: _base(files=["runner/gates.py"]),
         BINDING, "binding UNKNOWN",
+    ),
     # ---- the required-field list, the other arm of the same guard ---------
     # Each of these drops one field that the required-field list is the sole
     # mechanism enforcing. Measured before they were written: neuter
