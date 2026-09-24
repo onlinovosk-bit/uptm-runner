@@ -116,6 +116,11 @@
         "stack_ids",
         "stack_versions",
         "stack_digests",
+        "stack_releases",
+        "registry_sha256",
+        "assembled_prompt_digest",
+        "evidence_expires_at",
+        "stale_on"
         "assembled_prompt_digest",
         "wave_context"
       ],
@@ -140,10 +145,24 @@
             "pattern": "^[a-f0-9]{64}$"
           }
         },
+        "stack_releases": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "registry_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
         "assembled_prompt_digest": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },
+        "evidence_expires_at": { "type": ["string", "null"] },
+        "stale_on": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "wave_context": { "type": "object" }
         "wave_context": {
           "type": "object",
           "minProperties": 1
@@ -151,7 +170,49 @@
       },
       "additionalProperties": false
     },
-    "signature": { "type": ["string", "null"] }
+    "scope": {
+      "type": "object",
+      "required": ["capital_bearing", "live_bearing"],
+      "properties": {
+        "capital_bearing": { "type": "boolean" },
+        "live_bearing": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "signature": { "type": ["string", "null"] },
+    "skeleton": { "type": "boolean" },
+    "swarm_claim": {
+      "type": "object",
+      "required": [
+        "agent_id",
+        "wave_id",
+        "role",
+        "stack_ids",
+        "owned_paths",
+        "lease_id",
+        "lease_expires_at",
+        "evidence_skeleton_path"
+      ],
+      "properties": {
+        "agent_id": { "type": "string", "minLength": 1 },
+        "wave_id": { "type": "integer", "minimum": 0, "maximum": 7 },
+        "role": { "type": "string" },
+        "stack_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "owned_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "lease_id": { "type": "string", "minLength": 1 },
+        "lease_expires_at": { "type": "string", "minLength": 1 },
+        "evidence_skeleton_path": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

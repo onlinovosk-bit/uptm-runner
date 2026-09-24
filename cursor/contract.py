@@ -9,7 +9,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+from runner.prompt_stacks import load_stacks
+from ruflo.adapter import SwarmDispatch
 
 
 class CursorNotConfiguredError(RuntimeError):
@@ -67,6 +71,18 @@ class CursorExecutor(ABC):
     def handoff(self, task: CursorTask) -> CursorHandoff:
         ...
 
+    @abstractmethod
+    def handoff_swarm(
+        self,
+        dispatch: SwarmDispatch,
+        *,
+        branch: str,
+        commit_sha: str,
+        pr: int | None = None,
+        write_root: Path | None = None,
+    ) -> tuple[CursorHandoff, ...]:
+        ...
+
 
 class NullCursorExecutor(CursorExecutor):
     """
@@ -100,6 +116,64 @@ class NullCursorExecutor(CursorExecutor):
             evidence_skeleton_path=f"evidence/wave{task.wave_id}/handoff_skeleton.json",
             status="HANDOFF_REQUIRED",
         )
+
+    def handoff_swarm(
+        self,
+        dispatch: SwarmDispatch,
+        *,
+        branch: str,
+        commit_sha: str,
+        pr: int | None = None,
+        write_root: Path | None = None,
+    ) -> tuple[CursorHandoff, ...]:
+        """Emit one documented handoff per validated swarm claim.
+
+        Uses APS-004 skeletons for path and prompt_stack metadata. This is not
+        execution: dispatch() remains fail-closed when Cursor is unconfigured.
+        """
+        if write_root is not None:
+            dispatch.write_evidence_skeletons(
+                root=write_root, branch=branch, commit_sha=commit_sha, pr=pr
+            )
+        skeletons = dispatch.evidence_skeletons(
+            branch=branch, commit_sha=commit_sha, pr=pr
+        )
+        stacks = load_stacks()
+        handoffs: list[CursorHandoff] = []
+        for claim, skeleton in zip(dispatch.claims, skeletons, strict=True):
+            primary_stack = claim.stack_ids[-1]
+            prompt_ref = f"prompt-stacks/{stacks[primary_stack].file}"
+            task = CursorTask(
+                claim.wave_id,
+                primary_stack,
+                prompt_ref,
+                max_agents=dispatch.max_parallel_agents,
+                role=claim.role,
+                metadata={
+                    **skeleton["prompt_stack"],
+                    "swarm_claim": dict(skeleton["swarm_claim"]),
+                    "skeleton": True,
+                    "evidence_skeleton_path": claim.evidence_skeleton_path,
+                },
+            )
+            handoffs.append(
+                CursorHandoff(
+                    task=task,
+                    instructions=(
+                        f"Execute wave {claim.wave_id} stacks {list(claim.stack_ids)} "
+                        f"as role {claim.role} for agent {claim.agent_id}. "
+                        f"Owned paths: {list(skeleton['swarm_claim']['owned_paths'])}. "
+                        f"Replace the SKIPPED skeleton at {claim.evidence_skeleton_path} "
+                        f"with schema-valid evidence and real probes. "
+                        f"The skeleton itself cannot pass a gate. "
+                        f"live_trading must remain false. "
+                        f"Max agents={dispatch.max_parallel_agents}."
+                    ),
+                    evidence_skeleton_path=claim.evidence_skeleton_path,
+                    status="HANDOFF_REQUIRED",
+                )
+            )
+        return tuple(handoffs)
 
 
 def get_executor() -> CursorExecutor:

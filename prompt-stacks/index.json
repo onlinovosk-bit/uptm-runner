@@ -2,6 +2,17 @@
   "schema_version": "1.0.0",
   "digest_algorithm": "sha256",
   "canonical_body": "json: sorted compact JSON; markdown: LF normalized, single trailing newline",
+  "release_policy": {
+    "release_id_format": "<stack_id>@<version>+sha256:<body_sha256>",
+    "evidence_expires_at": null,
+    "stale_on": [
+      "registry_sha256_change",
+      "stack_version_change",
+      "stack_body_sha256_change",
+      "assembled_prompt_digest_change"
+    ],
+    "expiry_note": "No wall-clock lifetime is configured. Prompt-stack evidence expires by dependency change; a calendar expiry requires a separate Founder parameter."
+  },
   "role_taxonomy": {
     "commander": {
       "allowed_stack_ids": ["00", "01", "02", "03", "04", "05", "06", "07"],

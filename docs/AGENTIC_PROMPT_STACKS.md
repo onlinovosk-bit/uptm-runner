@@ -33,13 +33,22 @@ Source of truth is Git in this repository. There is no required Obsidian vault.
 - `depends_on`
 - `required_roles`
 
+The registry also carries `release_policy`. APS-002 deliberately does not
+invent a wall-clock evidence lifetime: `evidence_expires_at` is `null` until a
+Founder parameter exists. Evidence still goes stale when any bound prompt-stack
+dependency changes.
+
 Canonical body rules:
 
 - JSON stacks: parse and dump sorted compact JSON.
 - Markdown stacks: normalize line endings and keep one trailing newline.
 
 The composer refuses to load a stack whose declared digest no longer matches its
-body.
+body. A stack release id is derived as:
+
+```text
+<stack_id>@<version>+sha256:<body_sha256>
+```
 
 ## Composition
 
@@ -49,6 +58,9 @@ body.
 - ordered stack ids
 - per-stack versions
 - per-stack body digests
+- per-stack release ids
+- full registry digest
+- evidence expiry policy
 - wave context
 - assembled body
 - assembled prompt digest
@@ -97,7 +109,16 @@ Every evidence artifact must include:
     "stack_ids": ["00", "04"],
     "stack_versions": {"00": "0.1.0", "04": "0.1.0"},
     "stack_digests": {"00": "...", "04": "..."},
+    "stack_releases": {"00": "00@0.1.0+sha256:...", "04": "04@0.1.0+sha256:..."},
+    "registry_sha256": "...",
     "assembled_prompt_digest": "...",
+    "evidence_expires_at": null,
+    "stale_on": [
+      "registry_sha256_change",
+      "stack_version_change",
+      "stack_body_sha256_change",
+      "assembled_prompt_digest_change"
+    ],
     "wave_context": {"wave_id": 4}
   }
 }
@@ -105,6 +126,8 @@ Every evidence artifact must include:
 
 The gate reassembles the prompt from Git source and rejects a PASS path when the
 binding is absent, incomplete, or any version, stack digest, or assembled prompt
+digest does not match. It also rejects stale bindings when the registry digest,
+release id set, or expiry policy differs from the current registry.
 digest does not match. A stack body that changes after that binding was
 assembled, without a matching registry digest, is route `PS-R3`: the loader
 raises `prompt stack <id> digest mismatch` before the reassembled digest can be
@@ -117,9 +140,13 @@ does not overlap. The Ruflo `SwarmDispatch` contract requires:
 
 - max 8 parallel agents
 - all claims in the same wave
-- non-overlapping `owned_paths`
-- work-claim lease fields
-- evidence skeleton path per claim
+- unique `agent_id` and `lease_id`
+- non-overlapping `owned_paths`, including parent/child overlaps
+- work-claim lease fields with ISO-8601 expiry
+- stack ids accepted for the claim role by the prompt-stack composer
+- evidence skeleton path per claim, confined to `evidence/waveN/*.json`
+- a deterministic per-claim evidence skeleton with `prompt_stack` binding,
+  lease metadata, and `owned_paths`; probes remain `SKIPPED` until a real run
 
 Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 `passed_waves`, which is written only after a PASS gate result with
@@ -131,6 +158,7 @@ Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 `dispatch_swarm` raise `RufloUnavailableError`; they do not report fanout success.
 
 Cursor remains a fail-closed executor contract. `NullCursorExecutor.dispatch`
-raises when not configured. The documented fallback is a single-threaded Cursor
-handoff skeleton, and that skeleton still must return schema-valid evidence
-before any gate can pass.
+raises when not configured. `handoff_swarm()` emits one documented handoff per
+validated swarm claim, using the APS-004 skeleton path and prompt-stack
+metadata. The skeleton itself cannot pass a gate; a real probe-bearing artifact
+is still required.

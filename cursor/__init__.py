@@ -1,5 +1,19 @@
 """Cursor execution contract package."""
 
-from cursor.contract import CursorExecutor, CursorNotConfiguredError, NullCursorExecutor
+from cursor.contract import (
+    CursorExecutor,
+    CursorHandoff,
+    CursorNotConfiguredError,
+    CursorTask,
+    NullCursorExecutor,
+    get_executor,
+)
 
-__all__ = ["CursorExecutor", "CursorNotConfiguredError", "NullCursorExecutor"]
+__all__ = [
+    "CursorExecutor",
+    "CursorHandoff",
+    "CursorNotConfiguredError",
+    "CursorTask",
+    "NullCursorExecutor",
+    "get_executor",
+]

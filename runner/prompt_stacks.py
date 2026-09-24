@@ -24,6 +24,7 @@ class PromptStack:
     file: str
     version: str
     body_sha256: str
+    release_id: str
     depends_on: tuple[str, ...]
     required_roles: tuple[str, ...]
     body: str
@@ -35,6 +36,10 @@ class AssembledPrompt:
     stack_ids: tuple[str, ...]
     stack_versions: dict[str, str]
     stack_digests: dict[str, str]
+    stack_releases: dict[str, str]
+    registry_sha256: str
+    evidence_expires_at: str | None
+    stale_on: tuple[str, ...]
     wave_context: dict[str, Any]
     body: str
     digest: str
@@ -45,7 +50,11 @@ class AssembledPrompt:
             "stack_ids": list(self.stack_ids),
             "stack_versions": dict(self.stack_versions),
             "stack_digests": dict(self.stack_digests),
+            "stack_releases": dict(self.stack_releases),
+            "registry_sha256": self.registry_sha256,
             "assembled_prompt_digest": self.digest,
+            "evidence_expires_at": self.evidence_expires_at,
+            "stale_on": list(self.stale_on),
             "wave_context": dict(self.wave_context),
         }
 
@@ -62,6 +71,8 @@ def digest_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _canonical_json(payload: Any) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
 def enforce_declared_body_digest(stack_id: str, declared: object, actual: str) -> None:
     """Refuse a stack whose registry digest no longer matches its canonical body."""
     if isinstance(declared, str) and declared and declared != actual:
@@ -78,6 +89,22 @@ def require_binding_wave_context(binding: dict[str, Any]) -> dict[str, Any]:
 
 def _load_registry() -> dict[str, Any]:
     return json.loads((PROMPT_STACKS / "index.json").read_text(encoding="utf-8"))
+
+
+def registry_sha256(registry: dict[str, Any] | None = None) -> str:
+    """Digest the full prompt-stack registry, including release policy."""
+    return digest_text(_canonical_json(registry if registry is not None else _load_registry()))
+
+
+def release_policy(registry: dict[str, Any] | None = None) -> dict[str, Any]:
+    policy = (registry if registry is not None else _load_registry()).get("release_policy") or {}
+    stale_on = policy.get("stale_on") or []
+    if not isinstance(stale_on, list) or not all(isinstance(item, str) for item in stale_on):
+        raise PromptStackError("fail-closed: release_policy.stale_on must be a list of strings")
+    return {
+        "evidence_expires_at": policy.get("evidence_expires_at"),
+        "stale_on": tuple(stale_on),
+    }
 
 
 def load_stacks() -> dict[str, PromptStack]:
@@ -99,12 +126,15 @@ def load_stacks() -> dict[str, PromptStack]:
             raise PromptStackError(
                 f"prompt stack {stack_id} unknown roles {unknown_roles}"
             )
+        version = str(item.get("version") or item.get("schema_version") or "")
+        release_id = f"{stack_id}@{version}+sha256:{digest}"
         stacks[stack_id] = PromptStack(
             id=stack_id,
             name=str(item.get("name", "")),
             file=str(item.get("file", "")),
-            version=str(item.get("version") or item.get("schema_version") or ""),
+            version=version,
             body_sha256=digest,
+            release_id=release_id,
             depends_on=tuple(str(dep) for dep in item.get("depends_on", [])),
             required_roles=roles,
             body=body,
@@ -155,6 +185,9 @@ def assemble_prompt(
 
     stack_versions = {stack_id: stacks[stack_id].version for stack_id in requested}
     stack_digests = {stack_id: stacks[stack_id].body_sha256 for stack_id in requested}
+    stack_releases = {stack_id: stacks[stack_id].release_id for stack_id in requested}
+    registry = _load_registry()
+    policy = release_policy(registry)
     body = "\n".join(
         [
             "# UPTM Assembled Prompt",
@@ -176,6 +209,10 @@ def assemble_prompt(
         "stack_ids": list(requested),
         "stack_versions": stack_versions,
         "stack_digests": stack_digests,
+        "stack_releases": stack_releases,
+        "registry_sha256": registry_sha256(registry),
+        "evidence_expires_at": policy["evidence_expires_at"],
+        "stale_on": list(policy["stale_on"]),
         "wave_context": wave_context,
         "body_sha256": digest_text(body),
     }
@@ -187,6 +224,10 @@ def assemble_prompt(
         stack_ids=requested,
         stack_versions=stack_versions,
         stack_digests=stack_digests,
+        stack_releases=stack_releases,
+        registry_sha256=registry_sha256(registry),
+        evidence_expires_at=policy["evidence_expires_at"],
+        stale_on=policy["stale_on"],
         wave_context=dict(wave_context),
         body=body,
         digest=digest,
@@ -201,7 +242,17 @@ def validate_prompt_stack_binding(evidence: dict[str, Any]) -> list[str]:
     if not isinstance(binding, dict):
         return ["prompt_stack binding must be an object"]
 
-    required = ("role", "stack_ids", "stack_versions", "stack_digests", "assembled_prompt_digest")
+    required = (
+        "role",
+        "stack_ids",
+        "stack_versions",
+        "stack_digests",
+        "stack_releases",
+        "registry_sha256",
+        "assembled_prompt_digest",
+        "evidence_expires_at",
+        "stale_on",
+    )
     missing = [key for key in required if key not in binding]
     if missing:
         return [f"prompt_stack missing field: {key}" for key in missing]
@@ -218,6 +269,14 @@ def validate_prompt_stack_binding(evidence: dict[str, Any]) -> list[str]:
         errors.append("prompt_stack stack_versions mismatch")
     if binding.get("stack_digests") != assembled.stack_digests:
         errors.append("prompt_stack stack_digests mismatch")
+    if binding.get("stack_releases") != assembled.stack_releases:
+        errors.append("prompt_stack stack_releases mismatch")
+    if binding.get("registry_sha256") != assembled.registry_sha256:
+        errors.append("prompt_stack registry_sha256 mismatch")
     if binding.get("assembled_prompt_digest") != assembled.digest:
         errors.append("prompt_stack assembled_prompt_digest mismatch")
+    if binding.get("evidence_expires_at") != assembled.evidence_expires_at:
+        errors.append("prompt_stack evidence_expires_at mismatch")
+    if tuple(binding.get("stale_on") or ()) != assembled.stale_on:
+        errors.append("prompt_stack stale_on mismatch")
     return errors
