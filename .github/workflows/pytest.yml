@@ -27,5 +27,12 @@ jobs:
       - name: Run pytest
         run: python -m pytest
 
+      # A green suite proves the guards pass. It cannot prove they would fail:
+      # a deleted, renamed or weakened proof reads exactly like a passing one.
+      # This step breaks each named mechanism on purpose and requires the proofs
+      # that exist for it to go red. It restores the source after every case.
+      - name: Mutation gate (guards are load-bearing)
+        run: python -m runner.cli mutation-gate
+
       - name: Enforcement evidence (UPTM-006)
         run: python -m runner.cli enforcement-evidence --commit "${{ github.sha }}"
