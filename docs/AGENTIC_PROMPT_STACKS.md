@@ -55,13 +55,18 @@ body.
 
 Composition fails closed on:
 
-- unknown stack id
-- duplicate stack id
-- missing prior dependency
-- unknown role
-- role requesting a forbidden stack
-- empty stack list
-- missing wave context
+- unknown stack id (`PS-R6`)
+- duplicate stack id (`PS-R7`)
+- missing prior dependency (`PS-R8`)
+- unknown role (`PS-R9`)
+- role requesting a forbidden stack (`PS-R5`)
+- empty stack list (`PS-R10`)
+- missing wave context (`PS-R4`)
+
+The gate does not fill in `wave_context` from `evidence.wave_id`. A binding
+assembled as `{"wave_id": 3}` with that field then removed used to pass,
+because the evidence wave id reconstructed the same context. That substitution
+is refused.
 
 ## Role taxonomy
 

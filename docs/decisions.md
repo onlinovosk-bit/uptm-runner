@@ -15,6 +15,49 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-24] DEC-UPTM-APS-COMPOSER — the remaining composer denials are routes
+
+**Decided:** the fail-closed branches of `assemble_prompt`, and the missing
+`wave_context` case, are routes on guard `APS-001`. They do not become a
+principle and they do not enter `capital-rules.json`.
+
+`PS-R1` through `PS-R3` stay green if those branches are deleted. The role,
+dependency, identity, and silence checks lived only in unit tests.
+
+`wave_context` was worse than unrouted. `validate_prompt_stack_binding`
+substituted `{"wave_id": evidence.wave_id}` when the binding omitted the field.
+A binding assembled as exactly that object, with `wave_context` then removed,
+reached `PASS` on `main` at `5e492f5`. Measured before this change.
+
+Criteria fixed before the new measurement:
+
+- `PS-R4` denies with `prompt_stack wave_context is required`.
+- `PS-R5` denies with `may not receive stack 06`.
+- `PS-R6` denies with `unknown prompt stack`.
+- `PS-R7` denies with `duplicate prompt stack`.
+- `PS-R8` denies with `missing prior dependencies`.
+- `PS-R9` denies with `unknown role`.
+- `PS-R10` denies with `no prompt stacks`.
+- Neutering `validate_prompt_stack_binding` opens each of them. None is added
+  to `REDUNDANT_GUARDS`.
+- `enforced_principles()` stays `P8` and `P10`.
+
+**Measured:** each new route returns `FAIL` with one gate reason:
+
+- `PS-R4` `fail-closed: prompt_stack wave_context is required`
+- `PS-R5` `fail-closed: role 'executor' may not receive stack 06`
+- `PS-R6` `fail-closed: unknown prompt stack 99`
+- `PS-R7` `fail-closed: duplicate prompt stack 00`
+- `PS-R8` `fail-closed: stack 06 missing prior dependencies ['00', '05']`
+- `PS-R9` `fail-closed: unknown role 'auditor'`
+- `PS-R10` `fail-closed: no prompt stacks requested`
+
+The loader no longer repeats `fail-closed:`; the gate adds it once.
+`enforced_principles()` stayed `['P8', 'P10']`. The registry is 27 routes.
+
+**Artifacts:** `runner/prompt_stacks.py` (`require_binding_wave_context`) ·
+`runner/enforcement.py` (`PS-R4`–`PS-R10`) ·
+`schemas/evidence.schema.json` · `tests/test_enforcement_evidence.py`.
 ## [2026-09-24] DEC-UPTM-007 — evidence now knows when it stopped being current; P12 still does not move
 
 **Decided:** Founder GO for STALE invalidation. Built as `UPTM-007`,
