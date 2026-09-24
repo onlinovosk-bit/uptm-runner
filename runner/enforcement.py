@@ -28,13 +28,14 @@ from __future__ import annotations
 import contextlib
 import importlib
 import json
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
 from runner.gates import evaluate_gate
-from runner.paths import CAPITAL_RULES
+from runner.paths import CAPITAL_RULES, PROMPT_STACKS
 from runner.prompt_stacks import assemble_prompt
 from runner.provenance import HeadProvenance
 
@@ -58,6 +59,11 @@ class BypassRoute:
 
     ``blocked_by`` names a condition that currently prevents the route from
     demonstrating anything, and is reported rather than hidden.
+
+    ``around`` wraps evaluation only. Evidence is built before it starts, so a
+    route can assemble a binding from the real stacks and then show the gate a
+    drifted source. Applying that drift during ``build`` would bake the drifted
+    digest into the binding and the route would pass.
     """
 
     route_id: str
@@ -68,6 +74,7 @@ class BypassRoute:
     expect: str
     stubs: tuple[tuple[str, str, Any], ...] = ()
     blocked_by: str | None = None
+    around: Callable[[Path], contextlib.AbstractContextManager[Any]] | None = None
 
 
 #: A sealed deployment: the Runner cannot write its own stop state. Every
@@ -232,6 +239,34 @@ KILL_SWITCH = ("run_kill_switch_detectors",)
 CAPITAL = ("run_validation_capital_detectors",)
 
 
+def _drift_prompt_stack_source(root: Path) -> contextlib.AbstractContextManager[Any]:
+    """Show the gate a stack 00 body the registry digest does not name.
+
+    The copy is per route root. The repository source is left untouched.
+    """
+
+    @contextlib.contextmanager
+    def _ctx():
+        import runner.prompt_stacks as prompt_stacks
+
+        dest = root / "drifted-prompt-stacks"
+        if dest.exists():
+            shutil.rmtree(dest)
+        shutil.copytree(PROMPT_STACKS, dest)
+        constitution = dest / "00_constitution.json"
+        payload = json.loads(constitution.read_text(encoding="utf-8"))
+        payload["drift"] = "PS-R3"
+        constitution.write_text(json.dumps(payload), encoding="utf-8")
+        saved = prompt_stacks.PROMPT_STACKS
+        prompt_stacks.PROMPT_STACKS = dest
+        try:
+            yield
+        finally:
+            prompt_stacks.PROMPT_STACKS = saved
+
+    return _ctx()
+
+
 ROUTES: tuple[BypassRoute, ...] = (
     # ---- P8 -------------------------------------------------------------
     BypassRoute(
@@ -361,6 +396,13 @@ ROUTES: tuple[BypassRoute, ...] = (
         ),
         STRUCTURE, "assembled_prompt_digest mismatch",
     ),
+    BypassRoute(
+        "PS-R3", "APS-001",
+        "a stack body changed after its evidence binding was assembled, without a registry digest update",
+        lambda root: _base(),
+        STRUCTURE, "prompt stack 00 digest mismatch",
+        around=_drift_prompt_stack_source,
+    ),
 )
 
 
@@ -410,6 +452,22 @@ CORRECTED_PREDICTIONS = {
 
 def routes_for(principle: str) -> tuple[BypassRoute, ...]:
     return tuple(r for r in ROUTES if r.principle == principle)
+
+
+@contextlib.contextmanager
+def route_guard(route: BypassRoute, root: Path):
+    """Apply a route's source drift and stubs around evaluation, not construction."""
+    ctx = contextlib.nullcontext() if route.around is None else route.around(root)
+    with ctx:
+        with apply_stubs(route.stubs):
+            yield
+
+
+def evaluate_route(route: BypassRoute, root: Path):
+    """Build the evidence first, then evaluate it under the route's guard."""
+    evidence = route.build(root)
+    with route_guard(route, root):
+        return evaluate_gate(evidence)
 
 
 # --------------------------------------------------------------------------
@@ -489,8 +547,7 @@ def run_routes(root: Path) -> list[dict[str, Any]]:
     """Drive the real gate down every route and record what came back."""
     results: list[dict[str, Any]] = []
     for route in ROUTES:
-        with apply_stubs(route.stubs):
-            outcome = evaluate_gate(route.build(root))
+        outcome = evaluate_route(route, root)
         results.append(
             {
                 "route_id": route.route_id,
