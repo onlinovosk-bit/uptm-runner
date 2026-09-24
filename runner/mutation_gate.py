@@ -211,8 +211,11 @@ MUTATIONS: tuple[Mutation, ...] = (
         mutation_id="required-fields-check-disconnected",
         claim=(
             "The required-field list is the structural arm of validate_evidence_structure "
-            "— the other mechanism holding PS-R1, and the one thing standing between a "
-            "gate and evidence with no commit_sha, no probes and no agent_claim.\n\n"
+            "— the other mechanism holding PS-R1, and the only thing standing between a "
+            "gate and evidence with no commit_sha, no agent_claim and no branch. Those "
+            "three, measured: neuter the guard and each is let through. Not probes or "
+            "results — their absence is also caught by the fabrication detector and the "
+            "claim gate, so this arm is not what holds them.\n\n"
             "Measured, and the number is the point: disabling all fourteen required "
             "fields is caught by two tests, both of which are PS-R1 redundancy "
             "bookkeeping about prompt_stack. No route proof fails. Nothing in the suite "
