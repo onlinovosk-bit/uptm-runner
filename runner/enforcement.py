@@ -30,13 +30,14 @@ import importlib
 import json
 import shutil
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
 from runner.gates import evaluate_gate
 from runner.paths import CAPITAL_RULES, PROMPT_STACKS
 from runner.prompt_stacks import assemble_prompt
+from runner.provenance import HeadProvenance
 
 @dataclass(frozen=True)
 class BypassRoute:
@@ -238,6 +239,31 @@ KILL_SWITCH = ("run_kill_switch_detectors",)
 CAPITAL = ("run_validation_capital_detectors",)
 
 
+def _composer_binding(**overrides: Any) -> dict[str, Any]:
+    """A shaped binding. Overrides are what the route is about."""
+    binding = {
+        "role": "commander",
+        "stack_ids": ["00"],
+        "stack_versions": {"00": "0.1.0"},
+        "stack_digests": {"00": "a" * 64},
+        "assembled_prompt_digest": "b" * 64,
+        "wave_context": {"wave_id": 3},
+    }
+    binding.update(overrides)
+    return binding
+
+
+def _without_wave_context(_root: Path) -> dict[str, Any]:
+    """Drop wave_context from a binding assembled as {"wave_id": 3}.
+
+    evidence.wave_id is also 3. Substituting that id back would reproduce the
+    assembled prompt and the gate would PASS.
+    """
+    binding = assemble_prompt(["00"], "commander", {"wave_id": 3}).cursor_metadata()
+    del binding["wave_context"]
+    return _base(prompt_stack=binding)
+
+
 def _drift_prompt_stack_source(root: Path) -> contextlib.AbstractContextManager[Any]:
     """Show the gate a stack 00 body the registry digest does not name.
 
@@ -402,6 +428,54 @@ ROUTES: tuple[BypassRoute, ...] = (
         STRUCTURE, "prompt stack 00 digest mismatch",
         around=_drift_prompt_stack_source,
     ),
+    BypassRoute(
+        "PS-R4", "APS-001",
+        "wave_context omitted where evidence.wave_id would reconstruct the same context",
+        _without_wave_context,
+        STRUCTURE, "prompt_stack wave_context is required",
+    ),
+    BypassRoute(
+        "PS-R5", "APS-001",
+        "executor binding names stack 06, which that role may not receive",
+        lambda root: _base(prompt_stack=_composer_binding(
+            role="executor",
+            stack_ids=["00", "06"],
+            stack_versions={"00": "0.1.0", "06": "0.1.0"},
+            stack_digests={"00": "a" * 64, "06": "b" * 64},
+            wave_context={"wave_id": 6},
+        )),
+        STRUCTURE, "may not receive stack 06",
+    ),
+    BypassRoute(
+        "PS-R6", "APS-001",
+        "binding names a stack id that is not in the registry",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=["00", "99"])),
+        STRUCTURE, "unknown prompt stack",
+    ),
+    BypassRoute(
+        "PS-R7", "APS-001",
+        "the same stack id is requested twice",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=["00", "00"])),
+        STRUCTURE, "duplicate prompt stack",
+    ),
+    BypassRoute(
+        "PS-R8", "APS-001",
+        "stack 06 is requested without its prior dependencies",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=["06"])),
+        STRUCTURE, "missing prior dependencies",
+    ),
+    BypassRoute(
+        "PS-R9", "APS-001",
+        "binding role is outside the role taxonomy",
+        lambda root: _base(prompt_stack=_composer_binding(role="auditor")),
+        STRUCTURE, "unknown role",
+    ),
+    BypassRoute(
+        "PS-R10", "APS-001",
+        "binding names no stacks",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=[])),
+        STRUCTURE, "no prompt stacks",
+    ),
 )
 
 
@@ -491,19 +565,55 @@ def unproven_claims(rules: dict[str, Any] | None = None) -> list[str]:
     return sorted(p for p in enforced_principles(rules) if p not in covered)
 
 
-def evidence_expiry(rules: dict[str, Any] | None = None) -> str | None:
-    """P12 expiry, or None when no lifetime is preregistered.
+def evidence_expiry_days(rules: dict[str, Any] | None = None) -> int | None:
+    """The preregistered evidence lifetime, or None when none is set.
 
-    There is no evidence lifetime in capital-rules.json. Returning a computed
-    default here would be the sourceless number UPTM-002 exists to catch, so
-    this returns None and the manifest says so in words.
+    A missing, non-integer or non-positive value is None rather than a default.
+    Returning a computed default here would be the sourceless number UPTM-002
+    exists to catch: the lifetime is a Founder parameter or it is nothing.
     """
     if rules is None:
         rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
     days = rules.get("evidence_expiry_days")
     if not isinstance(days, int) or isinstance(days, bool) or days <= 0:
         return None
-    return f"{days} days from generated_at"
+    return days
+
+
+def evidence_expiry(
+    rules: dict[str, Any] | None = None, *, generated_at: datetime | None = None
+) -> str | None:
+    """P12 expiry as a timestamp, or None when no lifetime is preregistered.
+
+    A timestamp rather than a phrase. The earlier version returned
+    "N days from generated_at", which reads like an expiry and cannot be
+    compared to anything - an expiry nothing can evaluate is decorative, which
+    is the same defect as a status word nobody earned.
+    """
+    days = evidence_expiry_days(rules)
+    if days is None:
+        return None
+    stamp = generated_at or datetime.now(timezone.utc)
+    return (stamp + timedelta(days=days)).isoformat()
+
+
+def expiry_status(manifest_payload: dict[str, Any], *, now: datetime | None = None) -> str:
+    """``VALID``, ``EXPIRED`` or ``UNKNOWN`` for an artifact already generated.
+
+    Three-valued on purpose, and ``UNKNOWN`` is not a soft ``VALID``: an
+    artifact carrying no expiry, or one this cannot parse, has not been shown to
+    be current. Under runner.verdict that dominates PASS and denies.
+    """
+    expires_at = manifest_payload.get("expires_at")
+    if not isinstance(expires_at, str) or not expires_at:
+        return "UNKNOWN"
+    try:
+        deadline = datetime.fromisoformat(expires_at)
+    except ValueError:
+        return "UNKNOWN"
+    if deadline.tzinfo is None:
+        return "UNKNOWN"
+    return "VALID" if (now or datetime.now(timezone.utc)) < deadline else "EXPIRED"
 
 
 def run_routes(root: Path) -> list[dict[str, Any]]:
@@ -533,21 +643,51 @@ def run_routes(root: Path) -> list[dict[str, Any]]:
 
 
 def manifest(
-    results: list[dict[str, Any]], *, commit: str, generated_at: datetime | None = None
+    results: list[dict[str, Any]],
+    *,
+    provenance: HeadProvenance,
+    generated_at: datetime | None = None,
 ) -> dict[str, Any]:
-    """The evidence artifact. Carries a commit; carries no expiry, and says why."""
+    """The evidence artifact. Names the commit the repository was at, not one it
+    was told to name; carries no expiry, and says why.
+
+    ``provenance`` is not an argument the caller can answer freely. It is read
+    from the repository by ``runner.provenance.read_head``, and every reason to
+    doubt it travels with it into the artifact.
+    """
     rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
-    stamp = (generated_at or datetime.now(timezone.utc)).isoformat()
+    stamp_dt = generated_at or datetime.now(timezone.utc)
+    stamp = stamp_dt.isoformat()
     return {
         "spec": "docs/specs/UPTM-006-enforcement-evidence.md",
         "generated_at": stamp,
-        "commit": commit,
-        "expires_at": evidence_expiry(rules),
+        "evaluated_head": provenance.evaluated_head,
+        "head_provenance": {
+            "source": provenance.source,
+            "tree_clean": provenance.tree_clean,
+            "dirty_paths": list(provenance.dirty_paths),
+            "disputed_head": provenance.disputed_head,
+            "problems": list(provenance.problems),
+        },
+        "rule_a": (
+            "Evidence Rule A (onlinovosk-bit/onlinovosk-bit-uptm, docs/EVIDENCE_RULE_A.md) "
+            "has two halves. Adopted: the evaluated head is read from the repository, never "
+            "asserted by the caller. Not applicable: the ban on a field meaning 'the commit "
+            "that contains me' — this artifact is never committed (evidence/enforcement/ is "
+            "ignored), so the self-SHA regress it forbids cannot arise here. "
+            "See docs/evidence-rule-a.md."
+        ),
+        "expires_at": evidence_expiry(rules, generated_at=stamp_dt),
+        "expiry_days": evidence_expiry_days(rules),
         "expiry_note": (
-            "P12 requires a commit and an expiry. The commit is here. No evidence lifetime is "
-            "preregistered in capital-rules.json, so expires_at is null rather than a number "
-            "invented at generation time. This is an open Founder parameter, and it is why P12 "
-            "remains PARTIAL."
+            "P12 requires a commit and an expiry. The commit is evaluated_head above, read "
+            "from the repository. The expiry is a timestamp computed from generated_at plus "
+            "evidence_expiry_days, set by the Founder to 7 on 2026-09-24 to match the "
+            "kill-switch drill cadence, so evidence never outlives the drill it rests on. "
+            "An artifact with no expires_at is UNKNOWN under expiry_status, not valid. "
+            "P12 stays PARTIAL: expiry is satisfied, STALE invalidation on dependency "
+            "change is not - evidence can be inside its seven days and still describe code "
+            "that has moved."
         ),
         "claims_checked": enforced_principles(rules),
         "unproven_claims": unproven_claims(rules),

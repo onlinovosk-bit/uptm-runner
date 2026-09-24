@@ -15,6 +15,52 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-24] DEC-UPTM-APS-COMPOSER — the remaining composer denials are routes
+
+**Decided:** the fail-closed branches of `assemble_prompt`, and the missing
+`wave_context` case, are routes on guard `APS-001`. They do not become a
+principle and they do not enter `capital-rules.json`.
+
+`PS-R1` through `PS-R3` stay green if those branches are deleted. The role,
+dependency, identity, and silence checks lived only in unit tests.
+
+`wave_context` was worse than unrouted. `validate_prompt_stack_binding`
+substituted `{"wave_id": evidence.wave_id}` when the binding omitted the field.
+A binding assembled as exactly that object, with `wave_context` then removed,
+reached `PASS` on `main` at `5e492f5`. Measured before this change.
+
+Criteria fixed before the new measurement:
+
+- `PS-R4` denies with `prompt_stack wave_context is required`.
+- `PS-R5` denies with `may not receive stack 06`.
+- `PS-R6` denies with `unknown prompt stack`.
+- `PS-R7` denies with `duplicate prompt stack`.
+- `PS-R8` denies with `missing prior dependencies`.
+- `PS-R9` denies with `unknown role`.
+- `PS-R10` denies with `no prompt stacks`.
+- Neutering `validate_prompt_stack_binding` opens each of them. None is added
+  to `REDUNDANT_GUARDS`.
+- `enforced_principles()` stays `P8` and `P10`.
+
+**Measured:** each new route returns `FAIL` with one gate reason:
+
+- `PS-R4` `fail-closed: prompt_stack wave_context is required`
+- `PS-R5` `fail-closed: role 'executor' may not receive stack 06`
+- `PS-R6` `fail-closed: unknown prompt stack 99`
+- `PS-R7` `fail-closed: duplicate prompt stack 00`
+- `PS-R8` `fail-closed: stack 06 missing prior dependencies ['00', '05']`
+- `PS-R9` `fail-closed: unknown role 'auditor'`
+- `PS-R10` `fail-closed: no prompt stacks requested`
+
+The loader no longer repeats `fail-closed:`; the gate adds it once.
+`enforced_principles()` stayed `['P8', 'P10']`. The registry is 27 routes.
+
+**Artifacts:** `runner/prompt_stacks.py` (`require_binding_wave_context`) ·
+`runner/enforcement.py` (`PS-R4`–`PS-R10`) ·
+`schemas/evidence.schema.json` · `tests/test_enforcement_evidence.py`.
+
+---
+
 ## [2026-09-24] DEC-UPTM-APS-R3 — stack-body digest drift is a route
 
 **Decided:** a change to a stack's canonical body that leaves
@@ -54,6 +100,112 @@ With `enforce_declared_body_digest` removed, the same evidence still returns
 **Artifacts:** `runner/prompt_stacks.py` (`enforce_declared_body_digest`) ·
 `runner/enforcement.py` (`PS-R3`, `route_guard`) ·
 `tests/test_enforcement_evidence.py`.
+## [2026-09-24] DEC-UPTM-EXPIRY — evidence lives seven days, because the drill does
+
+**Decided:** `evidence_expiry_days: 7`.
+
+**Why seven and not a round number.** It is `kill_switch_drill_cadence_days`.
+Enforcement evidence must never outlive the drill it rests on; if it could, a
+valid-looking artifact would be propped up by a drill that had already gone
+stale. Tying the two to one rhythm removes that case without a separate rule
+saying so, and a test now fails if the two numbers ever drift apart.
+
+### Setting the number was not the whole job
+
+`evidence_expiry()` returned the string `"7 days from generated_at"`. That reads
+like an expiry and can be compared to nothing. Writing the Founder's number into
+a field that no code could evaluate would have produced a P12 that looked
+satisfied and checked nothing — the same defect as a status word nobody earned,
+which is the defect this whole wall exists to catch.
+
+So `expires_at` is now a timestamp computed from `generated_at`, and
+`expiry_status()` answers **`VALID` / `EXPIRED` / `UNKNOWN`** for an artifact at
+a given time. `UNKNOWN` is not a soft `VALID`: no expiry, an unparseable one, or
+one without a timezone all mean the artifact has not been shown to be current,
+and under `runner.verdict` that dominates `PASS` and denies.
+
+The lifetime itself is still never defaulted. Missing, zero, negative, boolean,
+string or fractional all yield `None` — the Founder sets it or there is none.
+
+### P12 does not become ENFORCED, and this says so out loud
+
+P12 is *Evidence Has Commit & Expiry*. Both halves of the name are now real: the
+commit is read from the repository (Rule A), the expiry is a timestamp that can
+be evaluated. But the principle's recorded mechanism also names **STALE
+invalidation on dependency change**, and that is not implemented. Evidence can
+sit well inside its seven days and describe code that has since moved.
+
+**P12 stays `PARTIAL`.** A test asserts it, and `capital-rules.json` carries the
+reason in `evidence_expiry.does_not_satisfy_p12` rather than leaving the next
+reader to infer why a parameter was set and nothing changed. Closing that
+remaining half is a separate wall and has not been preregistered.
+
+### Unchanged
+
+`LIVE_TRADING` stays `false`. `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED. P8
+and P10 keep their status for the reasons UPTM-005 and UPTM-006 established. No
+capability is granted; an expiry narrows what evidence can claim, it does not
+widen what the Runner may do.
+
+**Artifacts:** `constitution/capital-rules.json` (`evidence_expiry_days`,
+`evidence_expiry`) · `runner/enforcement.py` (`evidence_expiry_days`,
+`evidence_expiry`, `expiry_status`, manifest `expires_at` / `expiry_days`) ·
+`tests/test_enforcement_evidence.py`. Measured: 348 passed; expiry VALID at
++6d, EXPIRED at +8d, UNKNOWN on absent, unparseable and naive values.
+
+---
+
+## [2026-09-24] DEC-UPTM-RULEA — Evidence Rule A applies here, in one half of two
+
+**Decided:** question 4 of the governance map. Evidence Rule A
+(`onlinovosk-bit/onlinovosk-bit-uptm`, `docs/EVIDENCE_RULE_A.md`) applies to
+`uptm-runner` — **half of it.** Which half, and why the other half does not, is
+written in `docs/evidence-rule-a.md` rather than left to be re-derived.
+
+**Adopted.** The evaluated head is read from the repository, never asserted by
+the caller. `enforcement-evidence` no longer takes `--commit`. It reads
+`git rev-parse HEAD`, requires a clean working tree, records `null` with a
+stated reason when no head can be established, and treats a supplied
+`--expect-head` as a cross-check in which a disagreement is a dispute and
+neither value wins. CI passes no commit at all, so it cannot tell the artifact
+what it evidences.
+
+**Not adopted, conditionally.** The ban on a field meaning "the commit that
+contains me" needs a tracked artifact to be meaningful. `evidence/enforcement/`
+is ignored and never lands, so the self-SHA regress has nowhere to start. The
+exemption rests on that condition and a test fails on the day it stops holding.
+
+### The defect was real and I had named it wrongly
+
+The governance map, merged this morning, said the manifest "can attest to its
+own freshness, the exact thing Rule A exists to forbid." That was too strong.
+The manifest is never committed, so it cannot attest to its own containing
+commit at all.
+
+The hole was adjacent: the commit was **caller-asserted and unchecked**, so a
+manifest could name a commit whose code the routes had never run against, and
+nothing downstream could tell. That hole is now closed.
+
+The overstatement is corrected **in place, with the original wording left
+visible** in the map. A map that silently repairs itself is worth less than one
+that shows where it was wrong — and this is the third claim of mine in two days
+that measurement refuted, after the P10-R2 conditional guard and the PS-R1
+prediction. The pattern is the same each time: plausible reasoning, stated
+confidently, never run against the thing it described.
+
+### Unchanged
+
+No principle changes status — P8 and P10 are `ENFORCED` for the reasons UPTM-005
+and UPTM-006 established, and neither depends on this. `evidence_expiry_days` is
+still unset and P12 is still `PARTIAL`. The other four governance questions are
+still open. `LIVE_TRADING` stays `false`; `CONSTITUTION-CAPITAL.md` v1.0 stays
+LOCKED.
+
+**Artifacts:** `runner/provenance.py` · `runner/enforcement.py` (`manifest`) ·
+`runner/cli.py` · `.github/workflows/pytest.yml` · `docs/evidence-rule-a.md` ·
+`tests/test_evidence_rule_a.py` · corrected `docs/architecture/governance-map.md`.
+Measured: 343 passed; `enforcement-evidence` exits 1 on a dirty tree and on a
+disputed head.
 
 ---
 
