@@ -35,6 +35,7 @@ from typing import Any, Callable
 
 from runner.gates import evaluate_gate
 from runner.paths import CAPITAL_RULES
+from runner.prompt_stacks import assemble_prompt
 
 @dataclass(frozen=True)
 class BypassRoute:
@@ -117,6 +118,11 @@ def _base(**overrides: Any) -> dict[str, Any]:
         "after": {"digest": "c" * 64, "summary": "after"},
         "agent_claim": {"verdict": "PASS", "notes": "ok"},
         "live_trading": False,
+        "prompt_stack": assemble_prompt(
+            ["00"],
+            "commander",
+            {"wave_id": 3, "producer": "runner.enforcement._base"},
+        ).cursor_metadata(),
         "scope": {"capital_bearing": False, "live_bearing": False},
         "signature": None,
     }
