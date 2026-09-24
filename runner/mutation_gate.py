@@ -162,6 +162,86 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_enforcement_evidence.py::test_neutering_the_named_guards_opens_the_route",
         ),
     ),
+    Mutation(
+        mutation_id="scope-detector-disconnected",
+        claim=(
+            "The UPTM-005 scope detector runs on every gate, unconditionally — that "
+            "is the point, since the walls it serves were steppable around while it "
+            "ran only when handed something. Disconnect it and both the spy proofs "
+            "and the six routes that name it must go red."
+        ),
+        path="runner/gates.py",
+        anchor="    outcomes = detect_scope(evidence)\n",
+        replacement=(
+            "    return Verdict.PASS, []  # mutation-gate: detector disconnected\n"
+            "    outcomes = detect_scope(evidence)\n"
+        ),
+        sentinels=(
+            "tests/test_scope_declaration.py::test_gate_actually_calls_the_scope_detector",
+            "tests/test_scope_declaration.py::test_gate_verdict_depends_on_what_the_scope_detector_returns",
+            "tests/test_enforcement_evidence.py::test_every_route_denies_for_its_own_reason",
+            "tests/test_enforcement_evidence.py::test_neutering_the_named_guards_opens_the_route",
+        ),
+    ),
+    Mutation(
+        mutation_id="ks-i3b-invariant-disconnected",
+        claim=(
+            "KS-I3b is the invariant rather than the mechanism: it refuses to emit "
+            "PASS while the stop reads ENGAGED, and by design it can only fire on a "
+            "governance bug. That makes it the thinnest-held guard in the file — "
+            "measured, three tests catch its removal where the others are caught by "
+            "twenty-odd. Exactly the shape a silent regression survives."
+        ),
+        path="runner/gates.py",
+        anchor=(
+            '    if verdict is Verdict.PASS and stop_is_engaged(evidence.get("kill_switch") or {}):\n'
+            "        verdict = Verdict.FAIL\n"
+            "        reasons.append(\n"
+            '            "gate_bypass_attempt: a PASS verdict was produced while the kill switch reads ENGAGED"\n'
+            "        )\n"
+        ),
+        replacement="    pass  # mutation-gate: KS-I3b invariant disconnected\n",
+        sentinels=(
+            "tests/test_detector_invocation.py::test_ks_i3b_refuses_a_pass_produced_while_the_stop_is_engaged",
+            "tests/test_enforcement_evidence.py::test_neither_guard_alone_opens_a_doubly_guarded_route",
+            "tests/test_enforcement_evidence.py::test_one_guard_alone_does_not_open_the_doubly_guarded_route",
+        ),
+    ),
+    Mutation(
+        mutation_id="required-fields-check-disconnected",
+        claim=(
+            "The required-field list is the structural arm of validate_evidence_structure "
+            "— the other mechanism holding PS-R1, and the only thing standing between a "
+            "gate and evidence with no commit_sha, no agent_claim and no branch. Those "
+            "three, measured: neuter the guard and each is let through. Not probes or "
+            "results — their absence is also caught by the fabrication detector and the "
+            "claim gate, so this arm is not what holds them.\n\n"
+            "Measured, and the number is the point: disabling all fourteen required "
+            "fields is caught by two tests, both of which are PS-R1 redundancy "
+            "bookkeeping about prompt_stack. No route proof fails. Nothing in the suite "
+            "asserts that the other thirteen fields are required at all — the only "
+            "'missing field:' assertions anywhere name prompt_stack.\n\n"
+            "So this case is not thin because the mutation is weak. It is thin because "
+            "the proof surface is, and the two sentinels below are what exists rather "
+            "than what ought to. Recorded here rather than rounded up; closing it means "
+            "adding route coverage, which is its own change."
+        ),
+        path="runner/evidence.py",
+        anchor=(
+            "    for key in required:\n"
+            "        if key not in evidence:\n"
+            '            errors.append(f"missing field: {key}")\n'
+        ),
+        replacement=(
+            "    for key in []:  # mutation-gate: required-field check disconnected\n"
+            "        if key not in evidence:\n"
+            '            errors.append(f"missing field: {key}")\n'
+        ),
+        sentinels=(
+            "tests/test_enforcement_evidence.py::test_each_mechanism_holding_ps_r1_denies_on_its_own",
+            "tests/test_enforcement_evidence.py::test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes",
+        ),
+    ),
 )
 
 
