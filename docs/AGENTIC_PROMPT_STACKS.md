@@ -131,9 +131,11 @@ does not overlap. The Ruflo `SwarmDispatch` contract requires:
 
 - max 8 parallel agents
 - all claims in the same wave
-- non-overlapping `owned_paths`
-- work-claim lease fields
-- evidence skeleton path per claim
+- unique `agent_id` and `lease_id`
+- non-overlapping `owned_paths`, including parent/child overlaps
+- work-claim lease fields with ISO-8601 expiry
+- stack ids accepted for the claim role by the prompt-stack composer
+- evidence skeleton path per claim, confined to `evidence/waveN/*.json`
 
 Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 `passed_waves`, which is written only after a PASS gate result with
