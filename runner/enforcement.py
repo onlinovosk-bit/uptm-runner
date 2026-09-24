@@ -238,6 +238,31 @@ KILL_SWITCH = ("run_kill_switch_detectors",)
 CAPITAL = ("run_validation_capital_detectors",)
 
 
+def _composer_binding(**overrides: Any) -> dict[str, Any]:
+    """A shaped binding. Overrides are what the route is about."""
+    binding = {
+        "role": "commander",
+        "stack_ids": ["00"],
+        "stack_versions": {"00": "0.1.0"},
+        "stack_digests": {"00": "a" * 64},
+        "assembled_prompt_digest": "b" * 64,
+        "wave_context": {"wave_id": 3},
+    }
+    binding.update(overrides)
+    return binding
+
+
+def _without_wave_context(_root: Path) -> dict[str, Any]:
+    """Drop wave_context from a binding assembled as {"wave_id": 3}.
+
+    evidence.wave_id is also 3. Substituting that id back would reproduce the
+    assembled prompt and the gate would PASS.
+    """
+    binding = assemble_prompt(["00"], "commander", {"wave_id": 3}).cursor_metadata()
+    del binding["wave_context"]
+    return _base(prompt_stack=binding)
+
+
 def _drift_prompt_stack_source(root: Path) -> contextlib.AbstractContextManager[Any]:
     """Show the gate a stack 00 body the registry digest does not name.
 
@@ -401,6 +426,54 @@ ROUTES: tuple[BypassRoute, ...] = (
         lambda root: _base(),
         STRUCTURE, "prompt stack 00 digest mismatch",
         around=_drift_prompt_stack_source,
+    ),
+    BypassRoute(
+        "PS-R4", "APS-001",
+        "wave_context omitted where evidence.wave_id would reconstruct the same context",
+        _without_wave_context,
+        STRUCTURE, "prompt_stack wave_context is required",
+    ),
+    BypassRoute(
+        "PS-R5", "APS-001",
+        "executor binding names stack 06, which that role may not receive",
+        lambda root: _base(prompt_stack=_composer_binding(
+            role="executor",
+            stack_ids=["00", "06"],
+            stack_versions={"00": "0.1.0", "06": "0.1.0"},
+            stack_digests={"00": "a" * 64, "06": "b" * 64},
+            wave_context={"wave_id": 6},
+        )),
+        STRUCTURE, "may not receive stack 06",
+    ),
+    BypassRoute(
+        "PS-R6", "APS-001",
+        "binding names a stack id that is not in the registry",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=["00", "99"])),
+        STRUCTURE, "unknown prompt stack",
+    ),
+    BypassRoute(
+        "PS-R7", "APS-001",
+        "the same stack id is requested twice",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=["00", "00"])),
+        STRUCTURE, "duplicate prompt stack",
+    ),
+    BypassRoute(
+        "PS-R8", "APS-001",
+        "stack 06 is requested without its prior dependencies",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=["06"])),
+        STRUCTURE, "missing prior dependencies",
+    ),
+    BypassRoute(
+        "PS-R9", "APS-001",
+        "binding role is outside the role taxonomy",
+        lambda root: _base(prompt_stack=_composer_binding(role="auditor")),
+        STRUCTURE, "unknown role",
+    ),
+    BypassRoute(
+        "PS-R10", "APS-001",
+        "binding names no stacks",
+        lambda root: _base(prompt_stack=_composer_binding(stack_ids=[])),
+        STRUCTURE, "no prompt stacks",
     ),
 )
 

@@ -97,7 +97,9 @@ def test_the_prompt_stack_guard_is_routed_because_nothing_else_routes_it():
     gap those two routes close.
     """
     assert "APS-001" in NON_PRINCIPLE_GUARDS
-    assert {r.route_id for r in routes_for("APS-001")} == {"PS-R1", "PS-R2", "PS-R3"}
+    assert {r.route_id for r in routes_for("APS-001")} == {
+        "PS-R1", "PS-R2", "PS-R3", "PS-R4", "PS-R5", "PS-R6", "PS-R7", "PS-R8", "PS-R9", "PS-R10",
+    }
     assert "a guard nobody routes is" in NON_PRINCIPLE_GUARDS["APS-001"]
 
 
