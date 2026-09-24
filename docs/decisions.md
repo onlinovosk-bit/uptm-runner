@@ -15,6 +15,48 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-24] DEC-UPTM-APS-R3 — stack-body digest drift is a route
+
+**Decided:** a change to a stack's canonical body that leaves
+`prompt-stacks/index.json` `body_sha256` stale is route `PS-R3` on the existing
+guard `APS-001`. It is not a new principle, it is not `ENFORCED`, and it does
+not enter `capital-rules.json`.
+
+The unit test `test_stack_body_change_without_manifest_update_invalidates_evidence`
+already rejected that drift. It is not the enforcement manifest. `PS-R1` and
+`PS-R2` stay green if `enforce_declared_body_digest` is deleted, because neither
+submits a drifted body. A check whose removal the route manifest does not see
+is the omission `DEC-UPTM-APS` exists to close.
+
+Criteria fixed before the measurement:
+
+- `PS-R3` denies with `prompt stack 00 digest mismatch`.
+- Evidence is assembled from the real stack, and only then is the body shown to
+  the gate. Drifting during assembly would write the new digest into the
+  binding and the route would pass.
+- Neutering `validate_prompt_stack_binding` opens `PS-R3`. The `prompt_stack`
+  key is present, so this is not the `PS-R1` double hold.
+- Neutering only `enforce_declared_body_digest` does not open `PS-R3`. The
+  binding still carries the pre-drift digest, and the field comparison denies
+  with `stack_digests mismatch`. That backstop stays out of `REDUNDANT_GUARDS`:
+  the route's own expect string is the declared-digest raise, so retargeting
+  the string at the backstop fails `denied_by_its_own_check`.
+- `enforced_principles()` stays `P8` and `P10`.
+
+**Measured:** `PS-R3` returns `FAIL` with
+`fail-closed: prompt stack 00 digest mismatch`. The loader message does not
+repeat `fail-closed:`; the gate adds that prefix to every structural error.
+With `enforce_declared_body_digest` removed, the same evidence still returns
+`FAIL`, now with `fail-closed: prompt_stack stack_digests mismatch` and
+`fail-closed: prompt_stack assembled_prompt_digest mismatch`.
+`enforced_principles()` stayed `['P8', 'P10']`. The registry is 20 routes.
+
+**Artifacts:** `runner/prompt_stacks.py` (`enforce_declared_body_digest`) ·
+`runner/enforcement.py` (`PS-R3`, `route_guard`) ·
+`tests/test_enforcement_evidence.py`.
+
+---
+
 ## [2026-09-24] DEC-UPTM-APS — APS-001 is a guard, not a principle; and every guard must be routed
 
 **Decided:** the mandatory `prompt_stack` evidence binding (APS-001) is a

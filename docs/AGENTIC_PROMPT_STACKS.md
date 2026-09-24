@@ -100,7 +100,10 @@ Every evidence artifact must include:
 
 The gate reassembles the prompt from Git source and rejects a PASS path when the
 binding is absent, incomplete, or any version, stack digest, or assembled prompt
-digest does not match.
+digest does not match. A stack body that changes after that binding was
+assembled, without a matching registry digest, is route `PS-R3`: the loader
+raises `prompt stack <id> digest mismatch` before the reassembled digest can be
+treated as the original prompt.
 
 ## Wave and parallelism boundaries
 
