@@ -68,6 +68,14 @@ def enforce_declared_body_digest(stack_id: str, declared: object, actual: str) -
         raise PromptStackError(f"prompt stack {stack_id} digest mismatch")
 
 
+def require_binding_wave_context(binding: dict[str, Any]) -> dict[str, Any]:
+    """Return the binding's own wave context. Do not invent one from evidence."""
+    context = binding.get("wave_context")
+    if not isinstance(context, dict) or not context:
+        raise PromptStackError("prompt_stack wave_context is required")
+    return context
+
+
 def _load_registry() -> dict[str, Any]:
     return json.loads((PROMPT_STACKS / "index.json").read_text(encoding="utf-8"))
 
@@ -78,10 +86,10 @@ def load_stacks() -> dict[str, PromptStack]:
     for item in registry.get("stacks", []):
         stack_id = str(item.get("id", ""))
         if not stack_id:
-            raise PromptStackError("fail-closed: prompt stack id missing")
+            raise PromptStackError("prompt stack id missing")
         path = PROMPT_STACKS / str(item.get("file", ""))
         if not path.exists():
-            raise PromptStackError(f"fail-closed: prompt stack {stack_id} file missing")
+            raise PromptStackError(f"prompt stack {stack_id} file missing")
         body = canonical_stack_body(path)
         digest = digest_text(body)
         enforce_declared_body_digest(stack_id, item.get("body_sha256"), digest)
@@ -89,7 +97,7 @@ def load_stacks() -> dict[str, PromptStack]:
         unknown_roles = sorted(set(roles) - VALID_ROLES)
         if unknown_roles:
             raise PromptStackError(
-                f"fail-closed: prompt stack {stack_id} unknown roles {unknown_roles}"
+                f"prompt stack {stack_id} unknown roles {unknown_roles}"
             )
         stacks[stack_id] = PromptStack(
             id=stack_id,
@@ -106,12 +114,12 @@ def load_stacks() -> dict[str, PromptStack]:
 
 def role_allowed_stacks(role: str) -> tuple[str, ...]:
     if role not in VALID_ROLES:
-        raise PromptStackError(f"fail-closed: unknown role {role!r}")
+        raise PromptStackError(f"unknown role {role!r}")
     registry = _load_registry()
     taxonomy = registry.get("role_taxonomy") or {}
     allowed = taxonomy.get(role, {}).get("allowed_stack_ids")
     if not allowed:
-        raise PromptStackError(f"fail-closed: role {role!r} has no stack envelope")
+        raise PromptStackError(f"role {role!r} has no stack envelope")
     return tuple(str(stack_id) for stack_id in allowed)
 
 
@@ -120,9 +128,9 @@ def assemble_prompt(
 ) -> AssembledPrompt:
     """Assemble a prompt deterministically; unknown, silent, or overbroad input denies."""
     if not stack_ids:
-        raise PromptStackError("fail-closed: no prompt stacks requested")
+        raise PromptStackError("no prompt stacks requested")
     if not isinstance(wave_context, dict) or not wave_context:
-        raise PromptStackError("fail-closed: wave_context is required")
+        raise PromptStackError("wave_context is required")
 
     stacks = load_stacks()
     allowed = set(role_allowed_stacks(role))
@@ -130,19 +138,19 @@ def assemble_prompt(
     seen: set[str] = set()
     for stack_id in requested:
         if stack_id in seen:
-            raise PromptStackError(f"fail-closed: duplicate prompt stack {stack_id}")
+            raise PromptStackError(f"duplicate prompt stack {stack_id}")
         seen.add(stack_id)
         if stack_id not in stacks:
-            raise PromptStackError(f"fail-closed: unknown prompt stack {stack_id}")
+            raise PromptStackError(f"unknown prompt stack {stack_id}")
         stack = stacks[stack_id]
         if stack_id not in allowed or role not in stack.required_roles:
             raise PromptStackError(
-                f"fail-closed: role {role!r} may not receive stack {stack_id}"
+                f"role {role!r} may not receive stack {stack_id}"
             )
         missing = [dep for dep in stack.depends_on if dep not in seen]
         if missing:
             raise PromptStackError(
-                f"fail-closed: stack {stack_id} missing prior dependencies {missing}"
+                f"stack {stack_id} missing prior dependencies {missing}"
             )
 
     stack_versions = {stack_id: stacks[stack_id].version for stack_id in requested}
@@ -200,7 +208,7 @@ def validate_prompt_stack_binding(evidence: dict[str, Any]) -> list[str]:
 
     try:
         stack_ids = tuple(str(stack_id) for stack_id in binding["stack_ids"])
-        wave_context = binding.get("wave_context") or {"wave_id": evidence.get("wave_id")}
+        wave_context = require_binding_wave_context(binding)
         assembled = assemble_prompt(stack_ids, str(binding["role"]), wave_context)
     except PromptStackError as exc:
         return [str(exc)]

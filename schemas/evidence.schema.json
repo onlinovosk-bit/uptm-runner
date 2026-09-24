@@ -116,7 +116,8 @@
         "stack_ids",
         "stack_versions",
         "stack_digests",
-        "assembled_prompt_digest"
+        "assembled_prompt_digest",
+        "wave_context"
       ],
       "properties": {
         "role": {
@@ -143,7 +144,10 @@
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },
-        "wave_context": { "type": "object" }
+        "wave_context": {
+          "type": "object",
+          "minProperties": 1
+        }
       },
       "additionalProperties": false
     },
