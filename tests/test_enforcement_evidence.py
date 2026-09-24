@@ -30,6 +30,7 @@ from runner.enforcement import (
     unproven_claims,
 )
 from runner.gates import evaluate_gate
+from runner.provenance import HeadProvenance
 from runner.verdict import Decision, Verdict, resolve
 
 
@@ -232,22 +233,27 @@ def test_the_ceiling_itself_has_routes():
 # ------------------------------------------------------------- case 7: manifest
 
 
+#: A head the repository reported, not one a caller asserted. Rule A is what
+#: makes that distinction real; see tests/test_evidence_rule_a.py.
+READ_HEAD = HeadProvenance("a" * 40, True, "git")
+
+
 def test_the_manifest_carries_a_commit_and_no_invented_expiry():
-    m = manifest([], commit="abc1234")
-    assert m["commit"] == "abc1234"
+    m = manifest([], provenance=READ_HEAD)
+    assert m["evaluated_head"] == "a" * 40
     assert m["expires_at"] is None
     assert "no evidence lifetime is preregistered" in m["expiry_note"].lower()
     assert evidence_expiry() is None
 
 
 def test_the_manifest_states_what_it_does_not_establish():
-    m = manifest([], commit="abc1234")
+    m = manifest([], provenance=READ_HEAD)
     assert "complete" in m["does_not_establish"]
     assert "advances no principle" in m["does_not_establish"]
 
 
 def test_the_manifest_would_report_an_unearned_claim():
-    assert manifest([], commit="abc1234")["unproven_claims"] == []
+    assert manifest([], provenance=READ_HEAD)["unproven_claims"] == []
 
 
 def test_routes_for_partitions_the_registry():

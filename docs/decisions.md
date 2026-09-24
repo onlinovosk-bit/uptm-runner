@@ -15,6 +15,60 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-24] DEC-UPTM-RULEA — Evidence Rule A applies here, in one half of two
+
+**Decided:** question 4 of the governance map. Evidence Rule A
+(`onlinovosk-bit/onlinovosk-bit-uptm`, `docs/EVIDENCE_RULE_A.md`) applies to
+`uptm-runner` — **half of it.** Which half, and why the other half does not, is
+written in `docs/evidence-rule-a.md` rather than left to be re-derived.
+
+**Adopted.** The evaluated head is read from the repository, never asserted by
+the caller. `enforcement-evidence` no longer takes `--commit`. It reads
+`git rev-parse HEAD`, requires a clean working tree, records `null` with a
+stated reason when no head can be established, and treats a supplied
+`--expect-head` as a cross-check in which a disagreement is a dispute and
+neither value wins. CI passes no commit at all, so it cannot tell the artifact
+what it evidences.
+
+**Not adopted, conditionally.** The ban on a field meaning "the commit that
+contains me" needs a tracked artifact to be meaningful. `evidence/enforcement/`
+is ignored and never lands, so the self-SHA regress has nowhere to start. The
+exemption rests on that condition and a test fails on the day it stops holding.
+
+### The defect was real and I had named it wrongly
+
+The governance map, merged this morning, said the manifest "can attest to its
+own freshness, the exact thing Rule A exists to forbid." That was too strong.
+The manifest is never committed, so it cannot attest to its own containing
+commit at all.
+
+The hole was adjacent: the commit was **caller-asserted and unchecked**, so a
+manifest could name a commit whose code the routes had never run against, and
+nothing downstream could tell. That hole is now closed.
+
+The overstatement is corrected **in place, with the original wording left
+visible** in the map. A map that silently repairs itself is worth less than one
+that shows where it was wrong — and this is the third claim of mine in two days
+that measurement refuted, after the P10-R2 conditional guard and the PS-R1
+prediction. The pattern is the same each time: plausible reasoning, stated
+confidently, never run against the thing it described.
+
+### Unchanged
+
+No principle changes status — P8 and P10 are `ENFORCED` for the reasons UPTM-005
+and UPTM-006 established, and neither depends on this. `evidence_expiry_days` is
+still unset and P12 is still `PARTIAL`. The other four governance questions are
+still open. `LIVE_TRADING` stays `false`; `CONSTITUTION-CAPITAL.md` v1.0 stays
+LOCKED.
+
+**Artifacts:** `runner/provenance.py` · `runner/enforcement.py` (`manifest`) ·
+`runner/cli.py` · `.github/workflows/pytest.yml` · `docs/evidence-rule-a.md` ·
+`tests/test_evidence_rule_a.py` · corrected `docs/architecture/governance-map.md`.
+Measured: 343 passed; `enforcement-evidence` exits 1 on a dirty tree and on a
+disputed head.
+
+---
+
 ## [2026-09-24] DEC-UPTM-APS — APS-001 is a guard, not a principle; and every guard must be routed
 
 **Decided:** the mandatory `prompt_stack` evidence binding (APS-001) is a
