@@ -241,6 +241,24 @@ NON_PRINCIPLE_GUARDS = {
         "requires these routes. They are here because a guard nobody routes is "
         "a guard whose removal is silent."
     ),
+    "EVIDENCE-STRUCTURE": (
+        "The required-field list inside validate_evidence_structure. Like APS-001 "
+        "it protects evidence integrity rather than P8 or P10 directly, so no "
+        "ENFORCED principle demands routes for it. "
+        "It is routed here because it was measured unrouted: disabling all "
+        "fourteen required fields failed two tests, and both were PS-R1 "
+        "bookkeeping about prompt_stack. The ten routes naming "
+        "validate_evidence_structure are all prompt-stack routes and every one is "
+        "about the binding arm, so nothing asked whether evidence with no "
+        "commit_sha could reach PASS. "
+        "Which fields these routes use is not arbitrary. commit_sha, agent_claim "
+        "and branch are held by this arm alone - neuter the guard and each route "
+        "opens - so each denies for its own reason with nothing covering for it. "
+        "probes and results are deliberately not routed here: measured, their "
+        "absence is also caught by the fabrication detector and by the claim gate, "
+        "so a route on them would name this guard while another mechanism did the "
+        "work."
+    ),
 }
 
 SCOPE = ("run_scope_detector",)
@@ -517,6 +535,28 @@ ROUTES: tuple[BypassRoute, ...] = (
         "a files entry that is not an object at all",
         lambda root: _base(files=["runner/gates.py"]),
         BINDING, "binding UNKNOWN",
+    # ---- the required-field list, the other arm of the same guard ---------
+    # Each of these drops one field that the required-field list is the sole
+    # mechanism enforcing. Measured before they were written: neuter
+    # validate_evidence_structure and each route reaches PASS, so the denial is
+    # this arm's rather than a neighbour's.
+    BypassRoute(
+        "ES-R1", "EVIDENCE-STRUCTURE",
+        "gate evidence submitted with no commit_sha, so no PASS could be pinned to a commit",
+        lambda root: {k: v for k, v in _base().items() if k != "commit_sha"},
+        STRUCTURE, "missing field: commit_sha",
+    ),
+    BypassRoute(
+        "ES-R2", "EVIDENCE-STRUCTURE",
+        "gate evidence submitted with no agent_claim, so nothing states what is being claimed",
+        lambda root: {k: v for k, v in _base().items() if k != "agent_claim"},
+        STRUCTURE, "missing field: agent_claim",
+    ),
+    BypassRoute(
+        "ES-R3", "EVIDENCE-STRUCTURE",
+        "gate evidence submitted with no branch, so the claim names no line of work",
+        lambda root: {k: v for k, v in _base().items() if k != "branch"},
+        STRUCTURE, "missing field: branch",
     ),
 )
 
