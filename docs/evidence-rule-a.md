@@ -49,6 +49,31 @@ Since this change:
 CI passes no commit at all. It cannot tell the artifact what it evidences; the
 artifact can only name the commit that is actually checked out.
 
+### What `evaluated_head` names on a pull-request build
+
+Measured from the first CI run under this contract (run 35970401103, PR #21):
+
+```
+PR head                     5967fec2aad7f573b2b5b8eef1dd2236d1bcd758
+evaluated_head in artifact  ef98c9dad2280998f0cba1f62a16355a87e880ce
+tree_clean                  true
+source                      git
+```
+
+They differ, and that is correct rather than a defect. GitHub builds a
+`pull_request` event against `refs/pull/N/merge` — the PR merged into its base —
+so the routes genuinely ran against that tree and the artifact names the commit
+they ran against, which is what it is for.
+
+The consequence worth knowing before someone trips over it: **on a PR build the
+evaluated head is ephemeral.** It exists as a merge ref, not in `main`'s history,
+and looking for it there will fail. On a push to `main` the artifact names the
+real `main` commit. An artifact is evidence about the tree it was generated from;
+it is not a claim that the tree is on any branch.
+
+This is written down because an unremarked surprise in an evidence contract is
+how "W7" came to mean two different things in two repositories.
+
 **Half one: not applicable, for a reason that could expire.** This artifact is
 never committed — `evidence/enforcement/` is in `.gitignore`, because an
 artifact pinned to an older commit is stale the moment it lands (P12). The
