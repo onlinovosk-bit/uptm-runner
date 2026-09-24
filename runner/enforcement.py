@@ -37,6 +37,7 @@ from typing import Any, Callable
 from runner.gates import evaluate_gate
 from runner.paths import CAPITAL_RULES, PROMPT_STACKS
 from runner.prompt_stacks import assemble_prompt
+from runner.provenance import HeadProvenance
 
 @dataclass(frozen=True)
 class BypassRoute:
@@ -533,21 +534,46 @@ def run_routes(root: Path) -> list[dict[str, Any]]:
 
 
 def manifest(
-    results: list[dict[str, Any]], *, commit: str, generated_at: datetime | None = None
+    results: list[dict[str, Any]],
+    *,
+    provenance: HeadProvenance,
+    generated_at: datetime | None = None,
 ) -> dict[str, Any]:
-    """The evidence artifact. Carries a commit; carries no expiry, and says why."""
+    """The evidence artifact. Names the commit the repository was at, not one it
+    was told to name; carries no expiry, and says why.
+
+    ``provenance`` is not an argument the caller can answer freely. It is read
+    from the repository by ``runner.provenance.read_head``, and every reason to
+    doubt it travels with it into the artifact.
+    """
     rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
     stamp = (generated_at or datetime.now(timezone.utc)).isoformat()
     return {
         "spec": "docs/specs/UPTM-006-enforcement-evidence.md",
         "generated_at": stamp,
-        "commit": commit,
+        "evaluated_head": provenance.evaluated_head,
+        "head_provenance": {
+            "source": provenance.source,
+            "tree_clean": provenance.tree_clean,
+            "dirty_paths": list(provenance.dirty_paths),
+            "disputed_head": provenance.disputed_head,
+            "problems": list(provenance.problems),
+        },
+        "rule_a": (
+            "Evidence Rule A (onlinovosk-bit/onlinovosk-bit-uptm, docs/EVIDENCE_RULE_A.md) "
+            "has two halves. Adopted: the evaluated head is read from the repository, never "
+            "asserted by the caller. Not applicable: the ban on a field meaning 'the commit "
+            "that contains me' — this artifact is never committed (evidence/enforcement/ is "
+            "ignored), so the self-SHA regress it forbids cannot arise here. "
+            "See docs/evidence-rule-a.md."
+        ),
         "expires_at": evidence_expiry(rules),
         "expiry_note": (
-            "P12 requires a commit and an expiry. The commit is here. No evidence lifetime is "
-            "preregistered in capital-rules.json, so expires_at is null rather than a number "
-            "invented at generation time. This is an open Founder parameter, and it is why P12 "
-            "remains PARTIAL."
+            "P12 requires a commit and an expiry. The commit is evaluated_head above, read "
+            "from the repository. No evidence lifetime is preregistered in "
+            "capital-rules.json, so expires_at is null rather than a number invented at "
+            "generation time. This is an open Founder parameter, and it is why P12 remains "
+            "PARTIAL."
         ),
         "claims_checked": enforced_principles(rules),
         "unproven_claims": unproven_claims(rules),

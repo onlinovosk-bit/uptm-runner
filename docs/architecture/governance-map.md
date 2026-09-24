@@ -87,6 +87,19 @@ commit as a CLI argument — which means **it can attest to its own freshness**,
 the exact thing Rule A exists to forbid. Rule A is the better contract and this
 repository does not have it.
 
+> **Corrected 2026-09-24, after the Founder decided question 4.** The paragraph
+> above is left as written because a map that silently repairs itself is worth
+> less than one that shows where it was wrong. It overstated the defect. The
+> manifest is never committed (`evidence/enforcement/` is ignored), so it cannot
+> attest to its *own containing commit* and the self-SHA regress Rule A forbids
+> cannot arise here. The real hole was adjacent and is now closed: the commit was
+> **caller-asserted and unchecked**, so a manifest could name a commit whose code
+> the routes had never run against. The evaluated head is now read from the
+> checkout, a dirty tree evidences no commit, and a supplied head that disagrees
+> is a dispute in which neither value is adopted. See `docs/evidence-rule-a.md`
+> for which half of Rule A was adopted and why the other half is inapplicable —
+> conditionally, with a test that fails on the day the condition stops holding.
+
 ### The two capital numbers are not the same number
 
 ```
@@ -126,9 +139,11 @@ None of these is answered anywhere, and none is answered here.
 2. **Which repository's verdict wins on a disagreement?** Both can emit `PASS`.
    Neither reads the other's.
 3. **How do €700 and €750 relate?**
-4. **Does Evidence Rule A apply to `uptm-runner`?** It should — the UPTM-006
-   manifest's self-supplied commit is the hole Rule A names — but that is a
-   decision, and adopting it is a change to this repository's evidence contract.
+4. ~~**Does Evidence Rule A apply to `uptm-runner`?**~~ **DECIDED 2026-09-24:**
+   half two (the evaluated head is read from the checkout, never asserted by the
+   caller) is adopted; half one (no field meaning "the commit that contains me")
+   is inapplicable while the artifact stays untracked, and a test enforces that
+   condition. `docs/evidence-rule-a.md`.
 5. **Which wave vocabulary is canonical?** Two systems numbering waves 0–7 and
    0–9 will keep colliding in status lines.
 
