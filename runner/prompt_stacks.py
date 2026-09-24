@@ -184,16 +184,12 @@ def assemble_prompt(
 
 
 def validate_prompt_stack_binding(evidence: dict[str, Any]) -> list[str]:
-    """Validate additive evidence binding when an artifact claims prompt stacks."""
+    """Validate mandatory evidence binding to the prompt stack source."""
     binding = evidence.get("prompt_stack")
-    legacy_claim = any(
-        key in evidence
-        for key in ("prompt_stack_id", "prompt_stack_ids", "assembled_prompt_digest")
-    )
-    if binding is None and not legacy_claim:
-        return []
+    if binding is None:
+        return ["prompt_stack binding required"]
     if not isinstance(binding, dict):
-        return ["prompt_stack binding required when prompt stacks are claimed"]
+        return ["prompt_stack binding must be an object"]
 
     required = ("role", "stack_ids", "stack_versions", "stack_digests", "assembled_prompt_digest")
     missing = [key for key in required if key not in binding]

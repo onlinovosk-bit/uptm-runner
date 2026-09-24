@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import shutil
+
 import pytest
 
 from cursor.contract import CursorTask
 from runner.gates import evaluate_gate
+import runner.prompt_stacks as prompt_stacks
 from runner.prompt_stacks import PromptStackError, assemble_prompt, load_stacks
 
 
@@ -69,8 +72,38 @@ def test_evidence_binding_rejects_tampered_digest(valid_evidence_factory):
     assert any("assembled_prompt_digest mismatch" in reason for reason in result.reasons)
 
 
-def test_pass_claiming_legacy_stack_without_binding_rejected(valid_evidence_factory):
+def test_stack_body_change_without_manifest_update_invalidates_evidence(
+    tmp_path, monkeypatch, root, valid_evidence_factory
+):
+    assembled = assemble_prompt(["00", "04"], "executor", {"wave_id": 3})
+    ev = valid_evidence_factory(prompt_stack=assembled.cursor_metadata())
+
+    mutated_stacks = tmp_path / "prompt-stacks"
+    shutil.copytree(root / "prompt-stacks", mutated_stacks)
+    dispatch_stack = mutated_stacks / "04_dispatch.md"
+    dispatch_stack.write_text(
+        dispatch_stack.read_text(encoding="utf-8")
+        + "\nMUTATION: unregistered stack body change.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(prompt_stacks, "PROMPT_STACKS", mutated_stacks)
+
+    result = evaluate_gate(ev)
+    assert result.passed is False
+    assert any("prompt stack 04 digest mismatch" in reason for reason in result.reasons)
+
+
+def test_pass_without_prompt_stack_binding_rejected(valid_evidence_factory):
+    ev = valid_evidence_factory()
+    del ev["prompt_stack"]
+    result = evaluate_gate(ev)
+    assert result.passed is False
+    assert any("prompt_stack binding required" in reason for reason in result.reasons)
+
+
+def test_legacy_stack_claim_without_binding_rejected(valid_evidence_factory):
     ev = valid_evidence_factory(prompt_stack_id="04")
+    del ev["prompt_stack"]
     result = evaluate_gate(ev)
     assert result.passed is False
     assert any("prompt_stack binding required" in reason for reason in result.reasons)

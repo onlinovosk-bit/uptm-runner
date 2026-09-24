@@ -35,6 +35,7 @@ from typing import Any, Callable
 
 from runner.gates import evaluate_gate
 from runner.paths import CAPITAL_RULES
+from runner.prompt_stacks import assemble_prompt
 
 @dataclass(frozen=True)
 class BypassRoute:
@@ -117,6 +118,11 @@ def _base(**overrides: Any) -> dict[str, Any]:
         "after": {"digest": "c" * 64, "summary": "after"},
         "agent_claim": {"verdict": "PASS", "notes": "ok"},
         "live_trading": False,
+        "prompt_stack": assemble_prompt(
+            ["00"],
+            "commander",
+            {"wave_id": 3, "producer": "runner.enforcement._base"},
+        ).cursor_metadata(),
         "scope": {"capital_bearing": False, "live_bearing": False},
         "signature": None,
     }
@@ -205,7 +211,22 @@ CLEARED_TRANCHE = (
 # the routes
 # --------------------------------------------------------------------------
 
+#: Route groups whose id is not a principle. UPTM-006's claim gate only demands
+#: routes for principles reading ENFORCED, so a guard that protects no such
+#: principle would otherwise go unrouted: remove it and nothing notices. These
+#: exist to close that, and are listed separately so the claim gate stays exact.
+NON_PRINCIPLE_GUARDS = {
+    "APS-001": (
+        "The mandatory prompt-stack evidence binding. It protects evidence "
+        "integrity rather than P8 or P10 directly - removing it does not let a "
+        "kill-switch or capital violation through - so no ENFORCED principle "
+        "requires these routes. They are here because a guard nobody routes is "
+        "a guard whose removal is silent."
+    ),
+}
+
 SCOPE = ("run_scope_detector",)
+STRUCTURE = ("validate_evidence_structure",)
 KILL_SWITCH = ("run_kill_switch_detectors",)
 CAPITAL = ("run_validation_capital_detectors",)
 
@@ -324,6 +345,21 @@ ROUTES: tuple[BypassRoute, ...] = (
         ),
         CAPITAL, "VC-R2",
     ),
+    # ---- APS-001, a guard rather than a principle -----------------------
+    BypassRoute(
+        "PS-R1", "APS-001",
+        "gate evidence submitted with no prompt-stack binding at all",
+        lambda root: {k: v for k, v in _base().items() if k != "prompt_stack"},
+        STRUCTURE, "prompt_stack",
+    ),
+    BypassRoute(
+        "PS-R2", "APS-001",
+        "a prompt-stack binding whose assembled digest does not match the stacks it names",
+        lambda root: _base(
+            prompt_stack={**_base()["prompt_stack"], "assembled_prompt_digest": "0" * 64}
+        ),
+        STRUCTURE, "assembled_prompt_digest mismatch",
+    ),
 )
 
 
@@ -331,6 +367,25 @@ ROUTES: tuple[BypassRoute, ...] = (
 #: would fall away when the circumstance changes. Empty: the one entry this held
 #: was a prediction, and the prediction was wrong. See CORRECTED_PREDICTIONS.
 CONDITIONAL_GUARDS: dict[str, str] = {}
+
+#: Routes held by more than one mechanism inside the same named guard, with the
+#: measurement that established it.
+#:
+#: A second mechanism is not a defect and is not removed. It is recorded so that
+#: a test which neuters one of them and finds the route still denying reads as
+#: the measured result rather than as a route naming the wrong guard.
+REDUNDANT_GUARDS: dict[str, str] = {
+    "PS-R1": (
+        "Measured 2026-09-24: validate_evidence_structure holds PS-R1 twice over. "
+        "Dropping the key entirely trips the required-field list ('missing field: "
+        "prompt_stack') and validate_prompt_stack_binding ('prompt_stack binding "
+        "required'), and each denies on its own. PS-R2, which keeps the key and "
+        "tampers with the digest, is held by the binding validator alone. This entry "
+        "exists because the prediction written first - that neutering the binding "
+        "validator would open both routes - was refuted by the run, and the test was "
+        "corrected to the measurement rather than the measurement to the test."
+    ),
+}
 
 #: Predictions this module made and the measurements that refuted them.
 #:
@@ -413,6 +468,7 @@ def run_routes(root: Path) -> list[dict[str, Any]]:
                 "guards": list(route.guards),
                 "guard_count": len(route.guards),
                 "conditional_guard": CONDITIONAL_GUARDS.get(route.route_id),
+                "redundant_guard": REDUNDANT_GUARDS.get(route.route_id),
                 "blocked_by": route.blocked_by,
             }
         )

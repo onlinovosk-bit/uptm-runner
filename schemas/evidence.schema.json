@@ -15,7 +15,8 @@
     "before",
     "after",
     "agent_claim",
-    "live_trading"
+    "live_trading",
+    "prompt_stack"
   ],
   "properties": {
     "evidence_id": { "type": "string", "minLength": 1 },

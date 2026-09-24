@@ -12,6 +12,7 @@ import yaml
 
 from runner.gates import GateResult, evaluate_gate
 from runner.paths import BASELINE, ROOT, WAVES
+from runner.prompt_stacks import assemble_prompt
 from runner.stops import StopConditionError, check_live_trading, raise_if_stop
 
 
@@ -260,6 +261,11 @@ def wave_status(fsm: RunnerFSM | None = None) -> dict[str, Any]:
 
 def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
     baseline = load_baseline()
+    prompt_stack = assemble_prompt(
+        ["00"],
+        "commander",
+        {"wave_id": 0, "producer": "runner.fsm.run_baseline_ack"},
+    )
     out_dir = out_dir or (ROOT / "evidence" / "wave0")
     out_dir.mkdir(parents=True, exist_ok=True)
     current_findings = [
@@ -331,6 +337,7 @@ def run_baseline_ack(out_dir: Path | None = None) -> dict[str, Any]:
             "notes": "baseline loaded by runner (not agent-only)",
         },
         "live_trading": False,
+        "prompt_stack": prompt_stack.cursor_metadata(),
         "signature": None,
         "baseline_id": baseline.get("baseline_id"),
         "pr4_merge_allowed": False,

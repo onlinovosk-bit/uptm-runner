@@ -80,10 +80,10 @@ metadata adds stack ids, stack versions, stack digests, wave context, and
 
 ## Evidence binding
 
-Evidence remains backward-compatible: artifacts that do not use prompt stacks do
-not need prompt fields.
+Gate evidence must bind to the prompt-stack source it was produced under. A gate
+artifact without `prompt_stack` is invalid; silence does not mean "no prompt".
 
-When evidence claims prompt stacks, it must include:
+Every evidence artifact must include:
 
 ```json
 {
@@ -98,8 +98,9 @@ When evidence claims prompt stacks, it must include:
 }
 ```
 
-The gate reassembles the prompt from Git source and rejects a PASS path when any
-version, stack digest, or assembled prompt digest does not match.
+The gate reassembles the prompt from Git source and rejects a PASS path when the
+binding is absent, incomplete, or any version, stack digest, or assembled prompt
+digest does not match.
 
 ## Wave and parallelism boundaries
 
