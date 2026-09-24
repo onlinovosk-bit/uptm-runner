@@ -54,6 +54,61 @@ With `enforce_declared_body_digest` removed, the same evidence still returns
 **Artifacts:** `runner/prompt_stacks.py` (`enforce_declared_body_digest`) ·
 `runner/enforcement.py` (`PS-R3`, `route_guard`) ·
 `tests/test_enforcement_evidence.py`.
+## [2026-09-24] DEC-UPTM-EXPIRY — evidence lives seven days, because the drill does
+
+**Decided:** `evidence_expiry_days: 7`.
+
+**Why seven and not a round number.** It is `kill_switch_drill_cadence_days`.
+Enforcement evidence must never outlive the drill it rests on; if it could, a
+valid-looking artifact would be propped up by a drill that had already gone
+stale. Tying the two to one rhythm removes that case without a separate rule
+saying so, and a test now fails if the two numbers ever drift apart.
+
+### Setting the number was not the whole job
+
+`evidence_expiry()` returned the string `"7 days from generated_at"`. That reads
+like an expiry and can be compared to nothing. Writing the Founder's number into
+a field that no code could evaluate would have produced a P12 that looked
+satisfied and checked nothing — the same defect as a status word nobody earned,
+which is the defect this whole wall exists to catch.
+
+So `expires_at` is now a timestamp computed from `generated_at`, and
+`expiry_status()` answers **`VALID` / `EXPIRED` / `UNKNOWN`** for an artifact at
+a given time. `UNKNOWN` is not a soft `VALID`: no expiry, an unparseable one, or
+one without a timezone all mean the artifact has not been shown to be current,
+and under `runner.verdict` that dominates `PASS` and denies.
+
+The lifetime itself is still never defaulted. Missing, zero, negative, boolean,
+string or fractional all yield `None` — the Founder sets it or there is none.
+
+### P12 does not become ENFORCED, and this says so out loud
+
+P12 is *Evidence Has Commit & Expiry*. Both halves of the name are now real: the
+commit is read from the repository (Rule A), the expiry is a timestamp that can
+be evaluated. But the principle's recorded mechanism also names **STALE
+invalidation on dependency change**, and that is not implemented. Evidence can
+sit well inside its seven days and describe code that has since moved.
+
+**P12 stays `PARTIAL`.** A test asserts it, and `capital-rules.json` carries the
+reason in `evidence_expiry.does_not_satisfy_p12` rather than leaving the next
+reader to infer why a parameter was set and nothing changed. Closing that
+remaining half is a separate wall and has not been preregistered.
+
+### Unchanged
+
+`LIVE_TRADING` stays `false`. `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED. P8
+and P10 keep their status for the reasons UPTM-005 and UPTM-006 established. No
+capability is granted; an expiry narrows what evidence can claim, it does not
+widen what the Runner may do.
+
+**Artifacts:** `constitution/capital-rules.json` (`evidence_expiry_days`,
+`evidence_expiry`) · `runner/enforcement.py` (`evidence_expiry_days`,
+`evidence_expiry`, `expiry_status`, manifest `expires_at` / `expiry_days`) ·
+`tests/test_enforcement_evidence.py`. Measured: 348 passed; expiry VALID at
++6d, EXPIRED at +8d, UNKNOWN on absent, unparseable and naive values.
+
+---
+
 ## [2026-09-24] DEC-UPTM-RULEA — Evidence Rule A applies here, in one half of two
 
 **Decided:** question 4 of the governance map. Evidence Rule A

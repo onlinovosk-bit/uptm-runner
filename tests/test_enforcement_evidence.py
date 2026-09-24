@@ -10,6 +10,8 @@ real gate down each one, and require each denial to be load-bearing.
 
 from __future__ import annotations
 
+import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -24,6 +26,8 @@ from runner.enforcement import (
     evaluate_route,
     enforced_principles,
     evidence_expiry,
+    evidence_expiry_days,
+    expiry_status,
     manifest,
     route_guard,
     routes_for,
@@ -31,6 +35,7 @@ from runner.enforcement import (
     unproven_claims,
 )
 from runner.gates import evaluate_gate
+from runner.paths import CAPITAL_RULES
 from runner.provenance import HeadProvenance
 from runner.verdict import Decision, Verdict, resolve
 
@@ -237,12 +242,66 @@ def test_the_ceiling_itself_has_routes():
 READ_HEAD = HeadProvenance("a" * 40, True, "git")
 
 
-def test_the_manifest_carries_a_commit_and_no_invented_expiry():
-    m = manifest([], provenance=READ_HEAD)
+def test_the_manifest_carries_a_commit_and_an_expiry_the_founder_set():
+    """P12 wants both. Before 2026-09-24 the expiry was null and said why; the
+    Founder then set seven days and it became a timestamp."""
+    generated = datetime(2026, 9, 24, 18, 0, tzinfo=timezone.utc)
+    m = manifest([], provenance=READ_HEAD, generated_at=generated)
     assert m["evaluated_head"] == "a" * 40
-    assert m["expires_at"] is None
-    assert "no evidence lifetime is preregistered" in m["expiry_note"].lower()
-    assert evidence_expiry() is None
+    assert m["expiry_days"] == 7
+    assert m["expires_at"] == (generated + timedelta(days=7)).isoformat()
+
+
+def test_the_expiry_is_a_timestamp_not_a_sentence():
+    """It used to read "7 days from generated_at", which sounds like an expiry
+    and cannot be compared to anything. An expiry nothing can evaluate is
+    decorative - the same defect as a status word nobody earned."""
+    generated = datetime(2026, 9, 24, 18, 0, tzinfo=timezone.utc)
+    value = evidence_expiry(generated_at=generated)
+    assert datetime.fromisoformat(value) == generated + timedelta(days=7)
+
+
+def test_the_lifetime_is_read_from_the_rules_and_never_defaulted():
+    """A missing, zero, negative, boolean or non-integer lifetime is None. The
+    Founder sets it or there is none - there is no computed fallback."""
+    assert evidence_expiry_days() == 7
+    for bad in ({}, {"evidence_expiry_days": 0}, {"evidence_expiry_days": -3},
+                {"evidence_expiry_days": True}, {"evidence_expiry_days": "7"},
+                {"evidence_expiry_days": 7.5}, {"evidence_expiry_days": None}):
+        assert evidence_expiry_days(bad) is None, bad
+        assert evidence_expiry(bad) is None, bad
+
+
+def test_expiry_status_is_three_valued_and_unknown_is_not_a_soft_valid():
+    """UNKNOWN dominates PASS under runner.verdict. An artifact with no expiry,
+    an unparseable one, or one with no timezone has not been shown to be
+    current, so it must not read as VALID."""
+    generated = datetime(2026, 9, 24, 18, 0, tzinfo=timezone.utc)
+    m = manifest([], provenance=READ_HEAD, generated_at=generated)
+
+    assert expiry_status(m, now=generated + timedelta(days=6, hours=23)) == "VALID"
+    assert expiry_status(m, now=generated + timedelta(days=7, seconds=1)) == "EXPIRED"
+
+    for opaque in ({}, {"expires_at": None}, {"expires_at": ""},
+                   {"expires_at": "soon"}, {"expires_at": "2030-01-01T00:00:00"}):
+        assert expiry_status(opaque, now=generated) == "UNKNOWN", opaque
+
+
+def test_the_expiry_matches_the_kill_switch_drill_cadence():
+    """The reason for seven rather than any other number. Evidence that outlives
+    the drill it rests on is evidence propped up by a stale drill."""
+    rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
+    assert rules["evidence_expiry_days"] == rules["live_capability"]["kill_switch_drill_cadence_days"]
+
+
+def test_setting_the_expiry_did_not_quietly_advance_p12():
+    """Expiry is one half of P12. STALE invalidation on dependency change is the
+    other and is not implemented, so the status does not move."""
+    rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
+    p12 = next(p for p in rules["principles"] if p["id"] == "P12")
+    assert p12["enforcement"] == "PARTIAL"
+    assert "P12" not in enforced_principles(rules)
+    assert "STALE" in rules["evidence_expiry"]["does_not_satisfy_p12"]
 
 
 def test_the_manifest_states_what_it_does_not_establish():

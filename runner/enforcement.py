@@ -30,7 +30,7 @@ import importlib
 import json
 import shutil
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -492,19 +492,55 @@ def unproven_claims(rules: dict[str, Any] | None = None) -> list[str]:
     return sorted(p for p in enforced_principles(rules) if p not in covered)
 
 
-def evidence_expiry(rules: dict[str, Any] | None = None) -> str | None:
-    """P12 expiry, or None when no lifetime is preregistered.
+def evidence_expiry_days(rules: dict[str, Any] | None = None) -> int | None:
+    """The preregistered evidence lifetime, or None when none is set.
 
-    There is no evidence lifetime in capital-rules.json. Returning a computed
-    default here would be the sourceless number UPTM-002 exists to catch, so
-    this returns None and the manifest says so in words.
+    A missing, non-integer or non-positive value is None rather than a default.
+    Returning a computed default here would be the sourceless number UPTM-002
+    exists to catch: the lifetime is a Founder parameter or it is nothing.
     """
     if rules is None:
         rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
     days = rules.get("evidence_expiry_days")
     if not isinstance(days, int) or isinstance(days, bool) or days <= 0:
         return None
-    return f"{days} days from generated_at"
+    return days
+
+
+def evidence_expiry(
+    rules: dict[str, Any] | None = None, *, generated_at: datetime | None = None
+) -> str | None:
+    """P12 expiry as a timestamp, or None when no lifetime is preregistered.
+
+    A timestamp rather than a phrase. The earlier version returned
+    "N days from generated_at", which reads like an expiry and cannot be
+    compared to anything - an expiry nothing can evaluate is decorative, which
+    is the same defect as a status word nobody earned.
+    """
+    days = evidence_expiry_days(rules)
+    if days is None:
+        return None
+    stamp = generated_at or datetime.now(timezone.utc)
+    return (stamp + timedelta(days=days)).isoformat()
+
+
+def expiry_status(manifest_payload: dict[str, Any], *, now: datetime | None = None) -> str:
+    """``VALID``, ``EXPIRED`` or ``UNKNOWN`` for an artifact already generated.
+
+    Three-valued on purpose, and ``UNKNOWN`` is not a soft ``VALID``: an
+    artifact carrying no expiry, or one this cannot parse, has not been shown to
+    be current. Under runner.verdict that dominates PASS and denies.
+    """
+    expires_at = manifest_payload.get("expires_at")
+    if not isinstance(expires_at, str) or not expires_at:
+        return "UNKNOWN"
+    try:
+        deadline = datetime.fromisoformat(expires_at)
+    except ValueError:
+        return "UNKNOWN"
+    if deadline.tzinfo is None:
+        return "UNKNOWN"
+    return "VALID" if (now or datetime.now(timezone.utc)) < deadline else "EXPIRED"
 
 
 def run_routes(root: Path) -> list[dict[str, Any]]:
@@ -547,7 +583,8 @@ def manifest(
     doubt it travels with it into the artifact.
     """
     rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
-    stamp = (generated_at or datetime.now(timezone.utc)).isoformat()
+    stamp_dt = generated_at or datetime.now(timezone.utc)
+    stamp = stamp_dt.isoformat()
     return {
         "spec": "docs/specs/UPTM-006-enforcement-evidence.md",
         "generated_at": stamp,
@@ -567,13 +604,17 @@ def manifest(
             "ignored), so the self-SHA regress it forbids cannot arise here. "
             "See docs/evidence-rule-a.md."
         ),
-        "expires_at": evidence_expiry(rules),
+        "expires_at": evidence_expiry(rules, generated_at=stamp_dt),
+        "expiry_days": evidence_expiry_days(rules),
         "expiry_note": (
             "P12 requires a commit and an expiry. The commit is evaluated_head above, read "
-            "from the repository. No evidence lifetime is preregistered in "
-            "capital-rules.json, so expires_at is null rather than a number invented at "
-            "generation time. This is an open Founder parameter, and it is why P12 remains "
-            "PARTIAL."
+            "from the repository. The expiry is a timestamp computed from generated_at plus "
+            "evidence_expiry_days, set by the Founder to 7 on 2026-09-24 to match the "
+            "kill-switch drill cadence, so evidence never outlives the drill it rests on. "
+            "An artifact with no expires_at is UNKNOWN under expiry_status, not valid. "
+            "P12 stays PARTIAL: expiry is satisfied, STALE invalidation on dependency "
+            "change is not - evidence can be inside its seven days and still describe code "
+            "that has moved."
         ),
         "claims_checked": enforced_principles(rules),
         "unproven_claims": unproven_claims(rules),
