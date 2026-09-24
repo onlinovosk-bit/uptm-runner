@@ -1,4 +1,4 @@
-"""CLI: uptm-runner baseline | wave-status | evaluate-gate | smoke | enforcement-evidence"""
+"""CLI: uptm-runner baseline | wave-status | evaluate-gate | smoke | enforcement-evidence | mutation-gate"""
 
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import tempfile
 from runner.enforcement import manifest, run_routes, unproven_claims
 from runner.fsm import RunnerFSM, load_baseline, run_baseline_ack, wave_status
 from runner.gates import evaluate_gate
+from runner.mutation_gate import run_mutation_gate
 from runner.paths import ROOT
 from runner.provenance import read_head
 from runner.stops import StopConditionError
@@ -86,6 +87,42 @@ def cmd_enforcement_evidence(args: argparse.Namespace) -> int:
                                               "routes_denied_for_another_reason")}, indent=2))
     print(f"written: {out}", file=sys.stderr)
     return 0 if payload["ok"] else 1
+
+
+def cmd_mutation_gate(_: argparse.Namespace) -> int:
+    """Break each named mechanism and require the guard tests to notice.
+
+    A green suite proves the guards pass; it does not prove they would fail. This
+    is the second half — and it is the half that goes stale silently, because a
+    deleted or weakened proof reads exactly like a passing one.
+    """
+    ok, results, baseline_error = run_mutation_gate()
+    payload = {
+        "ok": ok,
+        "baseline_error": baseline_error,
+        "mutations": [r.as_dict() for r in results],
+    }
+    print(json.dumps(payload, indent=2))
+    if baseline_error:
+        print(f"mutation gate not run: {baseline_error}", file=sys.stderr)
+    for result in results:
+        if result.ok:
+            continue
+        if result.error:
+            print(f"{result.mutation_id}: {result.error}", file=sys.stderr)
+        elif not result.suite_failed:
+            print(
+                f"{result.mutation_id}: the suite stayed green with the mechanism "
+                "disconnected — it is not load-bearing",
+                file=sys.stderr,
+            )
+        else:
+            print(
+                f"{result.mutation_id}: caught, but not by "
+                f"{list(result.missing_sentinels)} — those proofs have stopped working",
+                file=sys.stderr,
+            )
+    return 0 if ok else 1
 
 
 def cmd_smoke(_: argparse.Namespace) -> int:
@@ -178,6 +215,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     e.add_argument("--out", default=None, help="Output path (default evidence/enforcement/)")
     e.set_defaults(func=cmd_enforcement_evidence)
+
+    m = sub.add_parser(
+        "mutation-gate", help="Break each named guard and require its proofs to fail"
+    )
+    m.set_defaults(func=cmd_mutation_gate)
 
     s = sub.add_parser("smoke", help="Smoke checks (no live trading)")
     s.set_defaults(func=cmd_smoke)
