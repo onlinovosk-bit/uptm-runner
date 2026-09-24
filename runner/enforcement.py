@@ -246,7 +246,11 @@ def _composer_binding(**overrides: Any) -> dict[str, Any]:
         "stack_ids": ["00"],
         "stack_versions": {"00": "0.1.0"},
         "stack_digests": {"00": "a" * 64},
+        "stack_releases": {"00": "00@0.1.0+sha256:" + ("a" * 64)},
+        "registry_sha256": "c" * 64,
         "assembled_prompt_digest": "b" * 64,
+        "evidence_expires_at": None,
+        "stale_on": ["registry_sha256_change"],
         "wave_context": {"wave_id": 3},
     }
     binding.update(overrides)
