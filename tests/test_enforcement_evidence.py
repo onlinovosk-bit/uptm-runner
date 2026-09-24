@@ -10,11 +10,15 @@ real gate down each one, and require each denial to be load-bearing.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from runner import gates
 from runner.enforcement import (
     CONDITIONAL_GUARDS,
+    REDUNDANT_GUARDS,
+    NON_PRINCIPLE_GUARDS,
     CORRECTED_PREDICTIONS,
     ROUTES,
     apply_stubs,
@@ -22,6 +26,7 @@ from runner.enforcement import (
     evidence_expiry,
     manifest,
     routes_for,
+    run_routes,
     unproven_claims,
 )
 from runner.gates import evaluate_gate
@@ -63,9 +68,36 @@ def test_the_claim_gate_would_actually_fire():
     assert unproven_claims(fabricated) == ["P99"]
 
 
-def test_both_enforced_principles_are_the_ones_covered():
-    assert set(enforced_principles()) == {"P8", "P10"}
-    assert {r.principle for r in ROUTES} == {"P8", "P10"}
+def test_every_enforced_principle_is_covered_and_every_extra_group_is_declared():
+    """The claim gate stays exact while the registry carries more than principles.
+
+    A guard that protects no ENFORCED principle is not demanded by the claim
+    gate, so it would otherwise go unrouted — remove it and nothing notices.
+    Such groups are allowed here, but only if they are declared, so the
+    registry cannot quietly acquire a category nobody named.
+    """
+    enforced = set(enforced_principles())
+    assert enforced == {"P8", "P10"}
+    covered = {r.principle for r in ROUTES}
+    assert enforced <= covered
+
+    extra = covered - enforced
+    assert extra == set(NON_PRINCIPLE_GUARDS), (
+        f"route groups that are neither a principle nor declared: "
+        f"{sorted(extra - set(NON_PRINCIPLE_GUARDS))}"
+    )
+
+
+def test_the_prompt_stack_guard_is_routed_because_nothing_else_routes_it():
+    """APS-001 made the prompt-stack binding mandatory and added no route.
+
+    Removing that check would not have failed a single one of the seventeen
+    P8/P10 routes, because their fixtures carry a valid binding. This is the
+    gap those two routes close.
+    """
+    assert "APS-001" in NON_PRINCIPLE_GUARDS
+    assert {r.route_id for r in routes_for("APS-001")} == {"PS-R1", "PS-R2"}
+    assert "a guard nobody routes is" in NON_PRINCIPLE_GUARDS["APS-001"]
 
 
 # ------------------------------------------------- case 2: every route denies
@@ -219,5 +251,71 @@ def test_the_manifest_would_report_an_unearned_claim():
 
 
 def test_routes_for_partitions_the_registry():
-    assert len(routes_for("P8")) + len(routes_for("P10")) == len(ROUTES)
+    groups = ("P8", "P10", "APS-001")
+    assert sum(len(routes_for(g)) for g in groups) == len(ROUTES)
     assert routes_for("P12") == ()
+
+
+def test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes(
+    route_root, monkeypatch
+):
+    """`validate_evidence_structure` is the seam these routes name, but it does
+    more than one thing. Neuter only the binding validator inside it and a route
+    held by the binding alone must open — otherwise it is held by the
+    surrounding structural checks and names the wrong guard.
+
+    PS-R1 does not open, and that is recorded rather than excused: dropping the
+    key trips the required-field list as well, so the route is held twice over.
+    The test asserts the measurement in both directions, so that a future change
+    which removes either mechanism shows up here."""
+    import runner.evidence as evidence_module
+
+    for route in routes_for("APS-001"):
+        evidence = route.build(route_root)
+        assert evaluate_gate(evidence).verdict is not Verdict.PASS
+
+        monkeypatch.setattr(evidence_module, "validate_prompt_stack_binding", lambda _e: [])
+        try:
+            outcome = evaluate_gate(evidence)
+            if route.route_id in REDUNDANT_GUARDS:
+                assert outcome.verdict is not Verdict.PASS, (
+                    f"{route.route_id} is recorded as held by a second mechanism, but "
+                    "neutering the binding validator opened it — the record is stale"
+                )
+                assert any("missing field: prompt_stack" in r for r in outcome.reasons), (
+                    f"{route.route_id} still denies, but not via the required-field list "
+                    f"the record names: {outcome.reasons}"
+                )
+            else:
+                assert outcome.verdict is Verdict.PASS, (
+                    f"{route.route_id} still denies with only the binding validator "
+                    f"neutered — it is held by something else: {outcome.reasons}"
+                )
+        finally:
+            monkeypatch.undo()
+
+
+def test_each_mechanism_holding_ps_r1_denies_on_its_own():
+    """The redundancy recorded for PS-R1 is two independent denials, not one
+    denial counted twice. Called directly, each check refuses the route by
+    itself."""
+    import runner.evidence as evidence_module
+    from runner.prompt_stacks import validate_prompt_stack_binding
+
+    evidence = next(r for r in ROUTES if r.route_id == "PS-R1").build(Path("/nonexistent"))
+
+    structural = evidence_module.validate_evidence_structure(evidence)
+    assert any("missing field: prompt_stack" in e for e in structural)
+    assert validate_prompt_stack_binding(evidence) == ["prompt_stack binding required"]
+
+    assert "PS-R1" in REDUNDANT_GUARDS
+    assert "twice over" in REDUNDANT_GUARDS["PS-R1"]
+
+
+def test_the_manifest_reports_a_redundant_guard_rather_than_hiding_it(route_root):
+    """A second guard that only lives in a comment is a second guard nobody
+    auditing the artifact can see."""
+    results = run_routes(route_root)
+    by_id = {r["route_id"]: r for r in results}
+    assert by_id["PS-R1"]["redundant_guard"] == REDUNDANT_GUARDS["PS-R1"]
+    assert by_id["PS-R2"]["redundant_guard"] is None
