@@ -15,6 +15,79 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-24] DEC-UPTM-008 — the gate verifies the binding it was always handed; P12 is ENFORCED
+
+**Decided:** Founder GO, *"GO na gate spotrebuje staleness"*. Built as
+`UPTM-008`, preregistered in `docs/specs/UPTM-008-gate-verifies-its-binding.md`
+before any verification code existed (P4).
+
+### What was open, measured before anything was designed
+
+```python
+evaluate_gate(_base()).verdict                       # PASS
+#   files: [{"path": "runner/gates.py", "sha256": "aaaa…"}]
+evaluate_gate(_base(files=[{"path": "no/such/file.py",
+                           "sha256": "bbbb…"}])).verdict   # PASS
+```
+
+**The gate passed evidence declaring a file that does not exist, with a digest
+never computed from anything.** `validate_evidence_structure` required the
+`files` key to be present; nothing had ever compared its contents to the
+repository. That is P12's violation clause, live on `main`.
+
+It was also a finding about my own work: every UPTM-006 route carried
+`"sha256": "a" * 64` from the day that wall was built. The routes proved what
+they were built to prove; none noticed the fabrication beside the proof.
+
+### The GO was read narrowly, on purpose
+
+"The gate consumes staleness" reads most obviously as a new `dependencies` field
+on gate evidence, mirroring the enforcement manifest. **That reading was
+rejected**, and the spec says why before the code: the binding already existed
+in the contract and every producer already emitted it, so no schema change and
+no producer migration were needed. A `dependencies` field would also be *worse* —
+digests of `runner/**.py` inside a tracked artifact go stale the moment any
+runner file changes, and regenerating it dirties the tree, which
+`enforcement-evidence` then refuses under Evidence Rule A.
+
+Evidence should bind the data it is **about**, not the whole repository it was
+produced in. Smaller than authorised, and it closes the hole that was open.
+
+### P12 is ENFORCED, and the word is bounded
+
+All of §G and §R passed, so C1 authorised the change. `capital-rules.json`
+carries `enforced_since`, `earned_by` naming UPTM-008, and
+`what_this_does_not_establish`:
+
+> It means there is no route to `PASS` with a **false** binding. It does not
+> mean the binding is **sufficient** — a producer declaring one irrelevant file
+> and omitting ten that matter satisfies every route here. This wall makes the
+> declaration true, not complete.
+
+`enforced_principles()` is now `['P8', 'P10', 'P12']`, `unproven_claims()` is
+empty, 32 routes, none reaching `PASS`, none denied for another reason.
+
+### A mutation case, because a deleted guard reads like a passing one
+
+`evidence-binding-unverified` was added to the mutation gate from
+`DEC-UPTM-MUTGATE`: remove the call and four named tests must go red. They do.
+Without it, deleting this check would have been silent — the failure that gate
+exists to catch.
+
+### Unchanged
+
+`LIVE_TRADING` stays `false`. `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED. P8,
+P10 and P9 keep their status. No capability granted — refusing evidence that
+lies about where it came from narrows what may pass, never widens it.
+
+**Artifacts:** `docs/specs/UPTM-008-gate-verifies-its-binding.md` ·
+`runner/binding.py` · `runner/gates.py` · `runner/mutation_gate.py` ·
+`constitution/capital-rules.json` · `tests/test_binding.py` · corrected
+fixtures in `tests/conftest.py` and `runner/enforcement.py`. Measured: 452
+passed, mutation-gate exit 0.
+
+---
+
 ## [2026-09-24] DEC-UPTM-APS-COMPOSER — the remaining composer denials are routes
 
 **Decided:** the fail-closed branches of `assemble_prompt`, and the missing

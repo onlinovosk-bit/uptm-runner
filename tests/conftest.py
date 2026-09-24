@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import hashlib
+
 import pytest
 
 from runner.paths import ROOT
@@ -24,10 +26,16 @@ def valid_evidence_factory():
             "commit_sha": "abc1234567",
             "branch": "test/branch",
             "pr": None,
+            # UPTM-008: the gate now verifies this binding. The digest is read
+            # from the file the evidence names, because "a" * 64 was a
+            # fabrication that passed unexamined for as long as the fixture
+            # existed - which is the hole UPTM-008 was built to close.
             "files": [
                 {
                     "path": "runner/gates.py",
-                    "sha256": "a" * 64,
+                    "sha256": hashlib.sha256(
+                        (ROOT / "runner" / "gates.py").read_bytes()
+                    ).hexdigest(),
                 }
             ],
             "commands": [{"cmd": "pytest", "exit_code": 0}],
