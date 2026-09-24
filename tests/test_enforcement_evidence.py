@@ -10,6 +10,8 @@ real gate down each one, and require each denial to be load-bearing.
 
 from __future__ import annotations
 
+import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -21,15 +23,20 @@ from runner.enforcement import (
     NON_PRINCIPLE_GUARDS,
     CORRECTED_PREDICTIONS,
     ROUTES,
-    apply_stubs,
+    evaluate_route,
     enforced_principles,
     evidence_expiry,
+    evidence_expiry_days,
+    expiry_status,
     manifest,
+    route_guard,
     routes_for,
     run_routes,
     unproven_claims,
 )
 from runner.gates import evaluate_gate
+from runner.paths import CAPITAL_RULES
+from runner.provenance import HeadProvenance
 from runner.verdict import Decision, Verdict, resolve
 
 
@@ -96,7 +103,9 @@ def test_the_prompt_stack_guard_is_routed_because_nothing_else_routes_it():
     gap those two routes close.
     """
     assert "APS-001" in NON_PRINCIPLE_GUARDS
-    assert {r.route_id for r in routes_for("APS-001")} == {"PS-R1", "PS-R2"}
+    assert {r.route_id for r in routes_for("APS-001")} == {
+        "PS-R1", "PS-R2", "PS-R3", "PS-R4", "PS-R5", "PS-R6", "PS-R7", "PS-R8", "PS-R9", "PS-R10",
+    }
     assert "a guard nobody routes is" in NON_PRINCIPLE_GUARDS["APS-001"]
 
 
@@ -105,8 +114,7 @@ def test_the_prompt_stack_guard_is_routed_because_nothing_else_routes_it():
 
 @pytest.mark.parametrize("route", ROUTES, ids=lambda r: r.route_id)
 def test_every_route_denies(route, route_root):
-    with apply_stubs(route.stubs):
-        result = evaluate_gate(route.build(route_root))
+    result = evaluate_route(route, route_root)
     assert result.verdict is not Verdict.PASS, (
         f"{route.route_id} reached PASS: {route.description}"
     )
@@ -122,8 +130,7 @@ def test_every_route_denies_for_its_own_reason(route, route_root):
     This is the assertion that stops the proof quietly decaying: the surrounding
     evidence could rot, every route would still deny, and only this notices.
     """
-    with apply_stubs(route.stubs):
-        result = evaluate_gate(route.build(route_root))
+    result = evaluate_route(route, route_root)
     assert any(route.expect in reason for reason in result.reasons), (
         f"{route.route_id} denied, but not via {route.expect}: {result.reasons}"
     )
@@ -150,7 +157,7 @@ def test_neutering_the_named_guards_opens_the_route(route, route_root, monkeypat
     the one enforcing the principle.
     """
     evidence = route.build(route_root)
-    with apply_stubs(route.stubs):
+    with route_guard(route, route_root):
         assert evaluate_gate(evidence).verdict is not Verdict.PASS
 
         for guard in route.guards:
@@ -190,7 +197,7 @@ def test_neither_guard_alone_opens_a_doubly_guarded_route(route, route_root, mon
     """The stronger form of the count: two guards means two, measured one at a time."""
     evidence = route.build(route_root)
     for guard in route.guards:
-        with apply_stubs(route.stubs):
+        with route_guard(route, route_root):
             monkeypatch.setattr(gates, guard, _neutral(guard))
             assert evaluate_gate(evidence).verdict is not Verdict.PASS, (
                 f"{route.route_id} opened with {guard} alone neutered — it has one guard, not "
@@ -202,7 +209,7 @@ def test_neither_guard_alone_opens_a_doubly_guarded_route(route, route_root, mon
 def test_one_guard_alone_does_not_open_the_doubly_guarded_route(route_root, monkeypatch):
     r4 = next(r for r in ROUTES if r.route_id == "P8-R4")
     evidence = r4.build(route_root)
-    with apply_stubs(r4.stubs):
+    with route_guard(r4, route_root):
         monkeypatch.setattr(gates, "run_kill_switch_detectors", _neutral("run_kill_switch_detectors"))
         assert evaluate_gate(evidence).verdict is not Verdict.PASS, (
             "the KS-I3b invariant did not hold once the detector was removed"
@@ -232,22 +239,81 @@ def test_the_ceiling_itself_has_routes():
 # ------------------------------------------------------------- case 7: manifest
 
 
-def test_the_manifest_carries_a_commit_and_no_invented_expiry():
-    m = manifest([], commit="abc1234")
-    assert m["commit"] == "abc1234"
-    assert m["expires_at"] is None
-    assert "no evidence lifetime is preregistered" in m["expiry_note"].lower()
-    assert evidence_expiry() is None
+#: A head the repository reported, not one a caller asserted. Rule A is what
+#: makes that distinction real; see tests/test_evidence_rule_a.py.
+READ_HEAD = HeadProvenance("a" * 40, True, "git")
+
+
+def test_the_manifest_carries_a_commit_and_an_expiry_the_founder_set():
+    """P12 wants both. Before 2026-09-24 the expiry was null and said why; the
+    Founder then set seven days and it became a timestamp."""
+    generated = datetime(2026, 9, 24, 18, 0, tzinfo=timezone.utc)
+    m = manifest([], provenance=READ_HEAD, generated_at=generated)
+    assert m["evaluated_head"] == "a" * 40
+    assert m["expiry_days"] == 7
+    assert m["expires_at"] == (generated + timedelta(days=7)).isoformat()
+
+
+def test_the_expiry_is_a_timestamp_not_a_sentence():
+    """It used to read "7 days from generated_at", which sounds like an expiry
+    and cannot be compared to anything. An expiry nothing can evaluate is
+    decorative - the same defect as a status word nobody earned."""
+    generated = datetime(2026, 9, 24, 18, 0, tzinfo=timezone.utc)
+    value = evidence_expiry(generated_at=generated)
+    assert datetime.fromisoformat(value) == generated + timedelta(days=7)
+
+
+def test_the_lifetime_is_read_from_the_rules_and_never_defaulted():
+    """A missing, zero, negative, boolean or non-integer lifetime is None. The
+    Founder sets it or there is none - there is no computed fallback."""
+    assert evidence_expiry_days() == 7
+    for bad in ({}, {"evidence_expiry_days": 0}, {"evidence_expiry_days": -3},
+                {"evidence_expiry_days": True}, {"evidence_expiry_days": "7"},
+                {"evidence_expiry_days": 7.5}, {"evidence_expiry_days": None}):
+        assert evidence_expiry_days(bad) is None, bad
+        assert evidence_expiry(bad) is None, bad
+
+
+def test_expiry_status_is_three_valued_and_unknown_is_not_a_soft_valid():
+    """UNKNOWN dominates PASS under runner.verdict. An artifact with no expiry,
+    an unparseable one, or one with no timezone has not been shown to be
+    current, so it must not read as VALID."""
+    generated = datetime(2026, 9, 24, 18, 0, tzinfo=timezone.utc)
+    m = manifest([], provenance=READ_HEAD, generated_at=generated)
+
+    assert expiry_status(m, now=generated + timedelta(days=6, hours=23)) == "VALID"
+    assert expiry_status(m, now=generated + timedelta(days=7, seconds=1)) == "EXPIRED"
+
+    for opaque in ({}, {"expires_at": None}, {"expires_at": ""},
+                   {"expires_at": "soon"}, {"expires_at": "2030-01-01T00:00:00"}):
+        assert expiry_status(opaque, now=generated) == "UNKNOWN", opaque
+
+
+def test_the_expiry_matches_the_kill_switch_drill_cadence():
+    """The reason for seven rather than any other number. Evidence that outlives
+    the drill it rests on is evidence propped up by a stale drill."""
+    rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
+    assert rules["evidence_expiry_days"] == rules["live_capability"]["kill_switch_drill_cadence_days"]
+
+
+def test_setting_the_expiry_did_not_quietly_advance_p12():
+    """Expiry is one half of P12. STALE invalidation on dependency change is the
+    other and is not implemented, so the status does not move."""
+    rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
+    p12 = next(p for p in rules["principles"] if p["id"] == "P12")
+    assert p12["enforcement"] == "PARTIAL"
+    assert "P12" not in enforced_principles(rules)
+    assert "STALE" in rules["evidence_expiry"]["does_not_satisfy_p12"]
 
 
 def test_the_manifest_states_what_it_does_not_establish():
-    m = manifest([], commit="abc1234")
+    m = manifest([], provenance=READ_HEAD)
     assert "complete" in m["does_not_establish"]
     assert "advances no principle" in m["does_not_establish"]
 
 
 def test_the_manifest_would_report_an_unearned_claim():
-    assert manifest([], commit="abc1234")["unproven_claims"] == []
+    assert manifest([], provenance=READ_HEAD)["unproven_claims"] == []
 
 
 def test_routes_for_partitions_the_registry():
@@ -272,11 +338,13 @@ def test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes(
 
     for route in routes_for("APS-001"):
         evidence = route.build(route_root)
-        assert evaluate_gate(evidence).verdict is not Verdict.PASS
+        with route_guard(route, route_root):
+            assert evaluate_gate(evidence).verdict is not Verdict.PASS
 
         monkeypatch.setattr(evidence_module, "validate_prompt_stack_binding", lambda _e: [])
         try:
-            outcome = evaluate_gate(evidence)
+            with route_guard(route, route_root):
+                outcome = evaluate_gate(evidence)
             if route.route_id in REDUNDANT_GUARDS:
                 assert outcome.verdict is not Verdict.PASS, (
                     f"{route.route_id} is recorded as held by a second mechanism, but "
@@ -293,6 +361,27 @@ def test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes(
                 )
         finally:
             monkeypatch.undo()
+
+
+def test_ps_r3_backstop_survives_removal_of_the_declared_digest_check(route_root, monkeypatch):
+    """Deleting the registry comparison must not open PS-R3.
+
+    The binding still carries the digest of the body that was assembled. A
+    drifted source recomputes a different digest, so the field comparison
+    denies. The route's own expect string is the declared-digest raise; this
+    test keeps the backstop visible so a later edit cannot retarget that
+    string at the backstop and call the raise optional.
+    """
+    import runner.prompt_stacks as prompt_stacks
+
+    route = next(r for r in ROUTES if r.route_id == "PS-R3")
+    evidence = route.build(route_root)
+    monkeypatch.setattr(prompt_stacks, "enforce_declared_body_digest", lambda *_a, **_k: None)
+    with route_guard(route, route_root):
+        result = evaluate_gate(evidence)
+    assert result.verdict is not Verdict.PASS
+    assert any("stack_digests mismatch" in reason for reason in result.reasons)
+    assert not any("prompt stack 00 digest mismatch" in reason for reason in result.reasons)
 
 
 def test_each_mechanism_holding_ps_r1_denies_on_its_own():
@@ -319,3 +408,5 @@ def test_the_manifest_reports_a_redundant_guard_rather_than_hiding_it(route_root
     by_id = {r["route_id"]: r for r in results}
     assert by_id["PS-R1"]["redundant_guard"] == REDUNDANT_GUARDS["PS-R1"]
     assert by_id["PS-R2"]["redundant_guard"] is None
+    assert by_id["PS-R3"]["redundant_guard"] is None
+    assert by_id["PS-R3"]["denied_by_its_own_check"] is True

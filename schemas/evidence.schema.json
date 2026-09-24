@@ -121,6 +121,8 @@
         "assembled_prompt_digest",
         "evidence_expires_at",
         "stale_on"
+        "assembled_prompt_digest",
+        "wave_context"
       ],
       "properties": {
         "role": {
@@ -161,6 +163,10 @@
           "items": { "type": "string" }
         },
         "wave_context": { "type": "object" }
+        "wave_context": {
+          "type": "object",
+          "minProperties": 1
+        }
       },
       "additionalProperties": false
     },

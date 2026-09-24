@@ -67,13 +67,18 @@ body. A stack release id is derived as:
 
 Composition fails closed on:
 
-- unknown stack id
-- duplicate stack id
-- missing prior dependency
-- unknown role
-- role requesting a forbidden stack
-- empty stack list
-- missing wave context
+- unknown stack id (`PS-R6`)
+- duplicate stack id (`PS-R7`)
+- missing prior dependency (`PS-R8`)
+- unknown role (`PS-R9`)
+- role requesting a forbidden stack (`PS-R5`)
+- empty stack list (`PS-R10`)
+- missing wave context (`PS-R4`)
+
+The gate does not fill in `wave_context` from `evidence.wave_id`. A binding
+assembled as `{"wave_id": 3}` with that field then removed used to pass,
+because the evidence wave id reconstructed the same context. That substitution
+is refused.
 
 ## Role taxonomy
 
@@ -123,6 +128,10 @@ The gate reassembles the prompt from Git source and rejects a PASS path when the
 binding is absent, incomplete, or any version, stack digest, or assembled prompt
 digest does not match. It also rejects stale bindings when the registry digest,
 release id set, or expiry policy differs from the current registry.
+digest does not match. A stack body that changes after that binding was
+assembled, without a matching registry digest, is route `PS-R3`: the loader
+raises `prompt stack <id> digest mismatch` before the reassembled digest can be
+treated as the original prompt.
 
 ## Wave and parallelism boundaries
 
