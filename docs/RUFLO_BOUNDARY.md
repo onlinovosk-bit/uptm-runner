@@ -42,6 +42,11 @@ the claim's assembled prompt, and `evaluate_gate` passes. A missing claim
 fails the wave. An artifact that declares no files fails the gate as binding
 UNKNOWN.
 
+`RunnerFSM.apply_gate` calls that collect when a `SwarmDispatch` is bound to
+the current wave, and writes `passed_waves` only if the collect passes and the
+gate is PASS with `CRITICAL=0` and `HIGH=0`. `run_until_terminal` forwards a
+`swarm_provider` into that call. A ledger for a different wave denies.
+
 Ruflo fanout is never gate evidence.
 
 ## Integrating a real Ruflo later

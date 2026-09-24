@@ -265,6 +265,26 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_enforcement_evidence.py::test_each_mechanism_holding_ps_r1_denies_on_its_own",
         ),
     ),
+    Mutation(
+        mutation_id="swarm-collect-disconnected",
+        claim=(
+            "APS-007 records a swarm wave in passed_waves only after "
+            "collect_and_verify passes. Replace that call with a forced pass and "
+            "a missing claim ledger records the wave."
+        ),
+        path="runner/fsm.py",
+        anchor="        return dispatch.collect_and_verify(dict(artifacts or {}))\n",
+        replacement=(
+            "        return SwarmCollectResult(\n"
+            "            wave_id=wave_id, passed=True, reasons=()\n"
+            "        )  # mutation-gate: collect disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_calls_collect_and_verify",
+            "tests/test_fsm.py::test_failing_collect_does_not_record_passed_wave",
+            "tests/test_fsm.py::test_passed_wave_depends_on_collect_result",
+        ),
+    ),
 )
 
 

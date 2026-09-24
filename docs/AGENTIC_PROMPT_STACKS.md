@@ -150,7 +150,9 @@ does not overlap. The Ruflo `SwarmDispatch` contract requires:
 
 Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 `passed_waves`, which is written only after a PASS gate result with
-`CRITICAL=0` and `HIGH=0`.
+`CRITICAL=0` and `HIGH=0`. When that gate carries a `SwarmDispatch`, the write
+also requires `collect_and_verify` to pass for the same wave. A wave with no
+swarm ledger still records from the gate alone.
 
 ## Ruflo and Cursor stub boundary
 

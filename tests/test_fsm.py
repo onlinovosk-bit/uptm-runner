@@ -4,7 +4,10 @@ import pytest
 
 from runner.fsm import FSMError, RunnerFSM, State
 from runner.gates import GateResult
+from runner.paths import ROOT
+from runner.staleness import digest_file
 from runner.verdict import Verdict
+from ruflo.adapter import SwarmCollectResult, SwarmDispatch, SwarmWorkClaim
 
 
 def test_fsm_happy_path_to_wave_ready():
@@ -130,3 +133,149 @@ def test_inconsistent_pass_with_high_finding_does_not_unlock_next_wave():
     assert fsm.apply_gate(gate) == State.PATCH_LOOP
     assert 0 not in fsm.passed_waves
     assert 1 not in fsm.unlocked_waves
+
+
+def _to_evidence(fsm: RunnerFSM | None = None) -> RunnerFSM:
+    fsm = fsm or RunnerFSM()
+    for st in (
+        State.BASELINE,
+        State.PLAN,
+        State.WAVE_READY,
+        State.PARALLEL_DISPATCH,
+        State.EXECUTION,
+        State.COLLECT,
+        State.VERIFY,
+        State.ADVERSARIAL_VERIFY,
+        State.EVIDENCE,
+    ):
+        fsm.transition(st)
+    return fsm
+
+
+def _pass() -> GateResult:
+    return GateResult(verdict=Verdict.PASS, reasons=["ok"], critical=0, high=0)
+
+
+def _claim(agent_id: str, path: str) -> SwarmWorkClaim:
+    return SwarmWorkClaim(
+        agent_id=agent_id,
+        wave_id=0,
+        role="executor",
+        stack_ids=("00", "04"),
+        owned_paths=(path,),
+        lease_id=f"lease-{agent_id}",
+        lease_expires_at="2026-09-24T21:00:00Z",
+        evidence_skeleton_path=f"evidence/wave0/{agent_id}.json",
+    )
+
+
+def _dispatch() -> SwarmDispatch:
+    return SwarmDispatch(
+        wave_id=0,
+        claims=(
+            _claim("agent-a", "runner/fsm.py"),
+            _claim("agent-b", "runner/gates.py"),
+        ),
+    )
+
+
+def _real(claim: SwarmWorkClaim) -> dict:
+    evidence = claim.evidence_skeleton(branch="fsm-collect", commit_sha="abc1234567")
+    evidence["skeleton"] = False
+    evidence["files"] = [
+        {"path": path, "sha256": digest_file(ROOT / path)} for path in claim.owned_paths
+    ]
+    evidence["probes"] = [
+        {"probe_id": "probe_live_trading", "outcome": "BLOCKED", "output_digest": "deadbeef"}
+    ]
+    evidence["results"] = {"passed": 1, "failed": 0, "findings": []}
+    evidence["commands"] = [{"cmd": "pytest", "exit_code": 0}]
+    evidence["agent_claim"] = {"verdict": "PASS", "notes": "executed"}
+    return evidence
+
+
+def _artifacts(dispatch: SwarmDispatch) -> dict[str, dict]:
+    return {claim.evidence_skeleton_path: _real(claim) for claim in dispatch.claims}
+
+
+def test_passing_collect_records_the_wave():
+    dispatch = _dispatch()
+    fsm = _to_evidence()
+    assert fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.WAVE_READY
+    assert fsm.last_collect is not None and fsm.last_collect.passed is True
+    assert 0 in fsm.passed_waves
+    assert fsm.current_wave == 1
+
+
+def test_failing_collect_does_not_record_passed_wave():
+    fsm = _to_evidence()
+    assert fsm.apply_gate(_pass(), dispatch=_dispatch(), artifacts={}) == State.PATCH_LOOP
+    assert fsm.last_collect is not None and fsm.last_collect.passed is False
+    assert 0 not in fsm.passed_waves
+    assert 1 not in fsm.unlocked_waves
+
+
+def test_collect_for_another_wave_does_not_record_passed_wave():
+    dispatch = _dispatch()
+    foreign = SwarmDispatch(wave_id=2, claims=dispatch.claims)
+    fsm = _to_evidence()
+    assert fsm.apply_gate(_pass(), dispatch=foreign, artifacts=_artifacts(dispatch)) == State.PATCH_LOOP
+    assert 0 not in fsm.passed_waves
+    assert any("does not match current wave" in reason for reason in fsm.last_collect.reasons)
+
+
+def test_gate_fail_still_blocks_a_passing_collect():
+    dispatch = _dispatch()
+    fsm = _to_evidence()
+    fail = GateResult(verdict=Verdict.FAIL, reasons=["CRITICAL=1"], critical=1, high=0)
+    assert fsm.apply_gate(fail, dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.PATCH_LOOP
+    assert fsm.last_collect.passed is True
+    assert 0 not in fsm.passed_waves
+
+
+def test_fsm_actually_calls_collect_and_verify(monkeypatch):
+    calls: list[dict] = []
+
+    def spy(self, artifacts):
+        calls.append(dict(artifacts))
+        return SwarmCollectResult(wave_id=self.wave_id, passed=False, reasons=("forced by spy",))
+
+    monkeypatch.setattr(SwarmDispatch, "collect_and_verify", spy)
+    fsm = _to_evidence()
+    state = fsm.apply_gate(_pass(), dispatch=_dispatch(), artifacts={})
+    assert len(calls) == 1, "apply_gate did not invoke collect_and_verify"
+    assert state == State.PATCH_LOOP
+    assert 0 not in fsm.passed_waves
+    assert any("forced by spy" in reason for reason in fsm.last_collect.reasons)
+
+
+def test_passed_wave_depends_on_collect_result(monkeypatch):
+    """Disconnect the collector's judgement and the wave record must follow it."""
+    fsm = _to_evidence()
+    assert fsm.apply_gate(_pass(), dispatch=_dispatch(), artifacts={}) == State.PATCH_LOOP
+    assert 0 not in fsm.passed_waves
+
+    monkeypatch.setattr(
+        SwarmDispatch,
+        "collect_and_verify",
+        lambda self, artifacts: SwarmCollectResult(wave_id=self.wave_id, passed=True, reasons=()),
+    )
+    opened = _to_evidence()
+    assert opened.apply_gate(_pass(), dispatch=_dispatch(), artifacts={}) == State.WAVE_READY
+    assert 0 in opened.passed_waves
+
+
+def test_run_until_terminal_does_not_record_a_wave_whose_collect_fails():
+    fsm = RunnerFSM()
+    dispatch = _dispatch()
+
+    def gate_provider(_: RunnerFSM) -> GateResult:
+        return _pass()
+
+    def swarm_provider(current: RunnerFSM):
+        assert current.current_wave == dispatch.wave_id
+        return dispatch, {}
+
+    assert fsm.run_until_terminal(gate_provider, swarm_provider=swarm_provider) == State.HUMAN_REVIEW_REQUIRED
+    assert fsm.passed_waves == set()
+    assert fsm.last_collect is not None and fsm.last_collect.passed is False

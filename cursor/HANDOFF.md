@@ -14,10 +14,11 @@ unconfigured.
 4. Run Cursor agents externally (≤ 8 parallel), one agent per claim.
 5. Replace SKIPPED skeletons under `evidence/waveN/` with real probes and
    `files` entries whose sha256 matches the tree.
-6. Run `SwarmDispatch.collect_and_verify_dir(root)`. A missing claim, a leftover
-   skeleton, all-`SKIPPED` probes, a different prompt-stack digest, or an
-   `evaluate_gate` failure (including a file binding that is not CURRENT)
-   fails the wave.
+6. Run `SwarmDispatch.collect_and_verify_dir(root)`, or pass the same ledger
+   and artifacts into `RunnerFSM.apply_gate` / `run_until_terminal(swarm_provider=...)`.
+   A missing claim, a leftover skeleton, all-`SKIPPED` probes, a different
+   prompt-stack digest, or an `evaluate_gate` failure (including a file binding
+   that is not CURRENT) fails the wave and does not record `passed_waves`.
 7. Run `uptm-runner evaluate-gate --evidence <path>` on each collected artifact.
 
 Single-task `handoff(task)` remains as the documented one-agent fallback.
