@@ -15,6 +15,94 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-24] DEC-UPTM-APS — APS-001 is a guard, not a principle; and every guard must be routed
+
+**Decided:** the mandatory `prompt_stack` evidence binding (APS-001) is a
+**guard**, not a constitutional principle. It appears nowhere in
+`capital-rules.json`, it advances no principle's status, and removing it lets no
+kill-switch or capital violation through. It protects evidence integrity, which
+is a different job from the one P1–P14 describe.
+
+That classification is deliberate and is the reason the second half of this entry
+exists.
+
+### Why a guard that enforces no principle still has to be routed
+
+UPTM-006 makes `ENFORCED` an earned status by enumerating **routes**: concrete
+evidence a caller could submit while violating a principle, each one required to
+be denied by its own named check. The claim is *there is no route to PASS while
+violating this*.
+
+Because APS-001 enforces no principle, nothing in that scheme required a route
+for it. So none was written. For the hour between the binding landing and this
+decision, the enforcement evidence would have stayed green if the binding check
+had been deleted — **a guard nobody routes is a guard whose removal is silent.**
+
+Two routes now name it:
+
+| route | evidence submitted | denied by |
+|---|---|---|
+| `PS-R1` | gate evidence with no `prompt_stack` binding at all | `prompt_stack` |
+| `PS-R2` | a binding whose `assembled_prompt_digest` does not match the stacks it names | `assembled_prompt_digest mismatch` |
+
+### The standing rule this establishes
+
+**Every group of routes beyond the `ENFORCED` principles must be declared in
+`NON_PRINCIPLE_GUARDS`, with a written reason for existing.** The coverage test
+fails on any undeclared group.
+
+The rule cuts both ways, which is the point. It stops the registry quietly
+accumulating routes nobody decided to add, and it stops a guard being added to
+the gate with no route naming it. Declaring `APS-001` there is an act of
+classification the file now forces someone to perform, rather than a status word
+someone typed.
+
+### A prediction that was written four times and refuted by the run
+
+Written alongside the routes: neutering `validate_prompt_stack_binding` alone
+would open both. **Measured: false for PS-R1.** Dropping the key trips the
+required-field list in `validate_evidence_structure` as well, and each mechanism
+denies on its own:
+
+```
+PS-R1  structure: ['missing field: prompt_stack', 'prompt_stack binding required']
+       binding  : ['prompt_stack binding required']
+PS-R2  structure: ['prompt_stack assembled_prompt_digest mismatch']
+       binding  : ['prompt_stack assembled_prompt_digest mismatch']
+```
+
+Kept in `REDUNDANT_GUARDS` with the measurement and the date, surfaced in the
+manifest as `redundant_guard`, and asserted in both directions. The test was
+corrected to what the gate does, rather than the measurement loosened to what the
+test had guessed. This is the second entry of its kind after the P10-R2
+correction, and both stay in the code: a wall whose purpose is that claims must
+be checked does not get to drop its own failed claim out of the record.
+
+### Built by two sessions, an hour apart
+
+The binding was built in one session (#18) and routed in another (#19). Neither
+was wrong; the gap between them was. This is the same structural problem recorded
+in `DEC-UPTM-DUP` — parallel sessions working one backlog with no shared claim on
+the work — showing up as an **omission** rather than a duplicate. `NON_PRINCIPLE_GUARDS`
+is the narrow fix: it makes this particular omission fail a test instead of
+passing quietly. It does not fix the general problem, which is still open.
+
+### Unchanged
+
+No principle's status changes. UPTM-006 still advances nothing — it makes
+existing claims checkable, which is smaller than making them true.
+`LIVE_TRADING` stays `false`. `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED. No
+Founder parameter was consumed: `evidence_expiry_days` is still unset and P12 is
+still `PARTIAL`.
+
+**Artifacts:** `runner/enforcement.py` (`NON_PRINCIPLE_GUARDS`,
+`REDUNDANT_GUARDS`, `PS-R1`, `PS-R2`) ·
+`tests/test_enforcement_evidence.py` · PRs #18 and #19, both on `main` at
+`30e18ed`. Measured there: 334 passed, 19 routes, `unproven_claims: []`,
+`routes_reaching_pass: []`.
+
+---
+
 ## [2026-09-23] DEC-UPTM-004 — the validation tranche is set; WALL 2 is open
 
 ```yaml
