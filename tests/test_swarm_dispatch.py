@@ -5,7 +5,9 @@ import json
 import pytest
 
 from runner.gates import evaluate_gate
+from runner.paths import ROOT
 from runner.prompt_stacks import assemble_prompt
+from runner.staleness import digest_file
 from ruflo.adapter import (
     RufloUnavailableError,
     SwarmDispatch,
@@ -242,7 +244,15 @@ def test_evidence_skeleton_cannot_pass_gate():
     )
     result = evaluate_gate(skeleton)
     assert result.passed is False
-    assert any("SKIPPED" in reason for reason in result.reasons)
+    assert any("declares no files" in reason for reason in result.reasons)
+
+    bound = dict(skeleton)
+    bound["files"] = [
+        {"path": "runner/fsm.py", "sha256": digest_file(ROOT / "runner/fsm.py")}
+    ]
+    bound_result = evaluate_gate(bound)
+    assert bound_result.passed is False
+    assert any("SKIPPED" in reason for reason in bound_result.reasons)
 
 
 def test_evidence_skeleton_requires_branch_and_commit():

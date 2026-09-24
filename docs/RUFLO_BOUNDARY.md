@@ -37,8 +37,10 @@ deterministic, gate-shaped JSON for each claim. The skeleton binds
 
 `SwarmDispatch.collect_and_verify()` closes the loop. The wave passes only when
 every claim has exactly one collected artifact, that artifact is not a
-skeleton, its probes are not all `SKIPPED`, and its `prompt_stack` digest
-matches the claim's assembled prompt. A missing claim fails the wave.
+skeleton, its probes are not all `SKIPPED`, its `prompt_stack` digest matches
+the claim's assembled prompt, and `evaluate_gate` passes. A missing claim
+fails the wave. An artifact that declares no files fails the gate as binding
+UNKNOWN.
 
 Ruflo fanout is never gate evidence.
 

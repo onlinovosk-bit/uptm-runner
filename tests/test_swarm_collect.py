@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+from runner.paths import ROOT
+from runner.staleness import digest_file
 from ruflo.adapter import SwarmDispatch, SwarmWorkClaim
 
 
@@ -31,6 +33,9 @@ def _dispatch() -> SwarmDispatch:
 def _real(claim: SwarmWorkClaim) -> dict:
     evidence = claim.evidence_skeleton(branch="collect", commit_sha="abc1234567")
     evidence["skeleton"] = False
+    evidence["files"] = [
+        {"path": path, "sha256": digest_file(ROOT / path)} for path in claim.owned_paths
+    ]
     evidence["probes"] = [
         {
             "probe_id": "probe_live_trading",

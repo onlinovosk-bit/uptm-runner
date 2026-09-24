@@ -12,9 +12,12 @@ unconfigured.
    path and carries `prompt_stack` plus `swarm_claim` metadata.
 3. Optionally pass `write_root` to persist those skeletons.
 4. Run Cursor agents externally (≤ 8 parallel), one agent per claim.
-5. Replace SKIPPED skeletons under `evidence/waveN/` with real probes.
+5. Replace SKIPPED skeletons under `evidence/waveN/` with real probes and
+   `files` entries whose sha256 matches the tree.
 6. Run `SwarmDispatch.collect_and_verify_dir(root)`. A missing claim, a leftover
-   skeleton, all-`SKIPPED` probes, or a different prompt-stack digest fails the wave.
+   skeleton, all-`SKIPPED` probes, a different prompt-stack digest, or an
+   `evaluate_gate` failure (including a file binding that is not CURRENT)
+   fails the wave.
 7. Run `uptm-runner evaluate-gate --evidence <path>` on each collected artifact.
 
 Single-task `handoff(task)` remains as the documented one-agent fallback.

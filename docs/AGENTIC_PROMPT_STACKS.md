@@ -165,5 +165,6 @@ is still required.
 
 `SwarmDispatch.collect_and_verify()` requires one collected artifact per claim.
 The wave fails when any claim is missing, still marked `skeleton`, has only
-`SKIPPED` probes, or carries a different `assembled_prompt_digest` than the
-claim's prompt stack.
+`SKIPPED` probes, carries a different `assembled_prompt_digest` than the
+claim's prompt stack, or fails `evaluate_gate`. Declaring no files is binding
+UNKNOWN and does not pass.
