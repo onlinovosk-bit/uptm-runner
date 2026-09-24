@@ -136,6 +136,8 @@ does not overlap. The Ruflo `SwarmDispatch` contract requires:
 - work-claim lease fields with ISO-8601 expiry
 - stack ids accepted for the claim role by the prompt-stack composer
 - evidence skeleton path per claim, confined to `evidence/waveN/*.json`
+- a deterministic per-claim evidence skeleton with `prompt_stack` binding,
+  lease metadata, and `owned_paths`; probes remain `SKIPPED` until a real run
 
 Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 `passed_waves`, which is written only after a PASS gate result with

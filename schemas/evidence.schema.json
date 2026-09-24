@@ -164,7 +164,49 @@
       },
       "additionalProperties": false
     },
-    "signature": { "type": ["string", "null"] }
+    "scope": {
+      "type": "object",
+      "required": ["capital_bearing", "live_bearing"],
+      "properties": {
+        "capital_bearing": { "type": "boolean" },
+        "live_bearing": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "signature": { "type": ["string", "null"] },
+    "skeleton": { "type": "boolean" },
+    "swarm_claim": {
+      "type": "object",
+      "required": [
+        "agent_id",
+        "wave_id",
+        "role",
+        "stack_ids",
+        "owned_paths",
+        "lease_id",
+        "lease_expires_at",
+        "evidence_skeleton_path"
+      ],
+      "properties": {
+        "agent_id": { "type": "string", "minLength": 1 },
+        "wave_id": { "type": "integer", "minimum": 0, "maximum": 7 },
+        "role": { "type": "string" },
+        "stack_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "owned_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "lease_id": { "type": "string", "minLength": 1 },
+        "lease_expires_at": { "type": "string", "minLength": 1 },
+        "evidence_skeleton_path": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false
 }

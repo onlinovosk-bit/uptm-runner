@@ -11,7 +11,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from pathlib import PurePosixPath
+import hashlib
+import json
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from runner.prompt_stacks import PromptStackError, assemble_prompt
@@ -41,6 +43,16 @@ class SwarmWorkClaim:
     lease_id: str
     lease_expires_at: str
     evidence_skeleton_path: str
+
+    def evidence_skeleton(
+        self, *, branch: str, commit_sha: str, pr: int | None = None
+    ) -> dict[str, Any]:
+        return evidence_skeleton_for_claim(self, branch=branch, commit_sha=commit_sha, pr=pr)
+
+    def evidence_skeleton_json(
+        self, *, branch: str, commit_sha: str, pr: int | None = None
+    ) -> str:
+        return evidence_skeleton_json(self, branch=branch, commit_sha=commit_sha, pr=pr)
 
 
 @dataclass(frozen=True)
@@ -87,6 +99,35 @@ class SwarmDispatch:
                             f"fail-closed: ownership conflict for {str(path)!r}"
                         )
                 ownership[path] = claim.agent_id
+
+    def evidence_skeletons(
+        self, *, branch: str, commit_sha: str, pr: int | None = None
+    ) -> tuple[dict[str, Any], ...]:
+        self.validate()
+        return tuple(
+            claim.evidence_skeleton(branch=branch, commit_sha=commit_sha, pr=pr)
+            for claim in self.claims
+        )
+
+    def write_evidence_skeletons(
+        self,
+        *,
+        root: Path,
+        branch: str,
+        commit_sha: str,
+        pr: int | None = None,
+    ) -> tuple[Path, ...]:
+        self.validate()
+        written: list[Path] = []
+        for claim in self.claims:
+            path = Path(root) / claim.evidence_skeleton_path
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(
+                claim.evidence_skeleton_json(branch=branch, commit_sha=commit_sha, pr=pr),
+                encoding="utf-8",
+            )
+            written.append(path)
+        return tuple(written)
 
 
 def _parse_relative_path(raw: str, *, field: str) -> PurePosixPath:
@@ -150,6 +191,99 @@ def _normalize_owned_paths(claim: SwarmWorkClaim) -> tuple[PurePosixPath, ...]:
         seen.add(path)
         normalized.append(path)
     return tuple(normalized)
+
+
+def _digest_payload(payload: Any) -> str:
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _claim_metadata(claim: SwarmWorkClaim) -> dict[str, Any]:
+    owned_paths = tuple(str(path) for path in _normalize_owned_paths(claim))
+    _parse_lease_expiry(claim.lease_expires_at)
+    _validate_evidence_skeleton_path(claim)
+    _validate_prompt_envelope(claim)
+    return {
+        "agent_id": claim.agent_id,
+        "wave_id": claim.wave_id,
+        "role": claim.role,
+        "stack_ids": list(claim.stack_ids),
+        "owned_paths": list(owned_paths),
+        "lease_id": claim.lease_id,
+        "lease_expires_at": claim.lease_expires_at,
+        "evidence_skeleton_path": claim.evidence_skeleton_path,
+    }
+
+
+def evidence_skeleton_for_claim(
+    claim: SwarmWorkClaim, *, branch: str, commit_sha: str, pr: int | None = None
+) -> dict[str, Any]:
+    """Create deterministic, gate-shaped skeleton evidence for one work claim.
+
+    The skeleton is intentionally not passing evidence: probes are SKIPPED and
+    the claim is PARTIAL until a real agent run replaces placeholders.
+    """
+    if not branch or not commit_sha:
+        raise SwarmDispatchError("fail-closed: branch and commit_sha required")
+    claim_metadata = _claim_metadata(claim)
+    claim_digest = _digest_payload(claim_metadata)
+    prompt_stack = assemble_prompt(
+        claim.stack_ids,
+        claim.role,
+        {"wave_id": claim.wave_id, "agent_id": claim.agent_id},
+    )
+    return {
+        "evidence_id": f"swarm-skeleton-wave{claim.wave_id}-{claim.agent_id}-{claim.lease_id}",
+        "wave_id": claim.wave_id,
+        "commit_sha": commit_sha,
+        "branch": branch,
+        "pr": pr,
+        "files": [],
+        "commands": [
+            {
+                "cmd": "SWARM_CLAIM_NOT_EXECUTED",
+                "exit_code": 1,
+                "stdout_digest": claim_digest,
+            }
+        ],
+        "results": {
+            "passed": 0,
+            "failed": 1,
+            "findings": [
+                {
+                    "id": "APS-SKELETON-NOT-EVIDENCE",
+                    "severity": "INFO",
+                    "status": "OPEN",
+                }
+            ],
+        },
+        "probes": [
+            {
+                "probe_id": "swarm_claim_skeleton_unexecuted",
+                "outcome": "SKIPPED",
+                "output_digest": claim_digest,
+            }
+        ],
+        "before": {"digest": claim_digest, "summary": "swarm claim skeleton"},
+        "after": {"digest": claim_digest, "summary": "awaiting agent execution"},
+        "agent_claim": {
+            "verdict": "PARTIAL",
+            "notes": "Skeleton only; not execution evidence and not a gate PASS.",
+        },
+        "live_trading": False,
+        "prompt_stack": prompt_stack.cursor_metadata(),
+        "scope": {"capital_bearing": False, "live_bearing": False},
+        "signature": None,
+        "swarm_claim": claim_metadata,
+        "skeleton": True,
+    }
+
+
+def evidence_skeleton_json(
+    claim: SwarmWorkClaim, *, branch: str, commit_sha: str, pr: int | None = None
+) -> str:
+    skeleton = evidence_skeleton_for_claim(claim, branch=branch, commit_sha=commit_sha, pr=pr)
+    return json.dumps(skeleton, sort_keys=True, indent=2, ensure_ascii=True) + "\n"
 
 
 @dataclass(frozen=True)

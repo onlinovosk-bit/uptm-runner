@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
+from runner.gates import evaluate_gate
+from runner.prompt_stacks import assemble_prompt
 from ruflo.adapter import (
     RufloUnavailableError,
     SwarmDispatch,
     SwarmDispatchError,
     SwarmWorkClaim,
+    evidence_skeleton_for_claim,
+    evidence_skeleton_json,
     get_adapter,
 )
 
@@ -193,3 +199,78 @@ def test_ruflo_unavailable_does_not_produce_fake_swarm_pass():
     assert adapter.available() is False
     with pytest.raises(RufloUnavailableError, match="refusing swarm fanout success"):
         adapter.dispatch_swarm(dispatch)
+
+
+def test_evidence_skeleton_is_deterministic():
+    claim = _claim("agent-a", ("runner/fsm.py",))
+    first = evidence_skeleton_for_claim(
+        claim, branch="cursor/aps-001-prompt-stack-binding-619d", commit_sha="abc1234567"
+    )
+    second = evidence_skeleton_for_claim(
+        claim, branch="cursor/aps-001-prompt-stack-binding-619d", commit_sha="abc1234567"
+    )
+    assert first == second
+    assert evidence_skeleton_json(
+        claim, branch="cursor/aps-001-prompt-stack-binding-619d", commit_sha="abc1234567"
+    ) == evidence_skeleton_json(
+        claim, branch="cursor/aps-001-prompt-stack-binding-619d", commit_sha="abc1234567"
+    )
+
+
+def test_evidence_skeleton_binds_prompt_stack_and_claim_metadata():
+    claim = _claim("agent-a", ("runner/fsm.py", "runner/gates.py"))
+    assembled = assemble_prompt(
+        claim.stack_ids, claim.role, {"wave_id": claim.wave_id, "agent_id": claim.agent_id}
+    )
+    skeleton = claim.evidence_skeleton(
+        branch="cursor/aps-001-prompt-stack-binding-619d", commit_sha="abc1234567"
+    )
+    assert skeleton["skeleton"] is True
+    assert skeleton["live_trading"] is False
+    assert skeleton["agent_claim"]["verdict"] == "PARTIAL"
+    assert skeleton["prompt_stack"] == assembled.cursor_metadata()
+    assert skeleton["swarm_claim"]["lease_id"] == "lease-agent-a"
+    assert skeleton["swarm_claim"]["owned_paths"] == ["runner/fsm.py", "runner/gates.py"]
+    assert skeleton["swarm_claim"]["evidence_skeleton_path"] == "evidence/wave2/agent-a.json"
+    assert skeleton["probes"][0]["outcome"] == "SKIPPED"
+
+
+def test_evidence_skeleton_cannot_pass_gate():
+    claim = _claim("agent-a", ("runner/fsm.py",))
+    skeleton = evidence_skeleton_for_claim(
+        claim, branch="cursor/aps-001-prompt-stack-binding-619d", commit_sha="abc1234567"
+    )
+    result = evaluate_gate(skeleton)
+    assert result.passed is False
+    assert any("SKIPPED" in reason for reason in result.reasons)
+
+
+def test_evidence_skeleton_requires_branch_and_commit():
+    claim = _claim("agent-a", ("runner/fsm.py",))
+    with pytest.raises(SwarmDispatchError, match="branch and commit_sha"):
+        evidence_skeleton_for_claim(claim, branch="", commit_sha="abc1234567")
+    with pytest.raises(SwarmDispatchError, match="branch and commit_sha"):
+        evidence_skeleton_for_claim(claim, branch="main", commit_sha="")
+
+
+def test_dispatch_writes_one_skeleton_per_claim(tmp_path):
+    dispatch = SwarmDispatch(
+        wave_id=2,
+        claims=(
+            _claim("agent-a", ("runner/fsm.py",)),
+            _claim("agent-b", ("runner/gates.py",)),
+        ),
+    )
+    written = dispatch.write_evidence_skeletons(
+        root=tmp_path,
+        branch="cursor/aps-001-prompt-stack-binding-619d",
+        commit_sha="abc1234567",
+    )
+    assert [path.relative_to(tmp_path).as_posix() for path in written] == [
+        "evidence/wave2/agent-a.json",
+        "evidence/wave2/agent-b.json",
+    ]
+    loaded = [json.loads(path.read_text(encoding="utf-8")) for path in written]
+    assert [item["swarm_claim"]["agent_id"] for item in loaded] == ["agent-a", "agent-b"]
+    assert all(item["skeleton"] is True for item in loaded)
+    assert all(evaluate_gate(item).passed is False for item in loaded)

@@ -8,6 +8,8 @@ from ruflo.adapter import (
     SwarmDispatchError,
     SwarmDispatchResult,
     SwarmWorkClaim,
+    evidence_skeleton_for_claim,
+    evidence_skeleton_json,
 )
 
 __all__ = [
@@ -18,4 +20,6 @@ __all__ = [
     "SwarmDispatchError",
     "SwarmDispatchResult",
     "SwarmWorkClaim",
+    "evidence_skeleton_for_claim",
+    "evidence_skeleton_json",
 ]

@@ -30,6 +30,11 @@ adapter can attempt fanout:
 - role/stack envelope accepted by the prompt-stack composer
 - evidence skeleton path under `evidence/waveN/*.json`
 
+`SwarmDispatch.evidence_skeletons()` / `write_evidence_skeletons()` emit
+deterministic, gate-shaped JSON for each claim. The skeleton binds
+`prompt_stack`, lease metadata, and `owned_paths`. Probes are `SKIPPED` and
+`agent_claim.verdict` is `PARTIAL`, so a skeleton cannot pass a gate.
+
 Ruflo fanout is never gate evidence.
 
 ## Integrating a real Ruflo later
