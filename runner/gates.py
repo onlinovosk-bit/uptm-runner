@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from runner.binding import binding_errors
 from runner.evidence import (
     EvidenceError,
     count_findings,
@@ -266,6 +267,17 @@ def evaluate_gate(
         return GateResult(
             Verdict.FAIL,
             [f"fail-closed: {e}" for e in structural],
+            evidence_path=path_str,
+        )
+
+    # UPTM-008 (P12): the artifact declares which files it came from. Until this
+    # check existed the gate never looked, so evidence naming a file that did not
+    # exist, with a digest computed from nothing, reached PASS.
+    binding = binding_errors(evidence)
+    if binding:
+        return GateResult(
+            Verdict.FAIL,
+            [f"fail-closed: {e}" for e in binding],
             evidence_path=path_str,
         )
 

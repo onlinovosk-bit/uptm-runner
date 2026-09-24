@@ -94,6 +94,23 @@ class MutationResult:
 
 MUTATIONS: tuple[Mutation, ...] = (
     Mutation(
+        mutation_id="evidence-binding-unverified",
+        claim=(
+            "UPTM-008's check is what makes the gate read the files[] binding every "
+            "artifact declares. Remove the call and the gate returns to accepting a "
+            "digest computed from nothing - which is what it did until 2026-09-24."
+        ),
+        path="runner/gates.py",
+        anchor="    binding = binding_errors(evidence)\n",
+        replacement="    binding = []  # mutation-gate: binding left unverified\n",
+        sentinels=(
+            "tests/test_binding.py::test_g4_the_fabricated_digest_that_passed_before_this_wall_now_denies",
+            "tests/test_binding.py::test_g2_a_changed_declared_file_denies_and_names_the_path",
+            "tests/test_binding.py::test_g7_neutering_the_binding_check_opens_a_denying_gate",
+            "tests/test_binding.py::test_r1_p12_has_a_route_per_violation_shape_each_denying_by_its_own_check",
+        ),
+    ),
+    Mutation(
         mutation_id="capital-detectors-disconnected",
         claim=(
             "The validation-capital detectors are what deny the P8/P10 routes. "

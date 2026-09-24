@@ -125,3 +125,67 @@ That the declared set is the *right* set. A producer that declares one
 irrelevant file and omits the ten that matter passes every criterion here. This
 wall makes the declaration **true**; it does not make it **complete**. Choosing
 what evidence must declare is a separate question and is not answered here.
+
+---
+
+## 6. Result, recorded against the preregistered criteria
+
+Measured 2026-09-24, after implementation, against §3 as written.
+
+| | |
+|---|---|
+| G1 the gate verifies declared digests | **PASS** |
+| G2 a changed file denies, path named | **PASS** |
+| G3 a missing file is `UNKNOWN`, not `STALE` | **PASS** |
+| G4 the fabricated digest that passed before now denies | **PASS** |
+| G5 an empty `files` list denies | **PASS** |
+| G6 six malformed shapes deny rather than being skipped | **PASS** |
+| G7 spy proves the gate calls it; mutation proves it is load-bearing | **PASS** |
+| R1 five P12 routes, each denying via its own check | **PASS** |
+| R2 `unproven_claims()` does not name P12 | **PASS** |
+| R3 existing routes still deny for their own reasons | **PASS** |
+| **C1 P12 → `ENFORCED`** | **PASS** |
+| C2 (not reached — no criterion failed) | — |
+| C3 nothing else moved, `LIVE_TRADING` false | **PASS** |
+
+```
+452 passed
+mutation-gate            exit 0, four cases, the new one caught by four tests
+routes                   32   reaching PASS: []   denied for another reason: []
+enforced_principles      ['P8', 'P10', 'P12']
+unproven_claims          []
+```
+
+**P12 is `ENFORCED` as of 2026-09-24**, earned by this wall, and
+`capital-rules.json` records what that does and does not mean.
+
+### What ENFORCED means here, and what it does not
+
+It means: **there is no route to `PASS` with a false binding.** Evidence that
+names a file it did not come from — changed, missing, unparseable, or nothing at
+all — is denied, and five routes prove it through the real gate.
+
+It does **not** mean the binding is sufficient. A producer that declares one
+irrelevant file and omits the ten that matter satisfies every criterion here.
+This wall makes the declaration **true**; it does not make it **complete**.
+`P12.what_this_does_not_establish` in `capital-rules.json` says so, so the word
+cannot be read as more than it is.
+
+### Three tests were rewritten, and why that is not moving the goalposts
+
+`test_setting_the_expiry_did_not_quietly_advance_p12`,
+`test_c1_c2_p12_did_not_advance_…` and `test_c3_no_other_principle_moved` all
+asserted `P12 == PARTIAL`. Each was correct when written.
+
+They were not flipped to green. Each was rewritten to assert the claim it was
+actually protecting, which is still true:
+
+- the expiry **parameter** did not earn the status — UPTM-008's routes did, and
+  the test now asserts the status names the wall that earned it;
+- UPTM-007's C1 genuinely failed at the time, and what it built — staleness of
+  the *enforcement manifest* — still routes nothing through the gate;
+- "no **other** principle moved" always meant bystanders; P12 was this work's
+  subject, so the test now checks P8, P10 and P9 rather than an exact list.
+
+A test that stops being true because the world changed gets a new true
+assertion. A test that is in the way gets neither.

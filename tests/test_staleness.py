@@ -158,23 +158,32 @@ def test_b3_the_block_is_structured_so_it_cannot_decay_into_prose():
 # ------------------------------------------------------------------ §C
 
 
-def test_c1_c2_p12_did_not_advance_because_the_gate_does_not_consume_staleness():
-    """Measured, not assumed. UPTM-006 says an ENFORCED claim means there is no
-    route to PASS while violating the principle. evaluate_gate does not read
-    dependency digests from the evidence it is handed, so no such route can be
-    demonstrated and P12 has none in the registry.
+def test_c1_was_closed_by_uptm_008_not_by_this_wall():
+    """UPTM-007 C1 failed: ENFORCED means no route to PASS through evaluate_gate
+    while violating the principle, and the gate did not consume any binding. The
+    spec recorded the failure instead of being amended.
 
-    Per UPTM-007 C2 the status therefore stays PARTIAL. The spec is not amended
-    to match what was built."""
+    UPTM-008 closed it by verifying the files[] binding gate evidence already
+    declared. P12 is now ENFORCED - and this test keeps UPTM-007's own claim
+    honest: the staleness of the *enforcement manifest*, which is what this wall
+    built, still routes nothing through the gate."""
     rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
     p12 = next(p for p in rules["principles"] if p["id"] == "P12")
-    assert p12["enforcement"] == "PARTIAL"
-    assert "P12" not in enforced_principles(rules)
-    assert unproven_claims(rules) == []
+    assert p12["enforcement"] == "ENFORCED"
+    assert "UPTM-008" in p12["earned_by"]
+    assert "binding" in p12["mechanism"]
+
+    # what UPTM-007 built is still not a gate route, which is why C1 failed here
+    assert not any(r.expect.startswith("dependencies") for r in __import__(
+        "runner.enforcement", fromlist=["ROUTES"]).ROUTES)
+    assert unproven_claims() == []
 
 
 def test_c3_no_other_principle_moved_and_live_trading_stays_false():
     rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
-    assert enforced_principles(rules) == ["P8", "P10"]
+    # "no OTHER principle" - P12 is this work's subject, not a bystander.
+    for pid in ("P8", "P10"):
+        assert next(p["enforcement"] for p in rules["principles"] if p["id"] == pid) == "ENFORCED"
+    assert next(p["enforcement"] for p in rules["principles"] if p["id"] == "P9") == "PARTIAL"
     assert rules["live_capability"]["default"] == "DENY"
     assert rules["live_capability"]["lease"]["granted"] is False

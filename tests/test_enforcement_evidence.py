@@ -84,7 +84,7 @@ def test_every_enforced_principle_is_covered_and_every_extra_group_is_declared()
     registry cannot quietly acquire a category nobody named.
     """
     enforced = set(enforced_principles())
-    assert enforced == {"P8", "P10"}
+    assert enforced == {"P8", "P10", "P12"}
     covered = {r.principle for r in ROUTES}
     assert enforced <= covered
 
@@ -296,14 +296,24 @@ def test_the_expiry_matches_the_kill_switch_drill_cadence():
     assert rules["evidence_expiry_days"] == rules["live_capability"]["kill_switch_drill_cadence_days"]
 
 
-def test_setting_the_expiry_did_not_quietly_advance_p12():
-    """Expiry is one half of P12. STALE invalidation on dependency change is the
-    other and is not implemented, so the status does not move."""
+def test_the_expiry_parameter_was_not_what_advanced_p12():
+    """This test was written when P12 was PARTIAL, to hold the line that setting
+    a Founder parameter does not earn a status. That claim is still true and is
+    what is asserted here: P12 moved on 2026-09-24 because UPTM-008 gave it
+    routes through the gate, not because a number was written into a file.
+
+    The earlier assertion (P12 == PARTIAL) is gone because the fact changed, not
+    because the test was in the way."""
     rules = json.loads(CAPITAL_RULES.read_text(encoding="utf-8"))
     p12 = next(p for p in rules["principles"] if p["id"] == "P12")
-    assert p12["enforcement"] == "PARTIAL"
-    assert "P12" not in enforced_principles(rules)
-    assert "STALE" in rules["evidence_expiry"]["does_not_satisfy_p12"]
+
+    assert p12["enforcement"] == "ENFORCED"
+    assert "UPTM-008" in p12["earned_by"], "the status must name the wall that earned it"
+    assert routes_for("P12"), "ENFORCED with no routes is the typed word UPTM-006 forbids"
+
+    # the expiry parameter is still just a parameter: it names no route
+    assert "evidence_expiry" in rules
+    assert not any(r.expect.startswith("expiry") for r in ROUTES)
 
 
 def test_the_manifest_states_what_it_does_not_establish():
@@ -317,9 +327,9 @@ def test_the_manifest_would_report_an_unearned_claim():
 
 
 def test_routes_for_partitions_the_registry():
-    groups = ("P8", "P10", "APS-001")
+    groups = ("P8", "P10", "P12", "APS-001")
     assert sum(len(routes_for(g)) for g in groups) == len(ROUTES)
-    assert routes_for("P12") == ()
+    assert routes_for("P9") == (), "a principle with no routes must report none"
 
 
 def test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes(

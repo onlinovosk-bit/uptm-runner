@@ -35,10 +35,10 @@ from pathlib import Path
 from typing import Any, Callable
 
 from runner.gates import evaluate_gate
-from runner.paths import CAPITAL_RULES, PROMPT_STACKS
+from runner.paths import CAPITAL_RULES, ROOT, PROMPT_STACKS
 from runner.prompt_stacks import assemble_prompt
 from runner.provenance import HeadProvenance
-from runner.staleness import dependency_digests, determinism_declaration
+from runner.staleness import dependency_digests, determinism_declaration, digest_file
 
 @dataclass(frozen=True)
 class BypassRoute:
@@ -117,7 +117,16 @@ def _base(**overrides: Any) -> dict[str, Any]:
         "commit_sha": "0" * 10,
         "branch": "enforcement-evidence",
         "pr": None,
-        "files": [{"path": "runner/gates.py", "sha256": "a" * 64}],
+        # UPTM-008: a real digest of a real file. Every route carried
+        # "a" * 64 from the day this wall was built and passed structural
+        # validation with it - the routes proved what they were built to prove
+        # and none of them noticed the fabrication beside the proof.
+        "files": [
+            {
+                "path": "runner/gates.py",
+                "sha256": digest_file(ROOT / "runner" / "gates.py") or "",
+            }
+        ],
         "commands": [{"cmd": "pytest", "exit_code": 0}],
         "results": {"passed": 1, "failed": 0, "findings": []},
         "probes": [
@@ -238,6 +247,7 @@ SCOPE = ("run_scope_detector",)
 STRUCTURE = ("validate_evidence_structure",)
 KILL_SWITCH = ("run_kill_switch_detectors",)
 CAPITAL = ("run_validation_capital_detectors",)
+BINDING = ("binding_errors",)
 
 
 def _composer_binding(**overrides: Any) -> dict[str, Any]:
@@ -476,6 +486,37 @@ ROUTES: tuple[BypassRoute, ...] = (
         "binding names no stacks",
         lambda root: _base(prompt_stack=_composer_binding(stack_ids=[])),
         STRUCTURE, "no prompt stacks",
+    ),
+    # ---- P12, UPTM-008: the binding the evidence declares ----------------
+    BypassRoute(
+        "P12-R1", "P12",
+        "evidence declaring a file whose content has changed since it was produced",
+        lambda root: _base(files=[{"path": "runner/gates.py", "sha256": "a" * 64}]),
+        BINDING, "binding STALE",
+    ),
+    BypassRoute(
+        "P12-R2", "P12",
+        "evidence declaring a file that is not in the tree at all",
+        lambda root: _base(files=[{"path": "runner/no_such_module.py", "sha256": "b" * 64}]),
+        BINDING, "binding UNKNOWN",
+    ),
+    BypassRoute(
+        "P12-R3", "P12",
+        "evidence bound to nothing - an empty files list",
+        lambda root: _base(files=[]),
+        BINDING, "binding UNKNOWN",
+    ),
+    BypassRoute(
+        "P12-R4", "P12",
+        "a digest that is not a digest, which a lenient check would skip rather than refuse",
+        lambda root: _base(files=[{"path": "runner/gates.py", "sha256": "not-a-digest"}]),
+        BINDING, "binding UNKNOWN",
+    ),
+    BypassRoute(
+        "P12-R5", "P12",
+        "a files entry that is not an object at all",
+        lambda root: _base(files=["runner/gates.py"]),
+        BINDING, "binding UNKNOWN",
     ),
 )
 
