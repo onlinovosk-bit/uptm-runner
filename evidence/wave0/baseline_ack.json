@@ -154,7 +154,18 @@
     "stack_digests": {
       "00": "848312053ac684f39191bcd1cead87b7e7fecd1c0e761ac8983ff6a45c71b3e2"
     },
-    "assembled_prompt_digest": "43f8eb3a7f742b8e428e7a90d1d6d39a0e1ada9f1652b1b1fb14aeeea1477ef3",
+    "stack_releases": {
+      "00": "00@0.1.0+sha256:848312053ac684f39191bcd1cead87b7e7fecd1c0e761ac8983ff6a45c71b3e2"
+    },
+    "registry_sha256": "80c4a6e1b0e2eafc7c7a0b4bc3d8589c15c8a965804be21929ce4c6769749a77",
+    "assembled_prompt_digest": "935659996d2dadfc7176d9802515c7847589a881702559ba1b4f9aed5fb37df9",
+    "evidence_expires_at": null,
+    "stale_on": [
+      "registry_sha256_change",
+      "stack_version_change",
+      "stack_body_sha256_change",
+      "assembled_prompt_digest_change"
+    ],
     "wave_context": {
       "wave_id": 0,
       "producer": "runner.fsm.run_baseline_ack"

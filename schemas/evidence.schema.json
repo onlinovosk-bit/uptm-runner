@@ -116,7 +116,11 @@
         "stack_ids",
         "stack_versions",
         "stack_digests",
-        "assembled_prompt_digest"
+        "stack_releases",
+        "registry_sha256",
+        "assembled_prompt_digest",
+        "evidence_expires_at",
+        "stale_on"
       ],
       "properties": {
         "role": {
@@ -139,9 +143,22 @@
             "pattern": "^[a-f0-9]{64}$"
           }
         },
+        "stack_releases": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "registry_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
         "assembled_prompt_digest": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "evidence_expires_at": { "type": ["string", "null"] },
+        "stale_on": {
+          "type": "array",
+          "items": { "type": "string" }
         },
         "wave_context": { "type": "object" }
       },

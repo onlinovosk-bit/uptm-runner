@@ -33,13 +33,22 @@ Source of truth is Git in this repository. There is no required Obsidian vault.
 - `depends_on`
 - `required_roles`
 
+The registry also carries `release_policy`. APS-002 deliberately does not
+invent a wall-clock evidence lifetime: `evidence_expires_at` is `null` until a
+Founder parameter exists. Evidence still goes stale when any bound prompt-stack
+dependency changes.
+
 Canonical body rules:
 
 - JSON stacks: parse and dump sorted compact JSON.
 - Markdown stacks: normalize line endings and keep one trailing newline.
 
 The composer refuses to load a stack whose declared digest no longer matches its
-body.
+body. A stack release id is derived as:
+
+```text
+<stack_id>@<version>+sha256:<body_sha256>
+```
 
 ## Composition
 
@@ -49,6 +58,9 @@ body.
 - ordered stack ids
 - per-stack versions
 - per-stack body digests
+- per-stack release ids
+- full registry digest
+- evidence expiry policy
 - wave context
 - assembled body
 - assembled prompt digest
@@ -92,7 +104,16 @@ Every evidence artifact must include:
     "stack_ids": ["00", "04"],
     "stack_versions": {"00": "0.1.0", "04": "0.1.0"},
     "stack_digests": {"00": "...", "04": "..."},
+    "stack_releases": {"00": "00@0.1.0+sha256:...", "04": "04@0.1.0+sha256:..."},
+    "registry_sha256": "...",
     "assembled_prompt_digest": "...",
+    "evidence_expires_at": null,
+    "stale_on": [
+      "registry_sha256_change",
+      "stack_version_change",
+      "stack_body_sha256_change",
+      "assembled_prompt_digest_change"
+    ],
     "wave_context": {"wave_id": 4}
   }
 }
@@ -100,7 +121,8 @@ Every evidence artifact must include:
 
 The gate reassembles the prompt from Git source and rejects a PASS path when the
 binding is absent, incomplete, or any version, stack digest, or assembled prompt
-digest does not match.
+digest does not match. It also rejects stale bindings when the registry digest,
+release id set, or expiry policy differs from the current registry.
 
 ## Wave and parallelism boundaries
 
