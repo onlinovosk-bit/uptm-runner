@@ -117,3 +117,66 @@ the Python version, installed packages and the container are not captured, and
 
 It also does not make evidence reproducible. It makes evidence **honest about
 having stopped being current**, which is a smaller and different thing.
+
+---
+
+## 5. Result, recorded against the preregistered criteria
+
+Measured 2026-09-24, after implementation, against §3 as written.
+
+| | |
+|---|---|
+| A1 derived digests in the manifest | **PASS** — 28 dependencies |
+| A2 unmodified tree is `CURRENT` | **PASS** |
+| A3 any changed dependency is `STALE`, named | **PASS** — all five kinds |
+| A4 deleted dependency is `UNKNOWN` | **PASS** |
+| A5 no dependencies recorded is `UNKNOWN` | **PASS** |
+| A6 a new `runner/*.py` is picked up, no code edit | **PASS** |
+| A7 `CONSTITUTION-CAPITAL.md` is in the set | **PASS** |
+| A8 digest is of content, not mtime or size | **PASS** |
+| B1 `determinism` block present | **PASS** |
+| B2 uncaptured names the wall clock | **PASS** — 4 entries |
+| B3 structured, not prose | **PASS** |
+| **C1 P12 → `ENFORCED`** | **FAIL** |
+| C2 status stays `PARTIAL`, reason recorded | **PASS** — this section |
+| C3 nothing else moved, `LIVE_TRADING` false | **PASS** |
+
+Proved on a live artifact rather than a fixture:
+
+```
+evidence/enforcement/72c2c88….json   28 dependencies
+fresh tree                           CURRENT
+runner/gates.py edited               STALE  → ('runner/gates.py',)
+restored                             CURRENT
+CONSTITUTION-CAPITAL.md edited       STALE  → ('constitution/CONSTITUTION-CAPITAL.md',)
+restored                             CURRENT
+```
+
+### Why C1 failed, precisely
+
+UPTM-006 defines an `ENFORCED` claim as *"there is no route by which a gate can
+reach `PASS` while violating this principle"* — a claim about **routes through
+`evaluate_gate`**, not about a checker existing.
+
+`evaluate_gate` does not read dependency digests from the evidence it is handed.
+It cannot, because gate evidence does not carry them: `validate_evidence_structure`
+does not require a `dependencies` field, and no producer emits one. So a caller
+can still submit gate evidence generated against code that has since changed, and
+the gate has no way to notice. **No P12 route can be demonstrated, so P12 has
+none in the registry, so P12 is not `ENFORCED`.**
+
+What this wall did build is real and load-bearing: the *enforcement evidence
+artifact* now knows when it has stopped describing the system, and says so in
+three values. That is the subject this document preregistered in its header. It
+is not the same as the gate refusing stale evidence.
+
+### What would close C1
+
+Making `dependencies` a required field of gate evidence and having
+`evaluate_gate` deny when its staleness is not `CURRENT` — the same shape
+APS-001 used to make `prompt_stack` mandatory. That is a **contract change**:
+every producer of gate evidence must emit the field, and evidence already
+written becomes invalid. It is a separate wall with its own preregistration and
+its own Founder GO, and it is not started here.
+
+The goalposts are not moved to meet what was built. C1 is recorded as failed.

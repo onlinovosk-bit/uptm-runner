@@ -15,6 +15,70 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-24] DEC-UPTM-007 — evidence now knows when it stopped being current; P12 still does not move
+
+**Decided:** Founder GO for STALE invalidation. Built as `UPTM-007`,
+preregistered in `docs/specs/UPTM-007-stale-invalidation.md` before any code
+existed (P4).
+
+**What it does.** The enforcement evidence artifact carries a sha256 of every
+file it depended on, and `staleness()` answers `CURRENT` / `STALE` / `UNKNOWN`
+against the tree. Expiry says how old an artifact is; this says whether it still
+describes the system. An artifact can sit well inside its seven days and
+describe a gate that has since been rewritten.
+
+**The dependency set is derived, never typed.** Walking `runner/**.py`,
+`capital-rules.json`, `CONSTITUTION-CAPITAL.md` and `prompt-stacks/**`. A list
+someone must remember to update is the same failure as a status word someone
+types, and criterion A6 is the one that proves the difference: a new `runner`
+module is picked up with no edit to the dependency logic. Over-inclusion is
+deliberate — a needless file costs one regeneration, a missing file leaves
+evidence green after the thing it describes changed, which is the P12 violation
+itself.
+
+`UNKNOWN` is not a soft `CURRENT`, and a deleted dependency is `UNKNOWN` rather
+than `STALE`: absence is not a measurement.
+
+**Also built: the determinism declaration.** P12's violation clause forbids
+calling a result reproducible without declaring uncaptured inputs. The manifest
+now names what is captured and what is not — the wall clock, the Python version
+and packages, the runtime identity, anything broker-side.
+
+### A correction I owed the Founder
+
+I described STALE as *"the last half holding P12 at PARTIAL."* Reading P12's
+text disproved that: it also demands the determinism declaration, which was
+missing too. That correction is written into the spec's §0, before the code, not
+discovered afterwards.
+
+### P12 stays PARTIAL, and the reason is measured
+
+`ENFORCED` means *no route to `PASS` while violating the principle* — routes
+through `evaluate_gate`. The gate does not read dependency digests from the
+evidence it is handed, because gate evidence does not carry them. So no P12
+route can be demonstrated, P12 has none in the registry, and criterion **C1
+fails**. Per C2 the status does not move and the spec records the failure rather
+than being amended to match what was built.
+
+Closing C1 means making `dependencies` a required field of gate evidence and
+denying on anything but `CURRENT` — the shape APS-001 used for `prompt_stack`.
+That is a contract change affecting every producer, and it is a separate wall
+with its own GO.
+
+### Unchanged
+
+`LIVE_TRADING` stays `false`. `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED. P8
+and P10 keep their status; `enforced_principles()` is still `['P8', 'P10']` and
+`unproven_claims()` is empty.
+
+**Artifacts:** `docs/specs/UPTM-007-stale-invalidation.md` ·
+`runner/staleness.py` · `runner/enforcement.py` (manifest `dependencies`,
+`determinism`) · `tests/test_staleness.py`. Measured: 371 passed; live artifact
+`CURRENT` → `STALE` on a real edit to `runner/gates.py` and to the constitution,
+`CURRENT` again on restore.
+
+---
+
 ## [2026-09-24] DEC-UPTM-APS-R3 — stack-body digest drift is a route
 
 **Decided:** a change to a stack's canonical body that leaves
