@@ -34,8 +34,6 @@ jobs:
       - name: Mutation gate (guards are load-bearing)
         run: python -m runner.cli mutation-gate
 
-      - name: Enforcement evidence (UPTM-006)
-        run: python -m runner.cli enforcement-evidence --commit "${{ github.sha }}"
       - name: Enforcement evidence (UPTM-006, Evidence Rule A)
         # No commit is passed in. The runner reads the evaluated head from the
         # checkout itself, so CI cannot tell the artifact which commit it
