@@ -109,6 +109,52 @@ def test_the_prompt_stack_guard_is_routed_because_nothing_else_routes_it():
     assert "a guard nobody routes is" in NON_PRINCIPLE_GUARDS["APS-001"]
 
 
+#: Every field validate_evidence_structure requires. Duplicated from the
+#: implementation on purpose: this is the pin. Remove a field there and the
+#: parametrised test below fails, which is the whole point — before these
+#: routes existed, the required-field list could have been emptied and the only
+#: thing to notice would have been PS-R1's bookkeeping about prompt_stack.
+REQUIRED_EVIDENCE_FIELDS = (
+    "evidence_id", "wave_id", "commit_sha", "branch", "files", "commands",
+    "results", "probes", "before", "after", "agent_claim", "live_trading",
+    "prompt_stack",
+)
+
+
+def test_the_structural_arm_is_routed_because_nothing_else_routed_it():
+    """The required-field list is the other arm of validate_evidence_structure.
+
+    Measured before these routes were written: disabling all of the required
+    fields failed two tests, and both were PS-R1 bookkeeping about prompt_stack.
+    The ten routes naming this guard are all prompt-stack routes and every one
+    is about the binding arm, so nothing asked whether evidence with no
+    commit_sha could reach PASS.
+    """
+    assert "EVIDENCE-STRUCTURE" in NON_PRINCIPLE_GUARDS
+    assert {r.route_id for r in routes_for("EVIDENCE-STRUCTURE")} == {
+        "ES-R1", "ES-R2", "ES-R3",
+    }
+    assert "measured unrouted" in NON_PRINCIPLE_GUARDS["EVIDENCE-STRUCTURE"]
+
+
+@pytest.mark.parametrize("field", REQUIRED_EVIDENCE_FIELDS)
+def test_every_required_field_is_actually_required(field, valid_evidence_factory):
+    """One assertion per field, so dropping one from the list is not silent.
+
+    The routes above prove the arm denies; this proves what it denies *for*.
+    Three routes cannot cover thirteen fields without thirteen routes, and
+    thirteen routes would say the same thing thirteen times — the registry is
+    about mechanisms, this is about the list's contents.
+    """
+    import runner.evidence as evidence_module
+
+    evidence = {k: v for k, v in valid_evidence_factory().items() if k != field}
+    errors = evidence_module.validate_evidence_structure(evidence)
+    assert any(f"missing field: {field}" in e for e in errors), (
+        f"{field} was dropped and validate_evidence_structure did not say so: {errors}"
+    )
+
+
 # ------------------------------------------------- case 2: every route denies
 
 
@@ -317,7 +363,14 @@ def test_the_manifest_would_report_an_unearned_claim():
 
 
 def test_routes_for_partitions_the_registry():
-    groups = ("P8", "P10", "APS-001")
+    """Every route belongs to a declared group, and the groups do not overlap.
+
+    The group list is derived rather than frozen: a hard-coded tuple has to be
+    edited whenever a group is added, and an edit made to get a test passing is
+    exactly the kind that stops asserting anything. Derived, an undeclared group
+    still breaks the sum — a route in no declared group is simply not counted.
+    """
+    groups = set(enforced_principles()) | set(NON_PRINCIPLE_GUARDS)
     assert sum(len(routes_for(g)) for g in groups) == len(ROUTES)
     assert routes_for("P12") == ()
 
