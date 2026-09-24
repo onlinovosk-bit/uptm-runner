@@ -38,6 +38,7 @@ from runner.gates import evaluate_gate
 from runner.paths import CAPITAL_RULES, PROMPT_STACKS
 from runner.prompt_stacks import assemble_prompt
 from runner.provenance import HeadProvenance
+from runner.staleness import dependency_digests, determinism_declaration
 
 @dataclass(frozen=True)
 class BypassRoute:
@@ -606,6 +607,17 @@ def manifest(
         ),
         "expires_at": evidence_expiry(rules, generated_at=stamp_dt),
         "expiry_days": evidence_expiry_days(rules),
+        "dependencies": dependency_digests(),
+        "determinism": determinism_declaration(),
+        "staleness_note": (
+            "expires_at answers how old this is; dependencies answers whether it still "
+            "describes the system. An artifact can sit well inside its seven days and "
+            "describe a gate that has since been rewritten, so both are carried. The "
+            "dependency set is derived by walking the repository, never listed in "
+            "source: a list someone must remember to update is the same failure as a "
+            "status word someone types. See runner.staleness and "
+            "docs/specs/UPTM-007-stale-invalidation.md."
+        ),
         "expiry_note": (
             "P12 requires a commit and an expiry. The commit is evaluated_head above, read "
             "from the repository. The expiry is a timestamp computed from generated_at plus "
