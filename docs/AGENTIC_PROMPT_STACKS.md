@@ -162,3 +162,8 @@ raises when not configured. `handoff_swarm()` emits one documented handoff per
 validated swarm claim, using the APS-004 skeleton path and prompt-stack
 metadata. The skeleton itself cannot pass a gate; a real probe-bearing artifact
 is still required.
+
+`SwarmDispatch.collect_and_verify()` requires one collected artifact per claim.
+The wave fails when any claim is missing, still marked `skeleton`, has only
+`SKIPPED` probes, or carries a different `assembled_prompt_digest` than the
+claim's prompt stack.
