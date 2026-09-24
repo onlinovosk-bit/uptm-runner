@@ -6,10 +6,16 @@ unconfigured.
 
 ## How to proceed without in-process Cursor
 
-1. Call `NullCursorExecutor.handoff(task)` to get instructions + evidence skeleton path.
-2. Run Cursor agents externally (≤ 8 parallel).
-3. Deposit schema-valid evidence under `evidence/waveN/` with real probes.
-4. Run `uptm-runner evaluate-gate --evidence <path>`.
+1. Validate a `SwarmDispatch` claim ledger.
+2. Call `NullCursorExecutor.handoff_swarm(dispatch, branch=..., commit_sha=...)`
+   to get one `CursorHandoff` per claim. Each handoff uses the APS-004 skeleton
+   path and carries `prompt_stack` plus `swarm_claim` metadata.
+3. Optionally pass `write_root` to persist those skeletons.
+4. Run Cursor agents externally (≤ 8 parallel), one agent per claim.
+5. Replace SKIPPED skeletons under `evidence/waveN/` with real probes.
+6. Run `uptm-runner evaluate-gate --evidence <path>`.
+
+Single-task `handoff(task)` remains as the documented one-agent fallback.
 
 ## Forbidden
 

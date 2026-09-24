@@ -149,6 +149,7 @@ Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 `dispatch_swarm` raise `RufloUnavailableError`; they do not report fanout success.
 
 Cursor remains a fail-closed executor contract. `NullCursorExecutor.dispatch`
-raises when not configured. The documented fallback is a single-threaded Cursor
-handoff skeleton, and that skeleton still must return schema-valid evidence
-before any gate can pass.
+raises when not configured. `handoff_swarm()` emits one documented handoff per
+validated swarm claim, using the APS-004 skeleton path and prompt-stack
+metadata. The skeleton itself cannot pass a gate; a real probe-bearing artifact
+is still required.
