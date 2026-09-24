@@ -207,6 +207,38 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_enforcement_evidence.py::test_one_guard_alone_does_not_open_the_doubly_guarded_route",
         ),
     ),
+    Mutation(
+        mutation_id="required-fields-check-disconnected",
+        claim=(
+            "The required-field list is the structural arm of validate_evidence_structure "
+            "— the other mechanism holding PS-R1, and the one thing standing between a "
+            "gate and evidence with no commit_sha, no probes and no agent_claim.\n\n"
+            "Measured, and the number is the point: disabling all fourteen required "
+            "fields is caught by two tests, both of which are PS-R1 redundancy "
+            "bookkeeping about prompt_stack. No route proof fails. Nothing in the suite "
+            "asserts that the other thirteen fields are required at all — the only "
+            "'missing field:' assertions anywhere name prompt_stack.\n\n"
+            "So this case is not thin because the mutation is weak. It is thin because "
+            "the proof surface is, and the two sentinels below are what exists rather "
+            "than what ought to. Recorded here rather than rounded up; closing it means "
+            "adding route coverage, which is its own change."
+        ),
+        path="runner/evidence.py",
+        anchor=(
+            "    for key in required:\n"
+            "        if key not in evidence:\n"
+            '            errors.append(f"missing field: {key}")\n'
+        ),
+        replacement=(
+            "    for key in []:  # mutation-gate: required-field check disconnected\n"
+            "        if key not in evidence:\n"
+            '            errors.append(f"missing field: {key}")\n'
+        ),
+        sentinels=(
+            "tests/test_enforcement_evidence.py::test_each_mechanism_holding_ps_r1_denies_on_its_own",
+            "tests/test_enforcement_evidence.py::test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes",
+        ),
+    ),
 )
 
 
