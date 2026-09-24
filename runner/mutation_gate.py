@@ -135,6 +135,33 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_prompt_stacks.py::test_stack_body_change_without_manifest_update_invalidates_evidence",
         ),
     ),
+    Mutation(
+        mutation_id="kill-switch-detectors-disconnected",
+        claim=(
+            "The UPTM-003 detectors are what deny the kill-switch routes, and the "
+            "drill check folds in through the same call. Disconnect them and both "
+            "the spy proofs and the routes that name them must go red."
+        ),
+        path="runner/gates.py",
+        anchor=(
+            '    pack = evidence.get("kill_switch")\n'
+            "    if pack is None:\n"
+            "        return Verdict.PASS, []\n"
+        ),
+        replacement=(
+            "    return Verdict.PASS, []  # mutation-gate: detectors disconnected\n"
+            '    pack = evidence.get("kill_switch")\n'
+            "    if pack is None:\n"
+            "        return Verdict.PASS, []\n"
+        ),
+        sentinels=(
+            "tests/test_detector_invocation.py::test_gate_actually_calls_the_kill_switch_detector",
+            "tests/test_detector_invocation.py::test_gate_verdict_depends_on_what_the_kill_switch_detector_returns",
+            "tests/test_detector_invocation.py::test_gate_actually_calls_the_drill_detector",
+            "tests/test_enforcement_evidence.py::test_every_route_denies_for_its_own_reason",
+            "tests/test_enforcement_evidence.py::test_neutering_the_named_guards_opens_the_route",
+        ),
+    ),
 )
 
 
