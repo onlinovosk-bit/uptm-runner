@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from runner.paths import ROOT
+from runner.prompt_stacks import assemble_prompt
 
 
 @pytest.fixture
@@ -16,6 +17,7 @@ def root() -> Path:
 @pytest.fixture
 def valid_evidence_factory():
     def _make(**overrides):
+        prompt_stack_override = overrides.pop("prompt_stack", None)
         base = {
             "evidence_id": "test-ev-1",
             "wave_id": 3,
@@ -47,6 +49,14 @@ def valid_evidence_factory():
             "signature": None,
         }
         base.update(overrides)
+        if prompt_stack_override is not None:
+            base["prompt_stack"] = prompt_stack_override
+        else:
+            base["prompt_stack"] = assemble_prompt(
+                ["00"],
+                "commander",
+                {"wave_id": base["wave_id"], "producer": "tests.valid_evidence_factory"},
+            ).cursor_metadata()
         return base
 
     return _make

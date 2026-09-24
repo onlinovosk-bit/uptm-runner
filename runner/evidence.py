@@ -36,6 +36,7 @@ def validate_evidence_structure(evidence: dict[str, Any]) -> list[str]:
         "after",
         "agent_claim",
         "live_trading",
+        "prompt_stack",
     ]
     for key in required:
         if key not in evidence:

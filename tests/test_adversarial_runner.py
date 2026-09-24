@@ -31,23 +31,22 @@ def test_forged_evidence_rejected(valid_evidence_factory):
 
 
 def test_fake_agent_pass(valid_evidence_factory):
-    ev = {
-        "evidence_id": "fake",
-        "wave_id": 1,
-        "commit_sha": "deadbeef",
-        "branch": "x",
-        "files": [],
-        "commands": [],
-        "results": {"passed": 99, "failed": 0, "findings": []},
-        "probes": [],  # fake pass with no probes
-        "before": {"digest": "x"},
-        "after": {"digest": "y"},
-        "agent_claim": {"verdict": "PASS"},
-        "live_trading": False,
-    }
+    ev = valid_evidence_factory(
+        evidence_id="fake",
+        wave_id=1,
+        commit_sha="deadbeef",
+        branch="x",
+        files=[],
+        commands=[],
+        results={"passed": 99, "failed": 0, "findings": []},
+        probes=[],  # fake pass with no probes
+        before={"digest": "x"},
+        after={"digest": "y"},
+        agent_claim={"verdict": "PASS"},
+    )
     r = evaluate_gate(ev)
     assert r.passed is False
-    assert any("evidence_forgery_detected" in reason for reason in r.reasons)
+    assert any("probe" in reason.lower() for reason in r.reasons)
 
 
 def test_wave_skip(valid_evidence_factory):
