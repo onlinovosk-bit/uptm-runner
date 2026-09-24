@@ -21,10 +21,11 @@ from runner.enforcement import (
     NON_PRINCIPLE_GUARDS,
     CORRECTED_PREDICTIONS,
     ROUTES,
-    apply_stubs,
+    evaluate_route,
     enforced_principles,
     evidence_expiry,
     manifest,
+    route_guard,
     routes_for,
     run_routes,
     unproven_claims,
@@ -96,7 +97,7 @@ def test_the_prompt_stack_guard_is_routed_because_nothing_else_routes_it():
     gap those two routes close.
     """
     assert "APS-001" in NON_PRINCIPLE_GUARDS
-    assert {r.route_id for r in routes_for("APS-001")} == {"PS-R1", "PS-R2"}
+    assert {r.route_id for r in routes_for("APS-001")} == {"PS-R1", "PS-R2", "PS-R3"}
     assert "a guard nobody routes is" in NON_PRINCIPLE_GUARDS["APS-001"]
 
 
@@ -105,8 +106,7 @@ def test_the_prompt_stack_guard_is_routed_because_nothing_else_routes_it():
 
 @pytest.mark.parametrize("route", ROUTES, ids=lambda r: r.route_id)
 def test_every_route_denies(route, route_root):
-    with apply_stubs(route.stubs):
-        result = evaluate_gate(route.build(route_root))
+    result = evaluate_route(route, route_root)
     assert result.verdict is not Verdict.PASS, (
         f"{route.route_id} reached PASS: {route.description}"
     )
@@ -122,8 +122,7 @@ def test_every_route_denies_for_its_own_reason(route, route_root):
     This is the assertion that stops the proof quietly decaying: the surrounding
     evidence could rot, every route would still deny, and only this notices.
     """
-    with apply_stubs(route.stubs):
-        result = evaluate_gate(route.build(route_root))
+    result = evaluate_route(route, route_root)
     assert any(route.expect in reason for reason in result.reasons), (
         f"{route.route_id} denied, but not via {route.expect}: {result.reasons}"
     )
@@ -150,7 +149,7 @@ def test_neutering_the_named_guards_opens_the_route(route, route_root, monkeypat
     the one enforcing the principle.
     """
     evidence = route.build(route_root)
-    with apply_stubs(route.stubs):
+    with route_guard(route, route_root):
         assert evaluate_gate(evidence).verdict is not Verdict.PASS
 
         for guard in route.guards:
@@ -190,7 +189,7 @@ def test_neither_guard_alone_opens_a_doubly_guarded_route(route, route_root, mon
     """The stronger form of the count: two guards means two, measured one at a time."""
     evidence = route.build(route_root)
     for guard in route.guards:
-        with apply_stubs(route.stubs):
+        with route_guard(route, route_root):
             monkeypatch.setattr(gates, guard, _neutral(guard))
             assert evaluate_gate(evidence).verdict is not Verdict.PASS, (
                 f"{route.route_id} opened with {guard} alone neutered — it has one guard, not "
@@ -202,7 +201,7 @@ def test_neither_guard_alone_opens_a_doubly_guarded_route(route, route_root, mon
 def test_one_guard_alone_does_not_open_the_doubly_guarded_route(route_root, monkeypatch):
     r4 = next(r for r in ROUTES if r.route_id == "P8-R4")
     evidence = r4.build(route_root)
-    with apply_stubs(r4.stubs):
+    with route_guard(r4, route_root):
         monkeypatch.setattr(gates, "run_kill_switch_detectors", _neutral("run_kill_switch_detectors"))
         assert evaluate_gate(evidence).verdict is not Verdict.PASS, (
             "the KS-I3b invariant did not hold once the detector was removed"
@@ -272,11 +271,13 @@ def test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes(
 
     for route in routes_for("APS-001"):
         evidence = route.build(route_root)
-        assert evaluate_gate(evidence).verdict is not Verdict.PASS
+        with route_guard(route, route_root):
+            assert evaluate_gate(evidence).verdict is not Verdict.PASS
 
         monkeypatch.setattr(evidence_module, "validate_prompt_stack_binding", lambda _e: [])
         try:
-            outcome = evaluate_gate(evidence)
+            with route_guard(route, route_root):
+                outcome = evaluate_gate(evidence)
             if route.route_id in REDUNDANT_GUARDS:
                 assert outcome.verdict is not Verdict.PASS, (
                     f"{route.route_id} is recorded as held by a second mechanism, but "
@@ -293,6 +294,27 @@ def test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes(
                 )
         finally:
             monkeypatch.undo()
+
+
+def test_ps_r3_backstop_survives_removal_of_the_declared_digest_check(route_root, monkeypatch):
+    """Deleting the registry comparison must not open PS-R3.
+
+    The binding still carries the digest of the body that was assembled. A
+    drifted source recomputes a different digest, so the field comparison
+    denies. The route's own expect string is the declared-digest raise; this
+    test keeps the backstop visible so a later edit cannot retarget that
+    string at the backstop and call the raise optional.
+    """
+    import runner.prompt_stacks as prompt_stacks
+
+    route = next(r for r in ROUTES if r.route_id == "PS-R3")
+    evidence = route.build(route_root)
+    monkeypatch.setattr(prompt_stacks, "enforce_declared_body_digest", lambda *_a, **_k: None)
+    with route_guard(route, route_root):
+        result = evaluate_gate(evidence)
+    assert result.verdict is not Verdict.PASS
+    assert any("stack_digests mismatch" in reason for reason in result.reasons)
+    assert not any("prompt stack 00 digest mismatch" in reason for reason in result.reasons)
 
 
 def test_each_mechanism_holding_ps_r1_denies_on_its_own():
@@ -319,3 +341,5 @@ def test_the_manifest_reports_a_redundant_guard_rather_than_hiding_it(route_root
     by_id = {r["route_id"]: r for r in results}
     assert by_id["PS-R1"]["redundant_guard"] == REDUNDANT_GUARDS["PS-R1"]
     assert by_id["PS-R2"]["redundant_guard"] is None
+    assert by_id["PS-R3"]["redundant_guard"] is None
+    assert by_id["PS-R3"]["denied_by_its_own_check"] is True

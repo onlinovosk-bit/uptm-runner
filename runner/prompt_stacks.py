@@ -62,6 +62,12 @@ def digest_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def enforce_declared_body_digest(stack_id: str, declared: object, actual: str) -> None:
+    """Refuse a stack whose registry digest no longer matches its canonical body."""
+    if isinstance(declared, str) and declared and declared != actual:
+        raise PromptStackError(f"prompt stack {stack_id} digest mismatch")
+
+
 def _load_registry() -> dict[str, Any]:
     return json.loads((PROMPT_STACKS / "index.json").read_text(encoding="utf-8"))
 
@@ -78,11 +84,7 @@ def load_stacks() -> dict[str, PromptStack]:
             raise PromptStackError(f"fail-closed: prompt stack {stack_id} file missing")
         body = canonical_stack_body(path)
         digest = digest_text(body)
-        declared_digest = item.get("body_sha256")
-        if declared_digest and declared_digest != digest:
-            raise PromptStackError(
-                f"fail-closed: prompt stack {stack_id} digest mismatch"
-            )
+        enforce_declared_body_digest(stack_id, item.get("body_sha256"), digest)
         roles = tuple(item.get("required_roles") or ())
         unknown_roles = sorted(set(roles) - VALID_ROLES)
         if unknown_roles:
