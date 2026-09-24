@@ -269,15 +269,30 @@ BINDING = ("binding_errors",)
 
 
 def _composer_binding(**overrides: Any) -> dict[str, Any]:
-    """A shaped binding. Overrides are what the route is about."""
-    binding = {
-        "role": "commander",
-        "stack_ids": ["00"],
-        "stack_versions": {"00": "0.1.0"},
-        "stack_digests": {"00": "a" * 64},
-        "assembled_prompt_digest": "b" * 64,
-        "wave_context": {"wave_id": 3},
-    }
+    """A shaped binding. Overrides are what the route is about.
+
+    Built from a real assembled binding rather than a literal, so every field
+    the contract requires is present without this fixture having to know the
+    list. When APS-001 gained stack_releases, registry_sha256,
+    evidence_expires_at and stale_on, a hardcoded shape silently started
+    denying these routes on the missing fields instead of on the thing each one
+    is about - the proofs stayed green-looking while proving nothing.
+
+    Only the keys a route overrides are shaped; the rest stay true.
+    """
+    binding = dict(
+        assemble_prompt(["00"], "commander", {"wave_id": 3}).cursor_metadata()
+    )
+    binding.update(
+        {
+            "role": "commander",
+            "stack_ids": ["00"],
+            "stack_versions": {"00": "0.1.0"},
+            "stack_digests": {"00": "a" * 64},
+            "assembled_prompt_digest": "b" * 64,
+            "wave_context": {"wave_id": 3},
+        }
+    )
     binding.update(overrides)
     return binding
 
