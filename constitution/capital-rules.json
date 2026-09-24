@@ -285,6 +285,15 @@
     "note": "Set by the Founder 2026-09-23. EUR 700 is the size of the TEST, not the size of the opportunity. per_position_at_risk is deliberately NOT a separate cap: it is implicitly covered by the stricter aggregate-open-exposure limit, so adding it would be a second number saying less than the first. PnL may be reported; profit and loss may NOT be used as an acceptance criterion of the validation experiment - a result that passes because it made money has measured the wrong thing (P10, and VC-R1 enforces it).",
     "set_at": "2026-09-23"
   },
+  "evidence_expiry_days": 7,
+  "evidence_expiry": {
+    "days": 7,
+    "set_by": "founder",
+    "set_at": "2026-09-24",
+    "anchored_to": "live_capability.kill_switch_drill_cadence_days",
+    "note": "Set by the Founder 2026-09-24. Seven days because that is the kill-switch drill cadence: enforcement evidence must never outlive the drill it rests on. One rhythm rather than two removes the case where valid-looking evidence is propped up by a drill that has already gone stale, and it needs no separate rule to say so.",
+    "does_not_satisfy_p12": "Expiry is one half of P12 (Evidence Has Commit & Expiry). The other half - STALE invalidation when a dependency changes - is not implemented. Evidence can still be inside its seven days and describe code that has since moved. P12 therefore stays PARTIAL, and this parameter does not change that."
+  },
   "uptm005_detector": {
     "module": "runner/detectors/scope.py",
     "spec": "docs/specs/UPTM-005-evidence-scope-declaration.md",
@@ -321,13 +330,14 @@
     "what_a_route_must_show": "It denies when driven through the real evaluate_gate; it denies via its own named check rather than an unrelated one; and neutering its named guards opens it. A route that still denies with its guards removed is denied by something else and names the wrong guard.",
     "found_not_designed": "P8-R2 and P10-R2 were preregistered with one guard each. The load-bearing test refused both - neutering run_scope_detector alone left each still denying - so the registry was corrected to what the gate does rather than the test loosened to what the spec guessed.",
     "conditional_guard": "None. This field previously claimed P10-R2 was guarded twice only because validation_capital was unset, and that setting the tranche would drop it to one guard. Measured after setting it: false - the capital detector's hold on that route is VC-P2 (a pack carried without declaring capital_gate), which is structural. The refuted prediction is kept in runner/enforcement.py as CORRECTED_PREDICTIONS with a test asserting it stays there.",
-    "expiry": "The manifest carries a commit and expires_at: null. No evidence lifetime is preregistered in this file, and inventing one at generation time would be the sourceless number UPTM-002 exists to catch. evidence_expiry_days is an open Founder parameter and is why P12 stays PARTIAL.",
+    "expiry": "The manifest carries an evaluated head and an expires_at timestamp computed from generated_at plus evidence_expiry_days (7, set by the Founder 2026-09-24). Before that date no lifetime was preregistered and expires_at was null, because inventing one at generation time would be the sourceless number UPTM-002 exists to catch. P12 stays PARTIAL: expiry is satisfied, STALE invalidation on dependency change is not.",
     "advances_no_status": "This wall makes two existing ENFORCED claims checkable. It does not make P9 or P12 ENFORCED, and it does not change any principle's enforcement value.",
     "open_limits": {
       "route_list_completeness": "Every enumerated route denies. A route nobody thought of is not covered, and no test closes that. This is the honest ceiling of the wall.",
       "declaration_truth": "Inherited from UPTM-005: a gate that lies in signed evidence has not found a route, it has committed forgery. That belongs to UPTM-002.",
       "no_expiry": "Without a preregistered lifetime the manifest is a record of a run, not standing evidence. P12 is satisfied on commit and unsatisfied on expiry."
     },
-    "routes_the_tranche_made_possible": "P10-R4 and P10-R6 through R9 did not exist before 2026-09-23. Until validation_capital was set there was no ceiling to step over, so no route could test one: VC-P1 denied every capital gate before any other check was reached. Setting it also exposed a defect in this module's own capital fixture, which had invented the pack field names aggregate_open_exposure and per_position_at_risk where the detector reads at_risk. Nothing had ever got far enough to read them."
+    "routes_the_tranche_made_possible": "P10-R4 and P10-R6 through R9 did not exist before 2026-09-23. Until validation_capital was set there was no ceiling to step over, so no route could test one: VC-P1 denied every capital gate before any other check was reached. Setting it also exposed a defect in this module's own capital fixture, which had invented the pack field names aggregate_open_exposure and per_position_at_risk where the detector reads at_risk. Nothing had ever got far enough to read them.",
+    "no_expiry": "SUPERSEDED 2026-09-24 by evidence_expiry_days: 7. Read as written at the time: 'Without a preregistered lifetime the manifest is a record of a run, not standing evidence. P12 is satisfied on commit and unsatisfied on expiry.' The first half no longer holds; the manifest now expires. P12 remains unsatisfied on dependency-change invalidation, which is a different gap from the one this line named."
   }
 }
