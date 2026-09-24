@@ -155,6 +155,13 @@ class RunnerFSM:
         if dispatch is not None:
             self.last_collect = _collect_for_wave(self.current_wave, dispatch, artifacts)
             collect_ok = self.last_collect.passed
+        elif _wave_lists_agents(self.current_wave):
+            self.last_collect = SwarmCollectResult(
+                wave_id=self.current_wave,
+                passed=False,
+                reasons=("fail-closed: wave lists agents and has no swarm dispatch",),
+            )
+            collect_ok = False
         gate_passed = gate.passed and gate.critical == 0 and gate.high == 0 and collect_ok
         if gate_passed:
             self.passed_waves.add(self.current_wave)
@@ -188,7 +195,8 @@ class RunnerFSM:
 
         ``swarm_provider(fsm)`` may return ``(dispatch, artifacts)`` for the
         current wave. A returned ledger is collected before ``passed_waves``
-        can record that wave. ``None`` means the wave has no swarm ledger.
+        can record that wave. ``None`` supplies no ledger. A wave whose yaml
+        lists agents still denies without one.
         """
         steps = 0
         while not self.is_terminal():
@@ -252,6 +260,18 @@ class RunnerFSM:
                 self.transition(State.HUMAN_REVIEW_REQUIRED)
             else:
                 self.state = State.STOPPED
+
+
+def _wave_lists_agents(wave_id: int) -> bool:
+    """True when the wave yaml names agents, or the declaration cannot be read.
+
+    An empty list is the declaration that the wave has no swarm. Anything else
+    requires a SwarmDispatch before the wave can be recorded.
+    """
+    agents = (load_wave(wave_id).get("ownership") or {}).get("agents", [])
+    if not isinstance(agents, list):
+        return True
+    return len(agents) > 0
 
 
 def _collect_for_wave(

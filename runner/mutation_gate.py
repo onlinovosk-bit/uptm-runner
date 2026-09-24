@@ -285,6 +285,25 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_fsm.py::test_passed_wave_depends_on_collect_result",
         ),
     ),
+    Mutation(
+        mutation_id="listed-agents-dispatch-disconnected",
+        claim=(
+            "APS-008 refuses to record a wave whose yaml lists agents when no "
+            "SwarmDispatch is bound. Disconnect that check and a PASS gate records "
+            "the wave with no ledger."
+        ),
+        path="runner/fsm.py",
+        anchor="        elif _wave_lists_agents(self.current_wave):\n",
+        replacement=(
+            "        elif False and _wave_lists_agents(self.current_wave):"
+            "  # mutation-gate: listed agents disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_checks_listed_agents",
+            "tests/test_fsm.py::test_listed_agents_without_dispatch_does_not_record",
+            "tests/test_fsm.py::test_passed_wave_depends_on_listed_agent_check",
+        ),
+    ),
 )
 
 

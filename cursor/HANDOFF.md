@@ -19,6 +19,8 @@ unconfigured.
    A missing claim, a leftover skeleton, all-`SKIPPED` probes, a different
    prompt-stack digest, or an `evaluate_gate` failure (including a file binding
    that is not CURRENT) fails the wave and does not record `passed_waves`.
+   A wave whose yaml `ownership.agents` is non-empty also does not record when
+   no ledger is passed in.
 7. Run `uptm-runner evaluate-gate --evidence <path>` on each collected artifact.
 
 Single-task `handoff(task)` remains as the documented one-agent fallback.
