@@ -233,15 +233,18 @@ MUTATIONS: tuple[Mutation, ...] = (
             "three, measured: neuter the guard and each is let through. Not probes or "
             "results — their absence is also caught by the fabrication detector and the "
             "claim gate, so this arm is not what holds them.\n\n"
-            "Measured, and the number is the point: disabling all fourteen required "
-            "fields is caught by two tests, both of which are PS-R1 redundancy "
-            "bookkeeping about prompt_stack. No route proof fails. Nothing in the suite "
-            "asserts that the other thirteen fields are required at all — the only "
-            "'missing field:' assertions anywhere name prompt_stack.\n\n"
-            "So this case is not thin because the mutation is weak. It is thin because "
-            "the proof surface is, and the two sentinels below are what exists rather "
-            "than what ought to. Recorded here rather than rounded up; closing it means "
-            "adding route coverage, which is its own change."
+            "This case was added while the arm was unrouted, and the measurement said "
+            "so: disabling all fourteen required fields was caught by two tests, both "
+            "PS-R1 redundancy bookkeeping about prompt_stack, with no route proof "
+            "failing at all. The sentinels then were what existed rather than what "
+            "ought to.\n\n"
+            "ES-R1 to ES-R3 and the per-field assertions closed that, and the same "
+            "mutation now fails 25 tests rather than 2. The sentinels below are "
+            "re-aimed accordingly: the route proofs and the field assertions, which "
+            "are about this arm, in place of the binding-arm proof that only failed "
+            "here incidentally. test_each_mechanism_holding_ps_r1_denies_on_its_own "
+            "stays because it asserts this mechanism denies on its own, which is the "
+            "same property from the other side."
         ),
         path="runner/evidence.py",
         anchor=(
@@ -255,8 +258,11 @@ MUTATIONS: tuple[Mutation, ...] = (
             '            errors.append(f"missing field: {key}")\n'
         ),
         sentinels=(
+            "tests/test_enforcement_evidence.py::test_every_route_denies",
+            "tests/test_enforcement_evidence.py::test_every_route_denies_for_its_own_reason",
+            "tests/test_enforcement_evidence.py::test_neutering_the_named_guards_opens_the_route",
+            "tests/test_enforcement_evidence.py::test_every_required_field_is_actually_required",
             "tests/test_enforcement_evidence.py::test_each_mechanism_holding_ps_r1_denies_on_its_own",
-            "tests/test_enforcement_evidence.py::test_the_binding_check_itself_is_what_holds_the_prompt_stack_routes",
         ),
     ),
 )
