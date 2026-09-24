@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 import hashlib
 import json
+from collections.abc import Mapping
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -128,6 +129,58 @@ class SwarmDispatch:
             )
             written.append(path)
         return tuple(written)
+
+    def collect_and_verify(
+        self, artifacts: Mapping[str, Mapping[str, Any]]
+    ) -> SwarmCollectResult:
+        """Require one real evidence artifact per claim before the wave can pass."""
+        self.validate()
+        reasons: list[str] = []
+        paths = [claim.evidence_skeleton_path for claim in self.claims]
+        if len(set(paths)) != len(paths):
+            reasons.append("fail-closed: duplicate evidence skeleton path")
+        unexpected = sorted(set(artifacts) - set(paths))
+        if unexpected:
+            reasons.append(f"fail-closed: unexpected evidence {unexpected}")
+        for claim in self.claims:
+            artifact = artifacts.get(claim.evidence_skeleton_path)
+            if not isinstance(artifact, Mapping):
+                reasons.append(f"fail-closed: missing evidence for {claim.agent_id}")
+                continue
+            reasons.extend(_verify_collected_claim(claim, dict(artifact)))
+        return SwarmCollectResult(
+            wave_id=self.wave_id,
+            passed=not reasons,
+            reasons=tuple(reasons),
+        )
+
+    def collect_and_verify_dir(self, root: Path) -> SwarmCollectResult:
+        self.validate()
+        artifacts: dict[str, dict[str, Any]] = {}
+        reasons: list[str] = []
+        for claim in self.claims:
+            path = Path(root) / claim.evidence_skeleton_path
+            if not path.is_file():
+                continue
+            try:
+                payload = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                reasons.append(
+                    f"fail-closed: unreadable evidence for {claim.agent_id}: {exc}"
+                )
+                continue
+            if isinstance(payload, dict):
+                artifacts[claim.evidence_skeleton_path] = payload
+            else:
+                reasons.append(f"fail-closed: evidence for {claim.agent_id} must be an object")
+        result = self.collect_and_verify(artifacts)
+        if not reasons:
+            return result
+        return SwarmCollectResult(
+            wave_id=self.wave_id,
+            passed=False,
+            reasons=tuple(reasons) + result.reasons,
+        )
 
 
 def _parse_relative_path(raw: str, *, field: str) -> PurePosixPath:
@@ -284,6 +337,50 @@ def evidence_skeleton_json(
 ) -> str:
     skeleton = evidence_skeleton_for_claim(claim, branch=branch, commit_sha=commit_sha, pr=pr)
     return json.dumps(skeleton, sort_keys=True, indent=2, ensure_ascii=True) + "\n"
+
+
+def _verify_collected_claim(claim: SwarmWorkClaim, artifact: dict[str, Any]) -> list[str]:
+    reasons: list[str] = []
+    prefix = f"{claim.agent_id}:"
+    if artifact.get("skeleton") is True:
+        reasons.append(f"{prefix} evidence is still a skeleton")
+    probes = artifact.get("probes") or []
+    if not isinstance(probes, list) or not probes or all(
+        isinstance(probe, Mapping) and probe.get("outcome") == "SKIPPED" for probe in probes
+    ):
+        reasons.append(f"{prefix} probes missing or all SKIPPED")
+    expected = assemble_prompt(
+        claim.stack_ids,
+        claim.role,
+        {"wave_id": claim.wave_id, "agent_id": claim.agent_id},
+    )
+    binding = artifact.get("prompt_stack")
+    if not isinstance(binding, Mapping):
+        reasons.append(f"{prefix} prompt_stack binding required")
+    else:
+        if binding.get("assembled_prompt_digest") != expected.digest:
+            reasons.append(f"{prefix} prompt_stack digest mismatch")
+        if binding.get("role") != claim.role or list(binding.get("stack_ids") or []) != list(
+            claim.stack_ids
+        ):
+            reasons.append(f"{prefix} prompt_stack role or stacks mismatch")
+    recorded = artifact.get("swarm_claim")
+    if isinstance(recorded, Mapping):
+        if recorded.get("agent_id") != claim.agent_id or recorded.get("lease_id") != claim.lease_id:
+            reasons.append(f"{prefix} swarm_claim identity mismatch")
+    from runner.gates import evaluate_gate
+
+    gate = evaluate_gate(artifact)
+    if not gate.passed:
+        reasons.append(f"{prefix} gate FAIL: {'; '.join(gate.reasons)}")
+    return reasons
+
+
+@dataclass(frozen=True)
+class SwarmCollectResult:
+    wave_id: int
+    passed: bool
+    reasons: tuple[str, ...]
 
 
 @dataclass(frozen=True)
