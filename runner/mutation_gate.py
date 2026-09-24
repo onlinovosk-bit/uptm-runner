@@ -162,6 +162,51 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_enforcement_evidence.py::test_neutering_the_named_guards_opens_the_route",
         ),
     ),
+    Mutation(
+        mutation_id="scope-detector-disconnected",
+        claim=(
+            "The UPTM-005 scope detector runs on every gate, unconditionally — that "
+            "is the point, since the walls it serves were steppable around while it "
+            "ran only when handed something. Disconnect it and both the spy proofs "
+            "and the six routes that name it must go red."
+        ),
+        path="runner/gates.py",
+        anchor="    outcomes = detect_scope(evidence)\n",
+        replacement=(
+            "    return Verdict.PASS, []  # mutation-gate: detector disconnected\n"
+            "    outcomes = detect_scope(evidence)\n"
+        ),
+        sentinels=(
+            "tests/test_scope_declaration.py::test_gate_actually_calls_the_scope_detector",
+            "tests/test_scope_declaration.py::test_gate_verdict_depends_on_what_the_scope_detector_returns",
+            "tests/test_enforcement_evidence.py::test_every_route_denies_for_its_own_reason",
+            "tests/test_enforcement_evidence.py::test_neutering_the_named_guards_opens_the_route",
+        ),
+    ),
+    Mutation(
+        mutation_id="ks-i3b-invariant-disconnected",
+        claim=(
+            "KS-I3b is the invariant rather than the mechanism: it refuses to emit "
+            "PASS while the stop reads ENGAGED, and by design it can only fire on a "
+            "governance bug. That makes it the thinnest-held guard in the file — "
+            "measured, three tests catch its removal where the others are caught by "
+            "twenty-odd. Exactly the shape a silent regression survives."
+        ),
+        path="runner/gates.py",
+        anchor=(
+            '    if verdict is Verdict.PASS and stop_is_engaged(evidence.get("kill_switch") or {}):\n'
+            "        verdict = Verdict.FAIL\n"
+            "        reasons.append(\n"
+            '            "gate_bypass_attempt: a PASS verdict was produced while the kill switch reads ENGAGED"\n'
+            "        )\n"
+        ),
+        replacement="    pass  # mutation-gate: KS-I3b invariant disconnected\n",
+        sentinels=(
+            "tests/test_detector_invocation.py::test_ks_i3b_refuses_a_pass_produced_while_the_stop_is_engaged",
+            "tests/test_enforcement_evidence.py::test_neither_guard_alone_opens_a_doubly_guarded_route",
+            "tests/test_enforcement_evidence.py::test_one_guard_alone_does_not_open_the_doubly_guarded_route",
+        ),
+    ),
 )
 
 
