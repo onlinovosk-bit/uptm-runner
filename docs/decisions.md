@@ -15,6 +15,90 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-25] DEC-UPTM-009 — CI reads every file before it runs any of them
+
+**Decided:** Founder GO on the syntax gate, chosen over watching `main` after
+the fact. Built as `UPTM-009`, preregistered in
+`docs/specs/UPTM-009-ci-syntax-gate.md` before the implementation existed (P4).
+
+### What was open
+
+Four merge incidents landed on `main` on 2026-09-24. Two of them were not wrong
+code — they were files that could not be read at all:
+
+- `6b46cc2` left a tuple unterminated in `runner/enforcement.py`. 482 tests
+  never collected, and CI named the collector rather than the file.
+- `a32a5ee` kept a deleted CI step beside the step that replaced it. Both ran
+  `runner.cli enforcement-evidence`; the first exited 2 on an argument that no
+  longer existed, so the second never ran. `main` was red for 26 minutes.
+
+Both shapes were reproduced against the commits themselves before the spec was
+written, not recalled.
+
+### What was built
+
+One CI step, after install and before `pytest`, that parses every `.py`,
+`.json` and workflow the repository owns, reports **all** the ones that cannot
+be read, and exits 1.
+
+It runs as `python -m runner.syntax_gate`, not as a `runner.cli` subcommand, and
+imports nothing from the tree it validates. That is load-bearing, not
+housekeeping: `runner.cli` imports `enforcement`, `gates` and `fsm`, so
+`6b46cc2` would have reached a subcommand as an ImportError traceback before the
+first file was read — the exact failure the gate replaces.
+
+It also refuses one structural shape: two steps of one job running the same CLI
+subcommand, which is `a32a5ee` exactly. No opt-out marker. A deliberate
+duplicate may be right one day, and when it is, a human should decide it in a
+diff rather than have the gate wave it through.
+
+### Where it sits in the guard taxonomy, and why it is not in NON_PRINCIPLE_GUARDS
+
+`DEC-UPTM-APS` established that a guard enforcing no principle still has to be
+routed, because a guard nobody routes is a guard whose removal is silent.
+APS-001 and EVIDENCE-STRUCTURE are in `NON_PRINCIPLE_GUARDS` for that reason.
+
+This one is deliberately **not**. That registry routes guards through
+`evaluate_gate` — guards that decide whether evidence passes. The syntax gate
+decides nothing about evidence; it decides whether CI can run at all. Routing it
+there would assert a relationship that does not exist, which is the same error
+as a typed `ENFORCED`.
+
+The rule is met the other way: a `mutation-gate` case breaks the parse on
+purpose and requires three named tests to go red. Measured — all three do.
+
+### A fifth incident, found by the gate on its first run
+
+`schemas/evidence.schema.json` had not parsed since `c4c409d`, a merge that
+concatenated both sides' `required` lists and defined `wave_context` twice.
+Repaired here as the union of the two sides.
+
+It survived unnoticed because `runner/evidence.py` wraps the schema load in
+`except Exception: pass`. The decode error was swallowed, so schema validation
+has been silently inert — a check reporting the absence of a check as the
+absence of a problem.
+
+**The swallow is not changed here.** Making the schema load-bearing is a
+behaviour change and needs its own GO. It is reported rather than slipped in.
+
+### What this does not establish
+
+- Not that the code is correct. It parses. That is the whole claim.
+- Not that the workflow is right — one duplication shape is ruled out, nothing
+  more.
+- Not that merges are safe. Two of the four incidents behind this gate produced
+  valid Python and it would have caught neither. Read it as *"no unreadable
+  file reaches pytest"*, never as *"no bad merge reaches main"*.
+- Not that the repaired schema accepts real evidence. It is a valid JSON Schema
+  again; whether it accepts a real gate pack is untested, and inert regardless
+  until the swallow is addressed.
+
+### Unchanged
+
+`LIVE_TRADING` stays `false`. No guard loosened, no enforcement status moved, no
+capability granted. `claims_checked` is still P8, P10, P12; 35 routes, none
+reaching PASS, none denying for another reason.
+
 ## [2026-09-24] DEC-UPTM-008 — the gate verifies the binding it was always handed; P12 is ENFORCED
 
 **Decided:** Founder GO, *"GO na gate spotrebuje staleness"*. Built as

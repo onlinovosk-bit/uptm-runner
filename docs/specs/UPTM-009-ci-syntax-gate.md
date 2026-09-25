@@ -109,7 +109,62 @@ mechanism is removed.
 
 ## §5 Result
 
-*(filled in after implementation)*
+Measured on `db36c3d`, clean tree.
+
+| # | Criterion | Result |
+|---|---|---|
+| G1 | every `.py` parses, named with line and the interpreter's own message | **PASS** |
+| G2 | every `.json` parses | **PASS** |
+| G3 | every workflow parses as YAML | **PASS** |
+| G4 | no subcommand runs twice in one job | **PASS** |
+| G5 | every problem reported, not the first | **PASS** |
+| G6 | imports nothing from the tree it validates | **PASS** |
+| G7 | exit 0 clean / exit 1 with report | **PASS** |
+| G8 | generated trees excluded by directory name | **PASS** |
+| R1 | M1's shape reported | **PASS**, with the adjustment below |
+| R2 | M2's workflow reported | **PASS**, quoted exactly from `a32a5ee` |
+| L1 | mutation-gate case, named sentinels go red | **PASS** |
+| L2 | this repository passes its own gate | **PASS** |
+
+```
+518 passed              (505 + 12 new tests + 1, the mutation registry being
+                         parametrised, so the new case became a test by itself)
+syntax-gate             exit 0, "every file parses"
+mutation-gate           exit 0, syntax-gate-stops-parsing caught by all 3 sentinels
+enforcement-evidence    exit 0, 35 routes, reaching PASS [], another reason [],
+                        unproven_claims [], claims_checked P8 P10 P12
+```
+
+### R1 was preregistered stricter than it was built
+
+§3 says *"Given M1's exact file content"*. It is implemented as M1's reproduced
+**shape** — an unterminated tuple — not the 900-line file from `6b46cc2`.
+
+The reason is `actions/checkout@v4`, which fetches one commit. A test reaching
+into the history would pass locally and fail in CI. R2 has no such problem and
+**is** quoted exactly from `a32a5ee`.
+
+This is recorded rather than quietly reworded: the preregistered criterion was
+the stronger one, and what got built is weaker.
+
+### The gate's first run found a fifth incident
+
+`schemas/evidence.schema.json` had not parsed since `c4c409d`. That merge
+concatenated both sides' `required` lists — dropping the comma after `stale_on`
+and duplicating `assembled_prompt_digest` — and defined `wave_context` twice.
+Repaired as the union of the two sides, keeping the stricter `wave_context`
+(`minProperties: 1`, from `997dc54`).
+
+It survived a day unnoticed because `runner/evidence.py` wraps the schema load
+in `except Exception: pass`. The decode error was swallowed, so schema
+validation has been silently inert — the gate has been reporting the absence of
+a check as the absence of a problem, which is what "absence is not a
+measurement" forbids.
+
+**That swallow is not changed here.** Making the schema load-bearing is a
+behaviour change and would need its own GO. Two things are consequently still
+unverified: whether the repaired schema accepts real gate evidence (no committed
+artifact is of that shape), and what else the swallow has been hiding.
 
 ---
 
