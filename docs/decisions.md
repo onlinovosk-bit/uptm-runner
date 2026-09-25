@@ -15,6 +15,25 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-25] DEC-UPTM-MAP-Q2 — neither repository's PASS wins a disagreement
+
+**Decided:** Founder GO MAP-Q2, accepting the recommendation not to pick a
+winner from this repository. Question 2 on `docs/architecture/governance-map.md`
+stays **OPEN**. On a disagreement, neither repository's `PASS` is the winner.
+
+**Why:** Both repositories can emit `PASS`, and neither reads the other's.
+Naming `uptm-runner` the winner would make this gate override a verdict it has
+not seen. Naming `onlinovosk-bit-uptm` the winner would make that repository's
+`PASS` override this one without a reader. `CONSTITUTION-CAPITAL.md` v1.0 stays
+LOCKED. No principle's enforcement state moves. `LIVE_TRADING` stays false. No
+P12 invalidation follows.
+
+**Artifact:** the question 2 block in `docs/architecture/governance-map.md`
+carries `OPEN (DEC-UPTM-MAP-Q2)`. Mutation `map-q2-marked-decided` replaces
+that marker with a chosen winner. `test_map_q2_stays_open` goes red.
+
+---
+
 ## [2026-09-25] DEC-UPTM-MAP-Q1 — the trading-wave question stays open
 
 **Decided:** Founder GO MAP-Q1, accepting the recommendation not to answer it
