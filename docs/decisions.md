@@ -15,6 +15,26 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-25] DEC-UPTM-MAP-Q3 — no relation between €700 and €750 is adopted
+
+**Decided:** Founder GO MAP-Q3, accepting the recommendation not to invent the
+relation. Question 3 on `docs/architecture/governance-map.md` stays **OPEN**.
+€700 remains `validation_capital.amount`, the size of the validation test.
+€750 remains the other repository's paper-account capital. Neither number is a
+ceiling, a subset, or a limit on the other.
+
+**Why:** The map measured that nothing stated how they relate. Choosing one
+reading would be a new risk parameter, and an unset relation stays unknown.
+`validation_capital.amount` stays 700 EUR. `CONSTITUTION-CAPITAL.md` v1.0 stays
+LOCKED. No principle's enforcement state moves. `LIVE_TRADING` stays false. No
+P12 invalidation follows.
+
+**Artifact:** the question 3 block in `docs/architecture/governance-map.md`
+carries `OPEN (DEC-UPTM-MAP-Q3)`. Mutation `map-q3-marked-decided` replaces
+that marker with a chosen relation. `test_map_q3_stays_open` goes red.
+
+---
+
 ## [2026-09-25] DEC-UPTM-MAP-Q1 — the trading-wave question stays open
 
 **Decided:** Founder GO MAP-Q1, accepting the recommendation not to answer it

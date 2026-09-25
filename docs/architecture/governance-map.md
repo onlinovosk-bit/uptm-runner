@@ -109,8 +109,9 @@ onlinovosk-bit-uptm   DEFAULT_CAPITAL_EUR  EUR 750   (min 500, max 1000)
 
 They are not in conflict, and they are not the same thing: €700 is the size of
 the validation *test* under P10; €750 is the paper account's starting capital.
-**Nothing anywhere states how they relate** — whether the tranche is a ceiling on
-the envelope, a subset of it, or an independent limit.
+**DEC-UPTM-MAP-Q3 leaves that relation unadopted.** Whether the tranche is a
+ceiling on the envelope, a subset of it, or an independent limit is not decided
+here. Neither number is rewritten into the other.
 
 ## Where authority actually sits, today
 
@@ -131,8 +132,9 @@ evidence.**
 
 ## Open questions — Founder decisions, not inferences
 
-Question 4 is decided below. Questions 2, 3, and 5 are not answered here.
-Question 1 is recorded open: neither answer is adopted.
+Question 4 is decided below. Questions 2 and 5 are not answered here.
+Question 1 is recorded open: neither answer is adopted. Question 3 is recorded
+open: no relation between €700 and €750 is adopted.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
@@ -143,6 +145,10 @@ Question 1 is recorded open: neither answer is adopted.
 2. **Which repository's verdict wins on a disagreement?** Both can emit `PASS`.
    Neither reads the other's.
 3. **How do €700 and €750 relate?**
+   **OPEN (DEC-UPTM-MAP-Q3, 2026-09-25):** no relation is adopted. €700 stays
+   the validation-test size. €750 stays the other repository's paper-account
+   capital. This repository does not treat either number as a ceiling, a
+   subset, or a limit on the other.
 4. ~~**Does Evidence Rule A apply to `uptm-runner`?**~~ **DECIDED 2026-09-24:**
    half two (the evaluated head is read from the checkout, never asserted by the
    caller) is adopted; half one (no field meaning "the commit that contains me")
@@ -154,7 +160,8 @@ Question 1 is recorded open: neither answer is adopted.
 ## What this document does not do
 
 - Question 1 stays open under `DEC-UPTM-MAP-Q1`: neither answer is adopted.
-  Question 4 is decided. Questions 2, 3, and 5 stay unanswered here.
+  Question 3 stays open under `DEC-UPTM-MAP-Q3`: no relation between €700 and
+  €750 is adopted. Question 4 is decided. Questions 2 and 5 stay unanswered here.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.
