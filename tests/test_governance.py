@@ -120,6 +120,24 @@ def test_map_q5_stays_open():
     assert "| Status | **LOCKED** |" in constitution
 
 
+def test_map_q3_stays_open():
+    """DEC-UPTM-MAP-Q3: no relation between EUR 700 and EUR 750 is adopted."""
+    text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
+    start = text.index("3. **How do €700 and €750 relate?")
+    block = text[start : text.index("\n4. ", start)]
+    assert "DEC-UPTM-MAP-Q3" in block
+    assert "OPEN" in block
+    assert "no relation is adopted" in block
+    assert "DECIDED" not in block
+    capital = _capital_rules()["validation_capital"]
+    assert capital["amount"] == 700
+    assert capital["currency"] == "EUR"
+    assert "750" not in json.dumps(_capital_rules())
+    constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
+    assert "v1.0" in constitution.splitlines()[0]
+    assert "| Status | **LOCKED** |" in constitution
+
+
 def test_map_q2_stays_open():
     """DEC-UPTM-MAP-Q2: neither repository's PASS wins a disagreement."""
     text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
