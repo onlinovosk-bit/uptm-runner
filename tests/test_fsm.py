@@ -369,3 +369,97 @@ def test_run_until_terminal_stops_when_listed_agents_have_no_dispatch():
     assert fsm.passed_waves == {0}
     assert fsm.current_wave == 1
     assert any("no swarm dispatch" in reason for reason in fsm.last_collect.reasons)
+
+
+def _wave_dispatch(wave_id: int, agents: tuple[tuple[str, str], ...]) -> SwarmDispatch:
+    return SwarmDispatch(
+        wave_id=wave_id,
+        claims=tuple(_claim(agent_id, path, wave_id=wave_id) for agent_id, path in agents),
+    )
+
+
+def test_matching_claim_agent_id_records_the_wave():
+    dispatch = _wave_dispatch(1, (("cursor-discover", "runner/fsm.py"),))
+    fsm = _to_evidence()
+    fsm.current_wave = 1
+    assert fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.WAVE_READY
+    assert 1 in fsm.passed_waves
+
+
+def test_claim_agent_id_must_match_listed_agents():
+    dispatch = _wave_dispatch(1, (("agent-a", "runner/fsm.py"),))
+    fsm = _to_evidence()
+    fsm.current_wave = 1
+    assert fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.PATCH_LOOP
+    assert fsm.last_collect is not None and fsm.last_collect.passed is False
+    assert any("does not match ownership.agents" in reason for reason in fsm.last_collect.reasons)
+    assert 1 not in fsm.passed_waves
+
+
+def test_extra_claim_agent_does_not_match_listed_agents():
+    dispatch = _wave_dispatch(
+        1,
+        (("cursor-discover", "runner/fsm.py"), ("agent-a", "runner/gates.py")),
+    )
+    fsm = _to_evidence()
+    fsm.current_wave = 1
+    assert fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.PATCH_LOOP
+    assert 1 not in fsm.passed_waves
+    assert any("does not match ownership.agents" in reason for reason in fsm.last_collect.reasons)
+
+
+def test_partial_agent_ledger_does_not_match(monkeypatch):
+    monkeypatch.setattr(
+        "runner.fsm.load_wave",
+        lambda wave_id: {"ownership": {"agents": ["cursor-discover", "cursor-gates"]}},
+    )
+    dispatch = _wave_dispatch(1, (("cursor-discover", "runner/fsm.py"),))
+    fsm = _to_evidence()
+    fsm.current_wave = 1
+    assert fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.PATCH_LOOP
+    assert 1 not in fsm.passed_waves
+
+
+def test_unreadable_agents_field_denies_a_bound_dispatch(monkeypatch):
+    monkeypatch.setattr(
+        "runner.fsm.load_wave",
+        lambda wave_id: {"ownership": {"agents": ["cursor-discover", "cursor-discover"]}},
+    )
+    dispatch = _wave_dispatch(1, (("cursor-discover", "runner/fsm.py"),))
+    fsm = _to_evidence()
+    fsm.current_wave = 1
+    assert fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.PATCH_LOOP
+    assert 1 not in fsm.passed_waves
+    assert any("cannot be read" in reason for reason in fsm.last_collect.reasons)
+
+
+def test_fsm_actually_compares_claim_agent_ids(monkeypatch):
+    calls: list[tuple[int, tuple[str, ...]]] = []
+
+    def spy(wave_id: int, dispatch: SwarmDispatch):
+        calls.append((wave_id, tuple(claim.agent_id for claim in dispatch.claims)))
+        return SwarmCollectResult(wave_id=wave_id, passed=False, reasons=("forced by spy",))
+
+    monkeypatch.setattr("runner.fsm._agent_ledger_mismatch", spy)
+    dispatch = _wave_dispatch(1, (("cursor-discover", "runner/fsm.py"),))
+    fsm = _to_evidence()
+    fsm.current_wave = 1
+    state = fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch))
+    assert calls == [(1, ("cursor-discover",))], "apply_gate did not compare claim agent ids"
+    assert state == State.PATCH_LOOP
+    assert 1 not in fsm.passed_waves
+
+
+def test_passed_wave_depends_on_agent_id_match(monkeypatch):
+    """Disconnect the agent-id comparison and the wave record must follow it."""
+    dispatch = _wave_dispatch(1, (("agent-a", "runner/fsm.py"),))
+    fsm = _to_evidence()
+    fsm.current_wave = 1
+    assert fsm.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.PATCH_LOOP
+    assert 1 not in fsm.passed_waves
+
+    monkeypatch.setattr("runner.fsm._agent_ledger_mismatch", lambda wave_id, dispatch: None)
+    opened = _to_evidence()
+    opened.current_wave = 1
+    assert opened.apply_gate(_pass(), dispatch=dispatch, artifacts=_artifacts(dispatch)) == State.WAVE_READY
+    assert 1 in opened.passed_waves

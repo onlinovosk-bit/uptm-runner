@@ -153,8 +153,13 @@ class RunnerFSM:
         self.transition(State.WAVE_GATE)
         collect_ok = True
         if dispatch is not None:
-            self.last_collect = _collect_for_wave(self.current_wave, dispatch, artifacts)
-            collect_ok = self.last_collect.passed
+            mismatch = _agent_ledger_mismatch(self.current_wave, dispatch)
+            if mismatch is not None:
+                self.last_collect = mismatch
+                collect_ok = False
+            else:
+                self.last_collect = _collect_for_wave(self.current_wave, dispatch, artifacts)
+                collect_ok = self.last_collect.passed
         elif _wave_lists_agents(self.current_wave):
             self.last_collect = SwarmCollectResult(
                 wave_id=self.current_wave,
@@ -196,7 +201,8 @@ class RunnerFSM:
         ``swarm_provider(fsm)`` may return ``(dispatch, artifacts)`` for the
         current wave. A returned ledger is collected before ``passed_waves``
         can record that wave. ``None`` supplies no ledger. A wave whose yaml
-        lists agents still denies without one.
+        lists agents still denies without one, and a bound ledger must name
+        exactly those agents.
         """
         steps = 0
         while not self.is_terminal():
@@ -262,16 +268,57 @@ class RunnerFSM:
                 self.state = State.STOPPED
 
 
+def _declared_agents(wave_id: int) -> tuple[str, ...] | None:
+    """Yaml agent names, or None when the declaration cannot be read.
+
+    An empty tuple means the wave names nobody. Duplicate or blank entries are
+    unreadable, so they deny rather than collapse into a smaller set.
+    """
+    agents = (load_wave(wave_id).get("ownership") or {}).get("agents", [])
+    if not isinstance(agents, list):
+        return None
+    if any(not isinstance(item, str) or not item for item in agents):
+        return None
+    if len(agents) != len(set(agents)):
+        return None
+    return tuple(agents)
+
+
 def _wave_lists_agents(wave_id: int) -> bool:
     """True when the wave yaml names agents, or the declaration cannot be read.
 
     An empty list is the declaration that the wave has no swarm. Anything else
     requires a SwarmDispatch before the wave can be recorded.
     """
-    agents = (load_wave(wave_id).get("ownership") or {}).get("agents", [])
-    if not isinstance(agents, list):
+    declared = _declared_agents(wave_id)
+    if declared is None:
         return True
-    return len(agents) > 0
+    return len(declared) > 0
+
+
+def _agent_ledger_mismatch(
+    wave_id: int, dispatch: SwarmDispatch
+) -> SwarmCollectResult | None:
+    """None when claim agent ids equal the yaml list, or the list names nobody.
+
+    A non-empty list must be the same set as the ledger. An unreadable
+    declaration denies even when a dispatch is bound.
+    """
+    declared = _declared_agents(wave_id)
+    if declared is None:
+        return SwarmCollectResult(
+            wave_id=wave_id,
+            passed=False,
+            reasons=("fail-closed: wave agents declaration cannot be read",),
+        )
+    claimed = [claim.agent_id for claim in dispatch.claims]
+    if declared and set(claimed) != set(declared):
+        return SwarmCollectResult(
+            wave_id=wave_id,
+            passed=False,
+            reasons=("fail-closed: claim agent_id does not match ownership.agents",),
+        )
+    return None
 
 
 def _collect_for_wave(

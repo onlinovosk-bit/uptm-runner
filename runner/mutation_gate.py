@@ -304,6 +304,24 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_fsm.py::test_passed_wave_depends_on_listed_agent_check",
         ),
     ),
+    Mutation(
+        mutation_id="agent-id-match-disconnected",
+        claim=(
+            "APS-009 records a listed-agent wave only when claim agent_ids equal "
+            "ownership.agents. Disconnect that comparison and a ledger under "
+            "another name records the wave."
+        ),
+        path="runner/fsm.py",
+        anchor="            mismatch = _agent_ledger_mismatch(self.current_wave, dispatch)\n",
+        replacement=(
+            "            mismatch = None  # mutation-gate: agent id match disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_compares_claim_agent_ids",
+            "tests/test_fsm.py::test_claim_agent_id_must_match_listed_agents",
+            "tests/test_fsm.py::test_passed_wave_depends_on_agent_id_match",
+        ),
+    ),
 )
 
 

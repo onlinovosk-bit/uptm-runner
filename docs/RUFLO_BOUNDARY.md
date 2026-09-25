@@ -47,7 +47,8 @@ the current wave, and writes `passed_waves` only if the collect passes and the
 gate is PASS with `CRITICAL=0` and `HIGH=0`. `run_until_terminal` forwards a
 `swarm_provider` into that call. A ledger for a different wave denies. A wave
 whose yaml lists agents, and a wave whose `agents` field cannot be read as a
-list, deny when no dispatch is bound. An empty `agents` list does not.
+list of unique names, deny when no dispatch is bound. A bound ledger on a
+named wave must use exactly those `agent_id`s. An empty `agents` list does not.
 
 Ruflo fanout is never gate evidence.
 
