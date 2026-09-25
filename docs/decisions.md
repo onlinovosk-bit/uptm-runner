@@ -35,6 +35,27 @@ that marker with an adopted answer. `test_map_q1_stays_open` goes red.
 
 ---
 
+## [2026-09-25] DEC-UPTM-APS-010 — a wave that names no agents records from the gate
+
+**Decided:** Founder GO APS-010. A wave whose yaml `ownership.agents` is an empty
+list records `passed_waves` from a PASS gate with `CRITICAL=0` and `HIGH=0`.
+It does not require a `SwarmDispatch`.
+
+**Why:** Wave 0 is the baseline lock, and its yaml says `agents: []`. Waves 2,
+4, 5, 6, and 7 make the same declaration. Inventing a claim ledger for a wave
+that named nobody would be a new claim, not enforcement of one the wave already
+made. A non-empty list, an unreadable declaration, a ledger whose `agent_id`s
+differ from the list, and a failed collect still deny. Those are APS-007
+through APS-009.
+
+**Artifact:** `runner.fsm._wave_lists_agents` returns false for an empty list.
+Mutation `empty-agents-require-dispatch` forces that return to true.
+`test_empty_agent_list_still_records_without_dispatch` and
+`test_terminating_fsm_reaches_exit_after_all_waves_pass` go red. `LIVE_TRADING`
+stays false.
+
+---
+
 ## [2026-09-24] DEC-UPTM-008 — the gate verifies the binding it was always handed; P12 is ENFORCED
 
 **Decided:** Founder GO, *"GO na gate spotrebuje staleness"*. Built as
