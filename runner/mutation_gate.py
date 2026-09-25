@@ -353,6 +353,21 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
         sentinels=("tests/test_governance.py::test_map_q1_stays_open",),
     ),
+    Mutation(
+        mutation_id="map-q2-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q2 leaves a cross-repository disagreement without a "
+            "winner. Marking it decided picks a PASS neither side is allowed to own."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q2, 2026-09-25):** neither repository's `PASS` wins.\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** the uptm-runner `PASS` wins the disagreement.\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q2_stays_open",),
+    ),
 )
 
 

@@ -101,6 +101,20 @@ def test_lease_and_cp_flag_cannot_substitute_for_each_other():
     assert live["cp_flag_may_replace_lease"] is False
 
 
+def test_map_q2_stays_open():
+    """DEC-UPTM-MAP-Q2: neither repository's PASS wins a disagreement."""
+    text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
+    start = text.index("2. **Which repository's verdict wins")
+    block = text[start : text.index("\n3. ", start)]
+    assert "DEC-UPTM-MAP-Q2" in block
+    assert "OPEN" in block
+    assert "neither repository's `PASS` wins" in block
+    assert "DECIDED" not in block
+    constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
+    assert "v1.0" in constitution.splitlines()[0]
+    assert "| Status | **LOCKED** |" in constitution
+
+
 def test_map_q1_stays_open():
     """DEC-UPTM-MAP-Q1: neither answer about a trading-system wave is adopted."""
     text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
