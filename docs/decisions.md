@@ -35,6 +35,25 @@ that marker with a chosen relation. `test_map_q3_stays_open` goes red.
 
 ---
 
+## [2026-09-25] DEC-UPTM-MAP-Q2 — neither repository's PASS wins a disagreement
+
+**Decided:** Founder GO MAP-Q2, accepting the recommendation not to pick a
+winner from this repository. Question 2 on `docs/architecture/governance-map.md`
+stays **OPEN**. On a disagreement, neither repository's `PASS` is the winner.
+
+**Why:** Both repositories can emit `PASS`, and neither reads the other's.
+Naming `uptm-runner` the winner would make this gate override a verdict it has
+not seen. Naming `onlinovosk-bit-uptm` the winner would make that repository's
+`PASS` override this one without a reader. `CONSTITUTION-CAPITAL.md` v1.0 stays
+LOCKED. No principle's enforcement state moves. `LIVE_TRADING` stays false. No
+P12 invalidation follows.
+
+**Artifact:** the question 2 block in `docs/architecture/governance-map.md`
+carries `OPEN (DEC-UPTM-MAP-Q2)`. Mutation `map-q2-marked-decided` replaces
+that marker with a chosen winner. `test_map_q2_stays_open` goes red.
+
+---
+
 ## [2026-09-25] DEC-UPTM-MAP-Q1 — the trading-wave question stays open
 
 **Decided:** Founder GO MAP-Q1, accepting the recommendation not to answer it
@@ -52,6 +71,27 @@ follows.
 **Artifact:** the question 1 block in `docs/architecture/governance-map.md`
 carries `OPEN (DEC-UPTM-MAP-Q1)`. Mutation `map-q1-marked-decided` replaces
 that marker with an adopted answer. `test_map_q1_stays_open` goes red.
+
+---
+
+## [2026-09-25] DEC-UPTM-APS-010 — a wave that names no agents records from the gate
+
+**Decided:** Founder GO APS-010. A wave whose yaml `ownership.agents` is an empty
+list records `passed_waves` from a PASS gate with `CRITICAL=0` and `HIGH=0`.
+It does not require a `SwarmDispatch`.
+
+**Why:** Wave 0 is the baseline lock, and its yaml says `agents: []`. Waves 2,
+4, 5, 6, and 7 make the same declaration. Inventing a claim ledger for a wave
+that named nobody would be a new claim, not enforcement of one the wave already
+made. A non-empty list, an unreadable declaration, a ledger whose `agent_id`s
+differ from the list, and a failed collect still deny. Those are APS-007
+through APS-009.
+
+**Artifact:** `runner.fsm._wave_lists_agents` returns false for an empty list.
+Mutation `empty-agents-require-dispatch` forces that return to true.
+`test_empty_agent_list_still_records_without_dispatch` and
+`test_terminating_fsm_reaches_exit_after_all_waves_pass` go red. `LIVE_TRADING`
+stays false.
 
 ---
 

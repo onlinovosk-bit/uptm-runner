@@ -305,6 +305,39 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
+        mutation_id="agent-id-match-disconnected",
+        claim=(
+            "APS-009 records a listed-agent wave only when claim agent_ids equal "
+            "ownership.agents. Disconnect that comparison and a ledger under "
+            "another name records the wave."
+        ),
+        path="runner/fsm.py",
+        anchor="            mismatch = _agent_ledger_mismatch(self.current_wave, dispatch)\n",
+        replacement=(
+            "            mismatch = None  # mutation-gate: agent id match disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_compares_claim_agent_ids",
+            "tests/test_fsm.py::test_claim_agent_id_must_match_listed_agents",
+            "tests/test_fsm.py::test_passed_wave_depends_on_agent_id_match",
+        ),
+    ),
+    Mutation(
+        mutation_id="empty-agents-require-dispatch",
+        claim=(
+            "DEC-UPTM-APS-010 keeps an empty ownership.agents list on the gate. "
+            "Treat that empty list as a required swarm and a wave that named "
+            "nobody stops recording."
+        ),
+        path="runner/fsm.py",
+        anchor="    return len(declared) > 0\n",
+        replacement="    return True  # mutation-gate: empty agents treated as a swarm\n",
+        sentinels=(
+            "tests/test_fsm.py::test_empty_agent_list_still_records_without_dispatch",
+            "tests/test_fsm.py::test_terminating_fsm_reaches_exit_after_all_waves_pass",
+        ),
+    ),
+    Mutation(
         mutation_id="map-q1-marked-decided",
         claim=(
             "DEC-UPTM-MAP-Q1 leaves the trading-wave question open. Marking it "
@@ -334,6 +367,21 @@ MUTATIONS: tuple[Mutation, ...] = (
             "   **DECIDED (2026-09-25):** €700 is a ceiling on the €750 paper account. €700 stays\n"
         ),
         sentinels=("tests/test_governance.py::test_map_q3_stays_open",),
+    ),
+    Mutation(
+        mutation_id="map-q2-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q2 leaves a cross-repository disagreement without a "
+            "winner. Marking it decided picks a PASS neither side is allowed to own."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q2, 2026-09-25):** neither repository's `PASS` wins.\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** the uptm-runner `PASS` wins the disagreement.\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q2_stays_open",),
     ),
 )
 

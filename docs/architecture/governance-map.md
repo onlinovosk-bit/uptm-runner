@@ -132,9 +132,10 @@ evidence.**
 
 ## Open questions — Founder decisions, not inferences
 
-Question 4 is decided below. Questions 2 and 5 are not answered here.
-Question 1 is recorded open: neither answer is adopted. Question 3 is recorded
-open: no relation between €700 and €750 is adopted.
+Question 4 is decided below. Question 5 is not answered here.
+Question 1 is recorded open: neither answer is adopted. Question 2 is recorded
+open: neither repository's `PASS` wins. Question 3 is recorded open: no
+relation between €700 and €750 is adopted.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
@@ -144,6 +145,9 @@ open: no relation between €700 and €750 is adopted.
    trading wave from the constitution.
 2. **Which repository's verdict wins on a disagreement?** Both can emit `PASS`.
    Neither reads the other's.
+   **OPEN (DEC-UPTM-MAP-Q2, 2026-09-25):** neither repository's `PASS` wins.
+   This repository does not read the other verdict, and it does not treat its
+   own `PASS` as the winner.
 3. **How do €700 and €750 relate?**
    **OPEN (DEC-UPTM-MAP-Q3, 2026-09-25):** no relation is adopted. €700 stays
    the validation-test size. €750 stays the other repository's paper-account
@@ -160,8 +164,9 @@ open: no relation between €700 and €750 is adopted.
 ## What this document does not do
 
 - Question 1 stays open under `DEC-UPTM-MAP-Q1`: neither answer is adopted.
-  Question 3 stays open under `DEC-UPTM-MAP-Q3`: no relation between €700 and
-  €750 is adopted. Question 4 is decided. Questions 2 and 5 stay unanswered here.
+  Question 2 stays open under `DEC-UPTM-MAP-Q2`: neither repository's `PASS`
+  wins. Question 3 stays open under `DEC-UPTM-MAP-Q3`: no relation between €700
+  and €750 is adopted. Question 4 is decided. Question 5 stays unanswered here.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.
