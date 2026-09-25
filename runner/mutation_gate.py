@@ -320,6 +320,21 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
         sentinels=("tests/test_governance.py::test_map_q1_stays_open",),
     ),
+    Mutation(
+        mutation_id="map-q5-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q5 leaves the two wave numberings without a canonical "
+            "one. Marking 0-7 canonical names the other repository's waves."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q5, 2026-09-25):** neither numbering is canonical.\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** waves 0–7 are the canonical numbering.\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q5_stays_open",),
+    ),
 )
 
 
