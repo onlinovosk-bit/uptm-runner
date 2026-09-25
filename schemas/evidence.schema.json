@@ -120,8 +120,7 @@
         "registry_sha256",
         "assembled_prompt_digest",
         "evidence_expires_at",
-        "stale_on"
-        "assembled_prompt_digest",
+        "stale_on",
         "wave_context"
       ],
       "properties": {
@@ -162,7 +161,6 @@
           "type": "array",
           "items": { "type": "string" }
         },
-        "wave_context": { "type": "object" }
         "wave_context": {
           "type": "object",
           "minProperties": 1

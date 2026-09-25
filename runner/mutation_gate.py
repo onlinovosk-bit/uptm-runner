@@ -265,6 +265,28 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_enforcement_evidence.py::test_each_mechanism_holding_ps_r1_denies_on_its_own",
         ),
     ),
+    Mutation(
+        mutation_id="syntax-gate-stops-parsing",
+        claim=(
+            "UPTM-009's parse of every .py is what stops an unreadable file from "
+            "reaching pytest. Remove it and the gate goes back to reporting success "
+            "on a tree it never read - which is worse than having no gate, because a "
+            "green step now says the files were checked.\n\n"
+            "This guard enforces no constitution principle, so it has no route "
+            "through evaluate_gate and is deliberately not in NON_PRINCIPLE_GUARDS: "
+            "it decides nothing about evidence, only whether CI can run at all. "
+            "DEC-UPTM-APS's rule still applies - a guard nobody can break on purpose "
+            "is a guard whose removal is silent - and this case is how it is met."
+        ),
+        path="runner/syntax_gate.py",
+        anchor="            ast.parse(source, filename=str(path))\n",
+        replacement="            pass  # mutation-gate: python files no longer parsed\n",
+        sentinels=(
+            "tests/test_syntax_gate.py::test_g1_a_python_file_that_does_not_parse_is_named_with_its_line",
+            "tests/test_syntax_gate.py::test_r1_the_shape_that_swallowed_482_tests_is_reported",
+            "tests/test_syntax_gate.py::test_g5_every_problem_is_reported_not_only_the_first",
+        ),
+    ),
 )
 
 
