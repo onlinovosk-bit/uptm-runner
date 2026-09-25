@@ -16,6 +16,7 @@ from runner.paths import (
     CP_CONSTITUTION,
     GOVERNANCE,
     PROMPT_STACKS,
+    ROOT,
     RULES,
 )
 
@@ -98,6 +99,34 @@ def test_lease_and_cp_flag_cannot_substitute_for_each_other():
     live = _capital_rules()["live_capability"]
     assert live["lease_may_replace_cp_flag"] is False
     assert live["cp_flag_may_replace_lease"] is False
+
+
+def test_map_q2_stays_open():
+    """DEC-UPTM-MAP-Q2: neither repository's PASS wins a disagreement."""
+    text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
+    start = text.index("2. **Which repository's verdict wins")
+    block = text[start : text.index("\n3. ", start)]
+    assert "DEC-UPTM-MAP-Q2" in block
+    assert "OPEN" in block
+    assert "neither repository's `PASS` wins" in block
+    assert "DECIDED" not in block
+    constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
+    assert "v1.0" in constitution.splitlines()[0]
+    assert "| Status | **LOCKED** |" in constitution
+
+
+def test_map_q1_stays_open():
+    """DEC-UPTM-MAP-Q1: neither answer about a trading-system wave is adopted."""
+    text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
+    start = text.index("1. **Does a trading-system wave gate")
+    block = text[start : text.index("\n2. ", start)]
+    assert "DEC-UPTM-MAP-Q1" in block
+    assert "OPEN" in block
+    assert "neither answer is adopted" in block
+    assert "DECIDED" not in block
+    constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
+    assert "v1.0" in constitution.splitlines()[0]
+    assert "| Status | **LOCKED** |" in constitution
 
 
 def test_control_plane_live_trading_still_false():

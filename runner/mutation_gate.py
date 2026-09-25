@@ -266,6 +266,109 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
+        mutation_id="swarm-collect-disconnected",
+        claim=(
+            "APS-007 records a swarm wave in passed_waves only after "
+            "collect_and_verify passes. Replace that call with a forced pass and "
+            "a missing claim ledger records the wave."
+        ),
+        path="runner/fsm.py",
+        anchor="        return dispatch.collect_and_verify(dict(artifacts or {}))\n",
+        replacement=(
+            "        return SwarmCollectResult(\n"
+            "            wave_id=wave_id, passed=True, reasons=()\n"
+            "        )  # mutation-gate: collect disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_calls_collect_and_verify",
+            "tests/test_fsm.py::test_failing_collect_does_not_record_passed_wave",
+            "tests/test_fsm.py::test_passed_wave_depends_on_collect_result",
+        ),
+    ),
+    Mutation(
+        mutation_id="listed-agents-dispatch-disconnected",
+        claim=(
+            "APS-008 refuses to record a wave whose yaml lists agents when no "
+            "SwarmDispatch is bound. Disconnect that check and a PASS gate records "
+            "the wave with no ledger."
+        ),
+        path="runner/fsm.py",
+        anchor="        elif _wave_lists_agents(self.current_wave):\n",
+        replacement=(
+            "        elif False and _wave_lists_agents(self.current_wave):"
+            "  # mutation-gate: listed agents disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_checks_listed_agents",
+            "tests/test_fsm.py::test_listed_agents_without_dispatch_does_not_record",
+            "tests/test_fsm.py::test_passed_wave_depends_on_listed_agent_check",
+        ),
+    ),
+    Mutation(
+        mutation_id="agent-id-match-disconnected",
+        claim=(
+            "APS-009 records a listed-agent wave only when claim agent_ids equal "
+            "ownership.agents. Disconnect that comparison and a ledger under "
+            "another name records the wave."
+        ),
+        path="runner/fsm.py",
+        anchor="            mismatch = _agent_ledger_mismatch(self.current_wave, dispatch)\n",
+        replacement=(
+            "            mismatch = None  # mutation-gate: agent id match disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_compares_claim_agent_ids",
+            "tests/test_fsm.py::test_claim_agent_id_must_match_listed_agents",
+            "tests/test_fsm.py::test_passed_wave_depends_on_agent_id_match",
+        ),
+    ),
+    Mutation(
+        mutation_id="empty-agents-require-dispatch",
+        claim=(
+            "DEC-UPTM-APS-010 keeps an empty ownership.agents list on the gate. "
+            "Treat that empty list as a required swarm and a wave that named "
+            "nobody stops recording."
+        ),
+        path="runner/fsm.py",
+        anchor="    return len(declared) > 0\n",
+        replacement="    return True  # mutation-gate: empty agents treated as a swarm\n",
+        sentinels=(
+            "tests/test_fsm.py::test_empty_agent_list_still_records_without_dispatch",
+            "tests/test_fsm.py::test_terminating_fsm_reaches_exit_after_all_waves_pass",
+        ),
+    ),
+    Mutation(
+        mutation_id="map-q1-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q1 leaves the trading-wave question open. Marking it "
+            "decided adopts an answer the Founder did not give."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q1, 2026-09-25):** neither answer is adopted. This\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** a trading-system wave gate satisfies the "
+            "capital constitution. This\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q1_stays_open",),
+    ),
+    Mutation(
+        mutation_id="map-q2-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q2 leaves a cross-repository disagreement without a "
+            "winner. Marking it decided picks a PASS neither side is allowed to own."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q2, 2026-09-25):** neither repository's `PASS` wins.\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** the uptm-runner `PASS` wins the disagreement.\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q2_stays_open",),
+    ),
+    Mutation(
         mutation_id="syntax-gate-stops-parsing",
         claim=(
             "UPTM-009's parse of every .py is what stops an unreadable file from "

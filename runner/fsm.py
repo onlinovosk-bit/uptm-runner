@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -14,6 +15,7 @@ from runner.gates import GateResult, evaluate_gate
 from runner.paths import BASELINE, ROOT, WAVES
 from runner.prompt_stacks import assemble_prompt
 from runner.stops import StopConditionError, check_live_trading, raise_if_stop
+from ruflo.adapter import SwarmCollectResult, SwarmDispatch, SwarmDispatchError
 
 
 class State(str, Enum):
@@ -104,6 +106,7 @@ class RunnerFSM:
     passed_waves: set[int] = field(default_factory=set)
     history: list[str] = field(default_factory=list)
     last_gate: GateResult | None = None
+    last_collect: SwarmCollectResult | None = None
 
     def transition(self, new_state: State) -> None:
         allowed = ALLOWED_TRANSITIONS.get(self.state, set())
@@ -137,10 +140,34 @@ class RunnerFSM:
         self.transition(State.PATCH_LOOP)
         return self.state
 
-    def apply_gate(self, gate: GateResult, cluster_id: str = "default") -> State:
+    def apply_gate(
+        self,
+        gate: GateResult,
+        cluster_id: str = "default",
+        *,
+        dispatch: SwarmDispatch | None = None,
+        artifacts: Mapping[str, Mapping[str, Any]] | None = None,
+    ) -> State:
         self.last_gate = gate
+        self.last_collect = None
         self.transition(State.WAVE_GATE)
-        gate_passed = gate.passed and gate.critical == 0 and gate.high == 0
+        collect_ok = True
+        if dispatch is not None:
+            mismatch = _agent_ledger_mismatch(self.current_wave, dispatch)
+            if mismatch is not None:
+                self.last_collect = mismatch
+                collect_ok = False
+            else:
+                self.last_collect = _collect_for_wave(self.current_wave, dispatch, artifacts)
+                collect_ok = self.last_collect.passed
+        elif _wave_lists_agents(self.current_wave):
+            self.last_collect = SwarmCollectResult(
+                wave_id=self.current_wave,
+                passed=False,
+                reasons=("fail-closed: wave lists agents and has no swarm dispatch",),
+            )
+            collect_ok = False
+        gate_passed = gate.passed and gate.critical == 0 and gate.high == 0 and collect_ok
         if gate_passed:
             self.passed_waves.add(self.current_wave)
             if self.current_wave >= self.max_wave:
@@ -158,12 +185,24 @@ class RunnerFSM:
             State.STOPPED,
         }
 
-    def run_until_terminal(self, gate_provider: Any, *, max_steps: int = 256) -> State:
+    def run_until_terminal(
+        self,
+        gate_provider: Any,
+        *,
+        swarm_provider: Any = None,
+        max_steps: int = 256,
+    ) -> State:
         """Drive the control loop until EXIT or a terminal stop.
 
         ``gate_provider`` is called as ``gate_provider(fsm)`` at each WAVE_GATE.
         It must return a ``GateResult`` produced from complete evidence. The
         step cap is a safety assertion: an infinite control loop is a bug.
+
+        ``swarm_provider(fsm)`` may return ``(dispatch, artifacts)`` for the
+        current wave. A returned ledger is collected before ``passed_waves``
+        can record that wave. ``None`` supplies no ledger. A wave whose yaml
+        lists agents still denies without one, and a bound ledger must name
+        exactly those agents.
         """
         steps = 0
         while not self.is_terminal():
@@ -192,7 +231,18 @@ class RunnerFSM:
             elif self.state is State.ADVERSARIAL_VERIFY:
                 self.transition(State.EVIDENCE)
             elif self.state is State.EVIDENCE:
-                self.apply_gate(gate_provider(self), cluster_id=f"wave{self.current_wave}")
+                dispatch = None
+                artifacts = None
+                if swarm_provider is not None:
+                    supplied = swarm_provider(self)
+                    if supplied is not None:
+                        dispatch, artifacts = supplied
+                self.apply_gate(
+                    gate_provider(self),
+                    cluster_id=f"wave{self.current_wave}",
+                    dispatch=dispatch,
+                    artifacts=artifacts,
+                )
             elif self.state is State.PATCH_LOOP:
                 self.transition(State.PARALLEL_DISPATCH)
             elif self.state is State.NEXT_WAVE:
@@ -216,6 +266,78 @@ class RunnerFSM:
                 self.transition(State.HUMAN_REVIEW_REQUIRED)
             else:
                 self.state = State.STOPPED
+
+
+def _declared_agents(wave_id: int) -> tuple[str, ...] | None:
+    """Yaml agent names, or None when the declaration cannot be read.
+
+    An empty tuple means the wave names nobody. Duplicate or blank entries are
+    unreadable, so they deny rather than collapse into a smaller set.
+    """
+    agents = (load_wave(wave_id).get("ownership") or {}).get("agents", [])
+    if not isinstance(agents, list):
+        return None
+    if any(not isinstance(item, str) or not item for item in agents):
+        return None
+    if len(agents) != len(set(agents)):
+        return None
+    return tuple(agents)
+
+
+def _wave_lists_agents(wave_id: int) -> bool:
+    """True when the wave yaml names agents, or the declaration cannot be read.
+
+    An empty list is the declaration that the wave has no swarm. Anything else
+    requires a SwarmDispatch before the wave can be recorded.
+    """
+    declared = _declared_agents(wave_id)
+    if declared is None:
+        return True
+    # DEC-UPTM-APS-010: an empty list names nobody. It is not a missing ledger.
+    return len(declared) > 0
+
+
+def _agent_ledger_mismatch(
+    wave_id: int, dispatch: SwarmDispatch
+) -> SwarmCollectResult | None:
+    """None when claim agent ids equal the yaml list, or the list names nobody.
+
+    A non-empty list must be the same set as the ledger. An unreadable
+    declaration denies even when a dispatch is bound.
+    """
+    declared = _declared_agents(wave_id)
+    if declared is None:
+        return SwarmCollectResult(
+            wave_id=wave_id,
+            passed=False,
+            reasons=("fail-closed: wave agents declaration cannot be read",),
+        )
+    claimed = [claim.agent_id for claim in dispatch.claims]
+    if declared and set(claimed) != set(declared):
+        return SwarmCollectResult(
+            wave_id=wave_id,
+            passed=False,
+            reasons=("fail-closed: claim agent_id does not match ownership.agents",),
+        )
+    return None
+
+
+def _collect_for_wave(
+    wave_id: int,
+    dispatch: SwarmDispatch,
+    artifacts: Mapping[str, Mapping[str, Any]] | None,
+) -> SwarmCollectResult:
+    """Collect the wave's own ledger. A foreign wave or a rejected ledger denies."""
+    if dispatch.wave_id != wave_id:
+        return SwarmCollectResult(
+            wave_id=wave_id,
+            passed=False,
+            reasons=("fail-closed: collect wave does not match current wave",),
+        )
+    try:
+        return dispatch.collect_and_verify(dict(artifacts or {}))
+    except SwarmDispatchError as exc:
+        return SwarmCollectResult(wave_id=wave_id, passed=False, reasons=(str(exc),))
 
 
 def load_baseline() -> dict[str, Any]:
