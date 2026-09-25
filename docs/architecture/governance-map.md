@@ -131,9 +131,10 @@ evidence.**
 
 ## Open questions — Founder decisions, not inferences
 
-Question 4 is decided below. Questions 2 and 3 are not answered here.
-Question 1 is recorded open: neither answer is adopted. Question 5 is recorded
-open: neither wave numbering is canonical.
+Question 4 is decided below. Question 3 is not answered here.
+Question 1 is recorded open: neither answer is adopted. Question 2 is recorded
+open: neither repository's `PASS` wins. Question 5 is recorded open: neither
+wave numbering is canonical.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
@@ -143,6 +144,9 @@ open: neither wave numbering is canonical.
    trading wave from the constitution.
 2. **Which repository's verdict wins on a disagreement?** Both can emit `PASS`.
    Neither reads the other's.
+   **OPEN (DEC-UPTM-MAP-Q2, 2026-09-25):** neither repository's `PASS` wins.
+   This repository does not read the other verdict, and it does not treat its
+   own `PASS` as the winner.
 3. **How do €700 and €750 relate?**
 4. ~~**Does Evidence Rule A apply to `uptm-runner`?**~~ **DECIDED 2026-09-24:**
    half two (the evaluated head is read from the checkout, never asserted by the
@@ -158,8 +162,9 @@ open: neither wave numbering is canonical.
 ## What this document does not do
 
 - Question 1 stays open under `DEC-UPTM-MAP-Q1`: neither answer is adopted.
-  Question 5 stays open under `DEC-UPTM-MAP-Q5`: neither wave numbering is
-  canonical. Question 4 is decided. Questions 2 and 3 stay unanswered here.
+  Question 2 stays open under `DEC-UPTM-MAP-Q2`: neither repository's `PASS`
+  wins. Question 5 stays open under `DEC-UPTM-MAP-Q5`: neither wave numbering
+  is canonical. Question 4 is decided. Question 3 stays unanswered here.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.
