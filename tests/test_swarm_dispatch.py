@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
@@ -238,10 +239,18 @@ def test_evidence_skeleton_binds_prompt_stack_and_claim_metadata():
 
 
 def test_evidence_skeleton_cannot_pass_gate():
+    """A skeleton is a template an agent has not filled in yet, and it must not
+    pass. Since UPTM-008 it is denied twice over: it declares no files, so it is
+    bound to nothing, and its probes are SKIPPED.
+
+    Both are asserted. The binding denial comes first now, so checking only for
+    SKIPPED would stop proving that the probe guard works - the test would still
+    be green while the thing it was written for went unchecked."""
     claim = _claim("agent-a", ("runner/fsm.py",))
     skeleton = evidence_skeleton_for_claim(
         claim, branch="cursor/aps-001-prompt-stack-binding-619d", commit_sha="abc1234567"
     )
+
     result = evaluate_gate(skeleton)
     assert result.passed is False
     assert any("declares no files" in reason for reason in result.reasons)
@@ -253,6 +262,25 @@ def test_evidence_skeleton_cannot_pass_gate():
     bound_result = evaluate_gate(bound)
     assert bound_result.passed is False
     assert any("SKIPPED" in reason for reason in bound_result.reasons)
+    assert any("binding" in reason for reason in result.reasons), (
+        "a skeleton declaring no files is bound to nothing (UPTM-008 G5)"
+    )
+
+    # give it a true binding, and the SKIPPED probes must still deny it
+    bound = dict(skeleton)
+    bound["files"] = [
+        {
+            "path": "runner/gates.py",
+            "sha256": hashlib.sha256(
+                (ROOT / "runner" / "gates.py").read_bytes()
+            ).hexdigest(),
+        }
+    ]
+    bound_result = evaluate_gate(bound)
+    assert bound_result.passed is False
+    assert any("SKIPPED" in reason for reason in bound_result.reasons), (
+        f"the probe guard no longer denies a skeleton: {bound_result.reasons}"
+    )
 
 
 def test_evidence_skeleton_requires_branch_and_commit():
