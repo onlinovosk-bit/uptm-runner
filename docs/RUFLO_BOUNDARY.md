@@ -35,6 +35,20 @@ deterministic, gate-shaped JSON for each claim. The skeleton binds
 `prompt_stack`, lease metadata, and `owned_paths`. Probes are `SKIPPED` and
 `agent_claim.verdict` is `PARTIAL`, so a skeleton cannot pass a gate.
 
+`SwarmDispatch.collect_and_verify()` closes the loop. The wave passes only when
+every claim has exactly one collected artifact, that artifact is not a
+skeleton, its probes are not all `SKIPPED`, its `prompt_stack` digest matches
+the claim's assembled prompt, and `evaluate_gate` passes. A missing claim
+fails the wave. An artifact that declares no files fails the gate as binding
+UNKNOWN.
+
+`RunnerFSM.apply_gate` calls that collect when a `SwarmDispatch` is bound to
+the current wave, and writes `passed_waves` only if the collect passes and the
+gate is PASS with `CRITICAL=0` and `HIGH=0`. `run_until_terminal` forwards a
+`swarm_provider` into that call. A ledger for a different wave denies. A wave
+whose yaml lists agents, and a wave whose `agents` field cannot be read as a
+list, deny when no dispatch is bound. An empty `agents` list does not.
+
 Ruflo fanout is never gate evidence.
 
 ## Integrating a real Ruflo later

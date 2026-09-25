@@ -150,7 +150,10 @@ does not overlap. The Ruflo `SwarmDispatch` contract requires:
 
 Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 `passed_waves`, which is written only after a PASS gate result with
-`CRITICAL=0` and `HIGH=0`.
+`CRITICAL=0` and `HIGH=0`. When that gate carries a `SwarmDispatch`, the write
+also requires `collect_and_verify` to pass for the same wave. A wave whose
+yaml `ownership.agents` is non-empty does not record without that dispatch.
+An empty agent list still records from the gate alone.
 
 ## Ruflo and Cursor stub boundary
 
@@ -162,3 +165,9 @@ raises when not configured. `handoff_swarm()` emits one documented handoff per
 validated swarm claim, using the APS-004 skeleton path and prompt-stack
 metadata. The skeleton itself cannot pass a gate; a real probe-bearing artifact
 is still required.
+
+`SwarmDispatch.collect_and_verify()` requires one collected artifact per claim.
+The wave fails when any claim is missing, still marked `skeleton`, has only
+`SKIPPED` probes, carries a different `assembled_prompt_digest` than the
+claim's prompt stack, or fails `evaluate_gate`. Declaring no files is binding
+UNKNOWN and does not pass.

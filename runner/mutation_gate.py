@@ -265,6 +265,45 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_enforcement_evidence.py::test_each_mechanism_holding_ps_r1_denies_on_its_own",
         ),
     ),
+    Mutation(
+        mutation_id="swarm-collect-disconnected",
+        claim=(
+            "APS-007 records a swarm wave in passed_waves only after "
+            "collect_and_verify passes. Replace that call with a forced pass and "
+            "a missing claim ledger records the wave."
+        ),
+        path="runner/fsm.py",
+        anchor="        return dispatch.collect_and_verify(dict(artifacts or {}))\n",
+        replacement=(
+            "        return SwarmCollectResult(\n"
+            "            wave_id=wave_id, passed=True, reasons=()\n"
+            "        )  # mutation-gate: collect disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_calls_collect_and_verify",
+            "tests/test_fsm.py::test_failing_collect_does_not_record_passed_wave",
+            "tests/test_fsm.py::test_passed_wave_depends_on_collect_result",
+        ),
+    ),
+    Mutation(
+        mutation_id="listed-agents-dispatch-disconnected",
+        claim=(
+            "APS-008 refuses to record a wave whose yaml lists agents when no "
+            "SwarmDispatch is bound. Disconnect that check and a PASS gate records "
+            "the wave with no ledger."
+        ),
+        path="runner/fsm.py",
+        anchor="        elif _wave_lists_agents(self.current_wave):\n",
+        replacement=(
+            "        elif False and _wave_lists_agents(self.current_wave):"
+            "  # mutation-gate: listed agents disconnected\n"
+        ),
+        sentinels=(
+            "tests/test_fsm.py::test_fsm_actually_checks_listed_agents",
+            "tests/test_fsm.py::test_listed_agents_without_dispatch_does_not_record",
+            "tests/test_fsm.py::test_passed_wave_depends_on_listed_agent_check",
+        ),
+    ),
 )
 
 
