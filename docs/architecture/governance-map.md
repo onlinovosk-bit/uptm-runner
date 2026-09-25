@@ -131,11 +131,15 @@ evidence.**
 
 ## Open questions — Founder decisions, not inferences
 
-None of these is answered anywhere, and none is answered here.
+Question 4 is decided below. Questions 2, 3, and 5 are not answered here.
+Question 1 is recorded open: neither answer is adopted.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
    no, P8 and P10 are enforced against something that never runs.
+   **OPEN (DEC-UPTM-MAP-Q1, 2026-09-25):** neither answer is adopted. This
+   repository does not invent the evidence link, and it does not exempt a
+   trading wave from the constitution.
 2. **Which repository's verdict wins on a disagreement?** Both can emit `PASS`.
    Neither reads the other's.
 3. **How do €700 and €750 relate?**
@@ -149,7 +153,8 @@ None of these is answered anywhere, and none is answered here.
 
 ## What this document does not do
 
-- It does not decide any of the five questions above.
+- Question 1 stays open under `DEC-UPTM-MAP-Q1`: neither answer is adopted.
+  Question 4 is decided. Questions 2, 3, and 5 stay unanswered here.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.

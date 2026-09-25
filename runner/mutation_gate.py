@@ -337,6 +337,22 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_fsm.py::test_terminating_fsm_reaches_exit_after_all_waves_pass",
         ),
     ),
+    Mutation(
+        mutation_id="map-q1-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q1 leaves the trading-wave question open. Marking it "
+            "decided adopts an answer the Founder did not give."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q1, 2026-09-25):** neither answer is adopted. This\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** a trading-system wave gate satisfies the "
+            "capital constitution. This\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q1_stays_open",),
+    ),
 )
 
 
