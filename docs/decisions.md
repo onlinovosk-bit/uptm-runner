@@ -15,6 +15,26 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-25] DEC-UPTM-MAP-Q1 — the trading-wave question stays open
+
+**Decided:** Founder GO MAP-Q1, accepting the recommendation not to answer it
+from this repository. Question 1 on `docs/architecture/governance-map.md` stays
+**OPEN**. Neither answer is adopted: a trading-system wave gate is not declared
+to satisfy the capital constitution, and it is not declared exempt from it.
+
+**Why:** The map measured that nothing connects the two repositories. Answering
+"yes" would invent a W8 evidence artifact this repository does not have.
+Answering "no" would exempt a trading wave from P8 and P10 without a Founder
+amendment. `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED. No principle's
+enforcement state moves. `LIVE_TRADING` stays false. No P12 invalidation
+follows.
+
+**Artifact:** the question 1 block in `docs/architecture/governance-map.md`
+carries `OPEN (DEC-UPTM-MAP-Q1)`. Mutation `map-q1-marked-decided` replaces
+that marker with an adopted answer. `test_map_q1_stays_open` goes red.
+
+---
+
 ## [2026-09-24] DEC-UPTM-008 — the gate verifies the binding it was always handed; P12 is ENFORCED
 
 **Decided:** Founder GO, *"GO na gate spotrebuje staleness"*. Built as
