@@ -311,6 +311,7 @@ def test_listed_agents_without_dispatch_does_not_record():
 
 
 def test_empty_agent_list_still_records_without_dispatch():
+    """DEC-UPTM-APS-010: agents: [] names nobody, so the gate records the wave."""
     fsm = _to_evidence()
     fsm.current_wave = 2
     assert fsm.apply_gate(_pass()) == State.WAVE_READY

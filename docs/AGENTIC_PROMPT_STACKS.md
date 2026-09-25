@@ -154,8 +154,8 @@ Wave crossing is blocked by the FSM: wave N+1 cannot start until wave N is in
 also requires `collect_and_verify` to pass for the same wave. A wave whose
 yaml `ownership.agents` is non-empty does not record without that dispatch.
 When the list is non-empty, the claim `agent_id` set must equal it. A missing
-or extra name denies. An empty agent list still records from the gate alone
-and does not name anyone for that comparison.
+or extra name denies. An empty agent list records from the gate alone
+(`DEC-UPTM-APS-010`) and does not name anyone for that comparison.
 
 ## Ruflo and Cursor stub boundary
 

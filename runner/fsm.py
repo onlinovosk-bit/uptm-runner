@@ -293,6 +293,7 @@ def _wave_lists_agents(wave_id: int) -> bool:
     declared = _declared_agents(wave_id)
     if declared is None:
         return True
+    # DEC-UPTM-APS-010: an empty list names nobody. It is not a missing ledger.
     return len(declared) > 0
 
 

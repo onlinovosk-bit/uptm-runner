@@ -21,6 +21,7 @@ unconfigured.
    that is not CURRENT) fails the wave and does not record `passed_waves`.
    A wave whose yaml `ownership.agents` is non-empty also does not record when
    no ledger is passed in, or when the claim `agent_id`s differ from that list.
+   An empty `agents` list records from the gate alone (`DEC-UPTM-APS-010`).
 7. Run `uptm-runner evaluate-gate --evidence <path>` on each collected artifact.
 
 Single-task `handoff(task)` remains as the documented one-agent fallback.

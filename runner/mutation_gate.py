@@ -322,6 +322,21 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_fsm.py::test_passed_wave_depends_on_agent_id_match",
         ),
     ),
+    Mutation(
+        mutation_id="empty-agents-require-dispatch",
+        claim=(
+            "DEC-UPTM-APS-010 keeps an empty ownership.agents list on the gate. "
+            "Treat that empty list as a required swarm and a wave that named "
+            "nobody stops recording."
+        ),
+        path="runner/fsm.py",
+        anchor="    return len(declared) > 0\n",
+        replacement="    return True  # mutation-gate: empty agents treated as a swarm\n",
+        sentinels=(
+            "tests/test_fsm.py::test_empty_agent_list_still_records_without_dispatch",
+            "tests/test_fsm.py::test_terminating_fsm_reaches_exit_after_all_waves_pass",
+        ),
+    ),
 )
 
 
