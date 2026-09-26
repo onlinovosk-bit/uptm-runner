@@ -132,10 +132,11 @@ evidence.**
 
 ## Open questions — Founder decisions, not inferences
 
-Question 4 is decided below. Question 5 is not answered here.
+Question 4 is decided below.
 Question 1 is recorded open: neither answer is adopted. Question 2 is recorded
 open: neither repository's `PASS` wins. Question 3 is recorded open: no
-relation between €700 and €750 is adopted.
+relation between €700 and €750 is adopted. Question 5 is recorded open: neither
+wave numbering is canonical.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
@@ -160,13 +161,17 @@ relation between €700 and €750 is adopted.
    condition. `docs/evidence-rule-a.md`.
 5. **Which wave vocabulary is canonical?** Two systems numbering waves 0–7 and
    0–9 will keep colliding in status lines.
+   **OPEN (DEC-UPTM-MAP-Q5, 2026-09-25):** neither numbering is canonical.
+   This repository keeps its own wave files. It does not renumber them to 0–9,
+   and it does not declare 0–7 the name of the other repository's waves.
 
 ## What this document does not do
 
 - Question 1 stays open under `DEC-UPTM-MAP-Q1`: neither answer is adopted.
   Question 2 stays open under `DEC-UPTM-MAP-Q2`: neither repository's `PASS`
   wins. Question 3 stays open under `DEC-UPTM-MAP-Q3`: no relation between €700
-  and €750 is adopted. Question 4 is decided. Question 5 stays unanswered here.
+  and €750 is adopted. Question 4 is decided. Question 5 stays open under
+  `DEC-UPTM-MAP-Q5`: neither wave numbering is canonical.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.

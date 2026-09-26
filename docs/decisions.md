@@ -15,6 +15,27 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-25] DEC-UPTM-MAP-Q5 — neither wave numbering is canonical
+
+**Decided:** Founder GO MAP-Q5, accepting the recommendation not to pick a
+numbering from this repository. Question 5 on `docs/architecture/governance-map.md`
+stays **OPEN**. Waves 0–7 are not declared the other repository's names, and
+this repository's wave files are not renumbered to 0–9.
+
+**Why:** The map measured two vocabularies. Choosing 0–7 as canonical would
+rename the trading system's waves without reading them. Choosing 0–9 would
+rename this repository's `waves/wave0.yaml` through `waves/wave7.yaml`. Neither
+rename is a decision the files already contain. `CONSTITUTION-CAPITAL.md` v1.0
+stays LOCKED. No principle's enforcement state moves. `LIVE_TRADING` stays
+false. No P12 invalidation follows.
+
+**Artifact:** the question 5 block in `docs/architecture/governance-map.md`
+carries `OPEN (DEC-UPTM-MAP-Q5)`. Mutation `map-q5-marked-decided` replaces
+that marker with waves 0–7 as the canonical numbering. `test_map_q5_stays_open`
+goes red. The wave files stay `wave0.yaml` through `wave7.yaml`.
+
+---
+
 ## [2026-09-25] DEC-UPTM-MAP-Q3 — no relation between €700 and €750 is adopted
 
 **Decided:** Founder GO MAP-Q3, accepting the recommendation not to invent the
