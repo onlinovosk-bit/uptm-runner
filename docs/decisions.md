@@ -15,6 +15,86 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-26] DEC-UPTM-010 — a schema the gate cannot read is a fault, not a pass
+
+**Decided:** Founder GO on the swallowed `except Exception: pass` in
+`runner/evidence.py`. Built as `UPTM-010`, preregistered in
+`docs/specs/UPTM-010-schema-load-is-not-optional.md` before the implementation
+existed (P4). Stacked on `UPTM-009` (#40), which repaired the schema file.
+
+### What was open
+
+One `except` covered two unrelated events: *the schema could not be loaded* and
+*the evidence did not match it*. The first is an infrastructure fault, and it
+read as a pass for a full day while `schemas/evidence.schema.json` did not
+parse. A check that did not run was reporting success — the exact thing
+"absence is not a measurement" forbids.
+
+### What the measurement said, before anything was designed
+
+The swallow was instrumented for one suite run, then the instrumentation was
+removed:
+
+```
+183 exceptions swallowed, all jsonschema.ValidationError, none a load failure
+```
+
+The comment being replaced blamed adversarial packs violating severity enums.
+That is a minority. Most are packs — `capital`, `kill_switch`, `market_data`,
+`pnl` — that the schema has never been taught, tripping
+`additionalProperties: false`.
+
+**So the old conclusion was right and its stated reason was wrong.** Mismatch
+stays soft because the schema is measurably behind the evidence, not mainly
+because packs attack it. Turning mismatch hard would have promoted an
+out-of-date schema into a gate, and the honest route to a green suite would
+have been to teach the schema every pack it does not model — a far larger
+change than the one asked for.
+
+### What was built
+
+A load failure — unparseable, absent, not a valid JSON Schema, `jsonschema` not
+importable, or anything else that stops the check completing — returns one
+named error, which `evaluate_gate` turns into a `fail-closed:` denial. A
+mismatch returns nothing, exactly as before.
+
+The fault is about the *check*, so it is reported once: evidence missing eleven
+fields reports eleven field errors and one schema fault.
+
+### The judgement call, recorded before it was made
+
+A missing `jsonschema` now denies. `jsonschema>=4.20` is a declared runtime
+dependency, not an extra, and an environment quietly skipping the check is the
+defect being replaced. The argument against — it can deny for a reason that has
+nothing to do with the evidence — is written into the spec's §4, before the
+code, rather than discovered in a diff.
+
+### Load-bearing
+
+A `mutation-gate` case restores the blanket swallow and names four tests
+required to go red. Measured: all four do.
+
+### What this does NOT establish
+
+- **Not that the schema is correct or complete.** The 183 mismatches say it is
+  neither. This makes a *load* failure loud; the schema's content is untouched.
+- **Not that evidence matching the schema is sound.** Mismatch stays soft by
+  design, so the schema still gates nothing about evidence content.
+- **Not that other swallows are gone.** One `except` in one function was
+  changed. No survey of the rest was done, and none is claimed.
+
+### Settled from UPTM-009
+
+That spec left open whether the repaired schema accepts a real gate pack. It
+does — `runner.enforcement._base()` validates against it, asserted by a test
+rather than assumed.
+
+### Unchanged
+
+`LIVE_TRADING` stays `false`. No guard loosened, no enforcement status moved,
+no capability granted. 35 routes, none reaching PASS, none denying for another
+reason; `claims_checked` still P8, P10, P12.
+
 ## [2026-09-25] DEC-UPTM-MAP-Q2 — neither repository's PASS wins a disagreement
 
 **Decided:** Founder GO MAP-Q2, accepting the recommendation not to pick a

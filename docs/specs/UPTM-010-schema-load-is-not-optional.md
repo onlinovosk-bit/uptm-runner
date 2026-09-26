@@ -93,7 +93,53 @@ check that did not run must never read as a check that passed.
 
 ## §3 Result
 
-*(filled in after implementation)*
+Measured on `e473f2f`, clean tree.
+
+| # | Criterion | Result |
+|---|---|---|
+| S1 | unparseable schema → named, with the decoder's own message and line | **PASS** |
+| S2 | absent schema → named | **PASS** |
+| S3 | parses but is not a JSON Schema → named | **PASS** |
+| S4 | `jsonschema` not importable → named | **PASS** |
+| S5 | mismatch against a loadable schema → no error, unchanged | **PASS** |
+| S6 | the fault denies the gate (`fail-closed: schema check could not run …`) | **PASS** |
+| S7 | reported once, not once per field | **PASS** |
+| L1 | mutation-gate case, named sentinels go red | **PASS**, all four |
+| L2 | the suite passes whole, nothing skipped or weakened | **PASS** |
+
+```
+563 passed              553 + 9 new tests + 1, the mutation registry being
+                        parametrised, so the new case became a test by itself
+syntax-gate             exit 0
+mutation-gate           exit 0, 15 cases, none not-ok
+                        schema-faults-swallowed caught by all 4 sentinels
+enforcement-evidence    exit 0, 35 routes, reaching PASS [], another reason [],
+                        unproven_claims [], claims_checked P8 P10 P12
+```
+
+### Nothing was weakened to get there
+
+L2 mattered more than it looks. The 183 mismatches of M3 are load-bearing
+behaviour: had S5 been written the other way round, the honest way to a green
+suite would have been to teach the schema every pack it does not know — a much
+larger change than this one, and not what was asked for. The spec fixed that
+before the code, so the temptation never arose.
+
+### Two criteria that could have been quietly softened, and were not
+
+- **S4** is the judgement call of §4. It is implemented as argued: a missing
+  `jsonschema` denies. Nothing in the suite needed it relaxed.
+- **S7** could have been satisfied by returning the fault only when no other
+  error exists. It is instead satisfied by the fault being about the *check*:
+  evidence missing eleven fields reports eleven field errors and exactly one
+  schema fault.
+
+### What the measurement changed about the original reasoning
+
+The comment being replaced said mismatch is soft because *"adversarial packs
+may intentionally violate severity enums"*. That is true of a minority. The
+majority are packs the schema does not model at all. The conclusion survives;
+the stated reason did not, and the code now carries the measured one.
 
 ---
 
