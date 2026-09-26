@@ -24,6 +24,14 @@ jobs:
       - name: Install package and test dependencies
         run: python -m pip install -e ".[dev]"
 
+      # A file that does not parse breaks collection, not a test. pytest then
+      # reports the collector, not the file: 6b46cc2 swallowed 482 tests that
+      # way. This step reads every .py, .json and workflow first and names each
+      # one that cannot be read. It is invoked as a module, not through
+      # runner.cli, because runner.cli imports the very tree being checked.
+      - name: Syntax gate (UPTM-009, every file parses)
+        run: python -m runner.syntax_gate
+
       - name: Run pytest
         run: python -m pytest
 
