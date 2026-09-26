@@ -354,6 +354,36 @@ MUTATIONS: tuple[Mutation, ...] = (
         sentinels=("tests/test_governance.py::test_map_q1_stays_open",),
     ),
     Mutation(
+        mutation_id="map-q5-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q5 leaves the two wave numberings without a canonical "
+            "one. Marking 0-7 canonical names the other repository's waves."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q5, 2026-09-25):** neither numbering is canonical.\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** waves 0–7 are the canonical numbering.\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q5_stays_open",),
+    ),
+    Mutation(
+        mutation_id="map-q3-marked-decided",
+        claim=(
+            "DEC-UPTM-MAP-Q3 leaves the relation between EUR 700 and EUR 750 "
+            "unadopted. Marking it decided invents a ceiling the Founder did not set."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "   **OPEN (DEC-UPTM-MAP-Q3, 2026-09-25):** no relation is adopted. €700 stays\n"
+        ),
+        replacement=(
+            "   **DECIDED (2026-09-25):** €700 is a ceiling on the €750 paper account. €700 stays\n"
+        ),
+        sentinels=("tests/test_governance.py::test_map_q3_stays_open",),
+    ),
+    Mutation(
         mutation_id="map-q2-marked-decided",
         claim=(
             "DEC-UPTM-MAP-Q2 leaves a cross-repository disagreement without a "

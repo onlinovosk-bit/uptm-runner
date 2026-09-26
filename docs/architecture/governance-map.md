@@ -109,8 +109,9 @@ onlinovosk-bit-uptm   DEFAULT_CAPITAL_EUR  EUR 750   (min 500, max 1000)
 
 They are not in conflict, and they are not the same thing: €700 is the size of
 the validation *test* under P10; €750 is the paper account's starting capital.
-**Nothing anywhere states how they relate** — whether the tranche is a ceiling on
-the envelope, a subset of it, or an independent limit.
+**DEC-UPTM-MAP-Q3 leaves that relation unadopted.** Whether the tranche is a
+ceiling on the envelope, a subset of it, or an independent limit is not decided
+here. Neither number is rewritten into the other.
 
 ## Where authority actually sits, today
 
@@ -131,9 +132,11 @@ evidence.**
 
 ## Open questions — Founder decisions, not inferences
 
-Question 4 is decided below. Questions 3 and 5 are not answered here.
+Question 4 is decided below.
 Question 1 is recorded open: neither answer is adopted. Question 2 is recorded
-open: neither repository's `PASS` wins.
+open: neither repository's `PASS` wins. Question 3 is recorded open: no
+relation between €700 and €750 is adopted. Question 5 is recorded open: neither
+wave numbering is canonical.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
@@ -147,6 +150,10 @@ open: neither repository's `PASS` wins.
    This repository does not read the other verdict, and it does not treat its
    own `PASS` as the winner.
 3. **How do €700 and €750 relate?**
+   **OPEN (DEC-UPTM-MAP-Q3, 2026-09-25):** no relation is adopted. €700 stays
+   the validation-test size. €750 stays the other repository's paper-account
+   capital. This repository does not treat either number as a ceiling, a
+   subset, or a limit on the other.
 4. ~~**Does Evidence Rule A apply to `uptm-runner`?**~~ **DECIDED 2026-09-24:**
    half two (the evaluated head is read from the checkout, never asserted by the
    caller) is adopted; half one (no field meaning "the commit that contains me")
@@ -154,12 +161,17 @@ open: neither repository's `PASS` wins.
    condition. `docs/evidence-rule-a.md`.
 5. **Which wave vocabulary is canonical?** Two systems numbering waves 0–7 and
    0–9 will keep colliding in status lines.
+   **OPEN (DEC-UPTM-MAP-Q5, 2026-09-25):** neither numbering is canonical.
+   This repository keeps its own wave files. It does not renumber them to 0–9,
+   and it does not declare 0–7 the name of the other repository's waves.
 
 ## What this document does not do
 
 - Question 1 stays open under `DEC-UPTM-MAP-Q1`: neither answer is adopted.
   Question 2 stays open under `DEC-UPTM-MAP-Q2`: neither repository's `PASS`
-  wins. Question 4 is decided. Questions 3 and 5 stay unanswered here.
+  wins. Question 3 stays open under `DEC-UPTM-MAP-Q3`: no relation between €700
+  and €750 is adopted. Question 4 is decided. Question 5 stays open under
+  `DEC-UPTM-MAP-Q5`: neither wave numbering is canonical.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.

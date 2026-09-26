@@ -18,6 +18,7 @@ from runner.paths import (
     PROMPT_STACKS,
     ROOT,
     RULES,
+    WAVES,
 )
 
 ENFORCEMENT_STATES = {"ENFORCED", "PARTIAL", "DECLARATIVE", "MISSING", "CONFLICT"}
@@ -99,6 +100,42 @@ def test_lease_and_cp_flag_cannot_substitute_for_each_other():
     live = _capital_rules()["live_capability"]
     assert live["lease_may_replace_cp_flag"] is False
     assert live["cp_flag_may_replace_lease"] is False
+
+
+def test_map_q5_stays_open():
+    """DEC-UPTM-MAP-Q5: neither 0–7 nor 0–9 is the canonical wave numbering."""
+    text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
+    start = text.index("5. **Which wave vocabulary")
+    block = text[start : text.index("\n## What this document", start)]
+    assert "DEC-UPTM-MAP-Q5" in block
+    assert "OPEN" in block
+    assert "neither numbering is canonical" in block
+    assert "DECIDED" not in block
+    for wave_id in range(8):
+        assert (WAVES / f"wave{wave_id}.yaml").is_file()
+    assert not (WAVES / "wave8.yaml").exists()
+    assert not (WAVES / "wave9.yaml").exists()
+    constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
+    assert "v1.0" in constitution.splitlines()[0]
+    assert "| Status | **LOCKED** |" in constitution
+
+
+def test_map_q3_stays_open():
+    """DEC-UPTM-MAP-Q3: no relation between EUR 700 and EUR 750 is adopted."""
+    text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
+    start = text.index("3. **How do €700 and €750 relate?")
+    block = text[start : text.index("\n4. ", start)]
+    assert "DEC-UPTM-MAP-Q3" in block
+    assert "OPEN" in block
+    assert "no relation is adopted" in block
+    assert "DECIDED" not in block
+    capital = _capital_rules()["validation_capital"]
+    assert capital["amount"] == 700
+    assert capital["currency"] == "EUR"
+    assert "750" not in json.dumps(_capital_rules())
+    constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
+    assert "v1.0" in constitution.splitlines()[0]
+    assert "| Status | **LOCKED** |" in constitution
 
 
 def test_map_q2_stays_open():
