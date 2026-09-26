@@ -390,6 +390,28 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_syntax_gate.py::test_g5_every_problem_is_reported_not_only_the_first",
         ),
     ),
+    Mutation(
+        mutation_id="schema-faults-swallowed",
+        claim=(
+            "UPTM-010 is what makes a schema the gate cannot load deny instead of "
+            "pass. Remove the call and the blanket `except Exception: pass` is back "
+            "in effect: schemas/evidence.schema.json did not parse for a day and "
+            "every run still reported success.\n\n"
+            "Only the fault path is load-bearing. Evidence that merely fails to "
+            "match a loadable schema stays soft on purpose - measured, 183 of the "
+            "suite's evaluations do, most on packs the schema has never been "
+            "taught - so no sentinel here asserts anything about mismatch."
+        ),
+        path="runner/evidence.py",
+        anchor="    errors.extend(_schema_errors(evidence))\n",
+        replacement="    pass  # mutation-gate: schema faults swallowed again\n",
+        sentinels=(
+            "tests/test_schema_load.py::test_s1_a_schema_that_does_not_parse_is_reported_with_its_line",
+            "tests/test_schema_load.py::test_s4_jsonschema_not_importable_is_a_fault_not_a_pass",
+            "tests/test_schema_load.py::test_s6_the_fault_denies_the_gate",
+            "tests/test_schema_load.py::test_s7_a_fault_is_reported_once_not_once_per_field",
+        ),
+    ),
 )
 
 
