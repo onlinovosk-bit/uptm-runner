@@ -15,9 +15,66 @@ class EvidenceError(ValueError):
     """Evidence invalid or incomplete."""
 
 
+SCHEMA_PATH = SCHEMAS / "evidence.schema.json"
+_SCHEMA_NAME = "schemas/evidence.schema.json"
+
+
 def _load_schema() -> dict[str, Any]:
-    path = SCHEMAS / "evidence.schema.json"
-    return json.loads(path.read_text(encoding="utf-8"))
+    return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+def _schema_errors(evidence: dict[str, Any]) -> list[str]:
+    """UPTM-010: separate "the check could not run" from "the evidence failed".
+
+    One ``except Exception: pass`` used to cover both. It hid the fact that
+    schemas/evidence.schema.json had not parsed since c4c409d - every run
+    reported success while the check did nothing at all.
+
+    A load failure is an infrastructure fault and fails closed. A mismatch is a
+    finding about the evidence and stays soft, because the schema is measurably
+    behind what the code really builds: 183 of the suite's evaluations fail it,
+    most on packs (capital, kill_switch, market_data, pnl) the schema has never
+    been taught. Turning those hard would promote an out-of-date schema into a
+    gate. See docs/specs/UPTM-010-schema-load-is-not-optional.md.
+
+    At most one error is returned: the fault is about the check, not the fields.
+    """
+    try:
+        import jsonschema
+    except ImportError:
+        # jsonschema>=4.20 is a declared runtime dependency, not an extra. An
+        # environment without it is misconfigured, and a misconfigured
+        # environment quietly skipping a check is the defect this replaces.
+        return ["schema check could not run: jsonschema is not importable"]
+
+    try:
+        schema = _load_schema()
+    except json.JSONDecodeError as exc:
+        return [
+            f"schema check could not run: {_SCHEMA_NAME} does not parse "
+            f"({exc.msg}, line {exc.lineno})"
+        ]
+    except OSError as exc:
+        return [f"schema check could not run: {_SCHEMA_NAME} is unreadable ({exc})"]
+
+    try:
+        jsonschema.validate(evidence, schema)
+    except jsonschema.ValidationError:
+        # The evidence did not match. Soft on purpose - see the docstring.
+        return []
+    except jsonschema.SchemaError as exc:
+        first = str(exc).splitlines()[0]
+        return [
+            f"schema check could not run: {_SCHEMA_NAME} is not a valid "
+            f"JSON Schema ({first})"
+        ]
+    except Exception as exc:  # noqa: BLE001 - deliberate, and no longer silent
+        # Anything else means the check did not complete. Unknown is not pass.
+        return [
+            f"schema check could not run: {type(exc).__name__} "
+            f"({str(exc).splitlines()[0]})"
+        ]
+    return []
 
 
 def validate_evidence_structure(evidence: dict[str, Any]) -> list[str]:
@@ -51,19 +108,7 @@ def validate_evidence_structure(evidence: dict[str, Any]) -> list[str]:
     if "live_trading" in evidence and evidence.get("live_trading") is not False:
         errors.append("live_trading must be false")
     errors.extend(validate_prompt_stack_binding(evidence))
-    # Optional strict schema (does not replace adversarial severity logic)
-    try:
-        import jsonschema
-
-        # Copy and loosen severity enum so downgrade attacks reach count logic
-        schema = _load_schema()
-        jsonschema.validate(evidence, schema)
-    except ImportError:
-        pass
-    except Exception:
-        # Schema mismatch is recorded softly; structural errors above are hard.
-        # Adversarial packs may intentionally violate severity enums.
-        pass
+    errors.extend(_schema_errors(evidence))
     return errors
 
 
