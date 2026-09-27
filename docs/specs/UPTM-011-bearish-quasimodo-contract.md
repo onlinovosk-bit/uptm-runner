@@ -109,7 +109,63 @@ contract's rules are asserted by tests that execute, on the real artifact.
 
 ## §5 Result
 
-*(filled in after implementation)*
+Built on 2026-09-27. Nothing runs against market data; nothing trades.
+
+| artifact | what it is |
+|---|---|
+| `research/candidates/reversal/bearish_quasimodo.json` | the contract |
+| `runner/pattern_contract.py` | the ladder, and what reads the contract |
+| `tests/test_pattern_contract.py` | 25 tests, each naming its criterion |
+| `runner/mutation_gate.py` | two cases (§L1) |
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| C1 | `test_c1_*` — all six axes at their floor, `live_trading: false`, `ladder_errors == []`; a forged rung is named and rejected. |
+| C2 | `test_c2_*` — the eleven terms §1's right-hand column leaves unstated are present and `UNDEFINED`; **deleting** a term reports it undefined all the same. |
+| C3 | `test_c3_*` — the sequence is read out of the contract and equals `HH → HL → HH → LL → LH`, short; `rules` cannot leave `UNDEFINED`. |
+| C4 | `test_c4_*` — a triple-bottom contract invented inside the test, with *every one of its own terms defined*, is still held: `swing_definition` is required because its sequence names swings, and the requirement disappears for a structure that names none. |
+| C5 | `test_c5_*` — parametrised over all five gated axes; each earlier axis is named individually. |
+| C6 | `test_c6_*` — `primary_source_read: false`, claimed kept apart from interpreted, worked examples filed as illustrations. |
+| C7 | `test_c7_*` — the existing Hafez candidate's `rule` and `forbidden` list are read from its file and required to be a subset. |
+| C8 | `test_c8_*` — `data_requirement.status == OPEN_UNKNOWN`, naming the map. |
+| L1 | `pattern-ladder-ordering-dropped` and `pattern-undefined-root-ignored`. |
+| L2 | `test_l2_*` — the Hafez candidate still carries its flat string `status`. |
+
+### Preregistered as one thing, built as another
+
+**L1 said "a case"; two were built.** The ladder has two independent mechanisms —
+the ordering between axes, and the block on `rules` over undefined terms — and
+one mutation cannot break both. Two cases, one per mechanism.
+
+**A sentinel cannot name a parameter set.** The first attempt named
+`…test_c5_no_axis_rises…[5]`. `failed_nodes()` strips parametrisation
+deliberately ("sentinels name a test, not a parameter set"), so the gate
+reported the sentinel missing while the test was in fact failing. The sentinel
+now names the test. The consequence is recorded rather than worked around: this
+sentinel is satisfied when *any* of the five parameter sets goes red, not all
+five. The per-axis assertion lives in the test, which is where it belongs; the
+mutation gate's job is only to prove the test still bites.
+
+### What was measured, not assumed
+
+- `python -m runner.syntax_gate` — every file parses.
+- `python -m pytest -q` — 594 passed, 0 failed.
+- `python -m runner.cli mutation-gate` — 19 cases, `ok: true`, no missing sentinel.
+
+### Unresolved, deliberately
+
+`swing_definition` is still `UNDEFINED`, so the contract is not implementable and
+says so on the `rules` axis. Defining it is a separate decision with a separate
+GO: it is a modelling choice (bars either side, minimum amplitude, timeframe)
+that every one of the seven formations would inherit, and it should not be made
+as a side effect of writing down one of them.
+
+C8's test asserts what the contract *records* about the sourcing map. It cannot
+read `docs/architecture/master-data-sourcing-map.md`, which lives in the other
+repository — so the absence of an ES/MES source was checked by hand on
+2026-09-27 and is an assertion about a file this suite cannot see.
 
 ---
 
