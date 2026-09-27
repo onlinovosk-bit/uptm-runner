@@ -480,6 +480,44 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_pattern_contract.py::test_c4_an_unseen_contract_is_held_to_the_same_root",
         ),
     ),
+    Mutation(
+        mutation_id="swing-confirmation-lag-removed",
+        claim=(
+            "UPTM-012's `confirmed_at` is the whole reason the module exists. A "
+            "swing high at bar i is not knowable at bar i - the bars to its right "
+            "have not happened. Collapse the lag to the bar the extreme sits on "
+            "and every downstream decision reads `pivot_bars` bars of future "
+            "information, silently, and reports an edge nobody could have traded.\n\n"
+            "The candidate's own no_prediction_principle forbids exactly this: "
+            "'swing points confirmed by bars later than the decision timestamp'. "
+            "This case is what keeps that sentence from becoming decoration."
+        ),
+        path="runner/swing.py",
+        anchor="                confirmed_at=index + reach,\n",
+        replacement="                confirmed_at=index,  # mutation-gate: lag removed\n",
+        sentinels=(
+            "tests/test_swing.py::test_s3_confirmation_is_the_extreme_plus_the_right_hand_window",
+            "tests/test_swing.py::test_s4_what_is_knowable_at_t_is_what_a_detector_at_t_could_have_found",
+            "tests/test_swing.py::test_s4_the_invariant_also_holds_with_an_amplitude_filter_in_play",
+            "tests/test_swing.py::test_s4_a_swing_is_not_knowable_on_the_bar_it_sits_on",
+            "tests/test_swing.py::test_s8_the_confirmation_lag_is_a_consequence_of_the_parameter_not_a_constant",
+        ),
+    ),
+    Mutation(
+        mutation_id="swing-plateau-accepted",
+        claim=(
+            "UPTM-012 chose that a plateau yields no swing: a tie is not an "
+            "extreme, and picking one of two equal bars is a rule a later reader "
+            "cannot reconstruct from the data. The choice is one character wide - "
+            "`<` against `<=` - so a refactor can flip it without anything else "
+            "in CI noticing. One test stands between the definition and a "
+            "different definition wearing its name."
+        ),
+        path="runner/swing.py",
+        anchor="            bars[other].high < pivot\n",
+        replacement="            bars[other].high <= pivot  # mutation-gate: ties accepted\n",
+        sentinels=("tests/test_swing.py::test_s2_a_plateau_yields_no_swing",),
+    ),
 )
 
 

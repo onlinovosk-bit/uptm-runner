@@ -4,7 +4,6 @@
   "name": "Bearish Quasimodo reversal pattern candidate",
   "spec": "docs/specs/UPTM-011-bearish-quasimodo-contract.md",
   "live_trading": false,
-
   "status": {
     "source": "RESTATED_SECONDHAND",
     "rules": "UNDEFINED",
@@ -13,7 +12,6 @@
     "stats": "NOT_TESTED",
     "performance": "UNVERIFIED"
   },
-
   "provenance": {
     "primary_source_read": false,
     "what_we_have": "The Founder's restatement, in conversation, of a reversal-pattern ebook he holds. This runner has not read the ebook.",
@@ -27,7 +25,8 @@
     ],
     "our_interpretation_not_the_source": [
       "That the bearish entry mirrors the bullish retest rule. The restatement states the retest for the bullish case only, so the bearish entry trigger stays UNDEFINED rather than being inferred from it.",
-      "That any of the six axes may advance on the strength of a restatement."
+      "That any of the six axes may advance on the strength of a restatement.",
+      "The swing definition itself. UPTM-012 wrote it ahead of reading the ebook, on the Founder's decision; the restatement does not say what the source means by a swing, so this is ours until the primary source is read."
     ],
     "not_evidence": {
       "note": "The source's worked examples - individual 3R, 5R and 6R outcomes, and 2007/2009 historical cases - are illustrations, not measurements.",
@@ -44,7 +43,6 @@
       ]
     }
   },
-
   "no_prediction_principle": {
     "rule": "Only estimate P(outcome|state) from information available at the decision timestamp.",
     "forbidden": [
@@ -56,25 +54,43 @@
       "swing points confirmed by bars later than the decision timestamp"
     ]
   },
-
   "structure": {
     "sequence": [
-      { "step": 1, "swing": "HH", "role": "prior high" },
-      { "step": 2, "swing": "HL", "role": "prior low, the level step 4 must break" },
-      { "step": 3, "swing": "HH", "role": "the head, highest point of the structure" },
-      { "step": 4, "swing": "LL", "role": "break below the step 2 low" },
-      { "step": 5, "swing": "LH", "role": "right shoulder, lower than the head" }
+      {
+        "step": 1,
+        "swing": "HH",
+        "role": "prior high"
+      },
+      {
+        "step": 2,
+        "swing": "HL",
+        "role": "prior low, the level step 4 must break"
+      },
+      {
+        "step": 3,
+        "swing": "HH",
+        "role": "the head, highest point of the structure"
+      },
+      {
+        "step": 4,
+        "swing": "LL",
+        "role": "break below the step 2 low"
+      },
+      {
+        "step": 5,
+        "swing": "LH",
+        "role": "right shoulder, lower than the head"
+      }
     ],
     "direction": "short",
-    "note": "Every step names a swing. None of them can be located until swing_definition is defined, which is why status.rules is UNDEFINED and cannot move."
+    "note": "Every step names a swing. UPTM-012 defined what a swing is and when it may be known, so the steps are now locatable in principle - but not in fact: swing_parameters is UNDEFINED, as are entry_trigger, break_tolerance, target_exit, timeframe, instrument, fees and slippage. status.rules stays UNDEFINED, for those reasons rather than the original one."
   },
-
   "terms": {
-    "swing_definition": "UNDEFINED",
-    "HH": "UNDEFINED",
-    "HL": "UNDEFINED",
-    "LL": "UNDEFINED",
-    "LH": "UNDEFINED",
+    "swing_definition": "A bar whose high is strictly greater than the highs of the pivot_bars bars on each side of it; a swing low is strictly lower on lows. Accepted only if it moved at least min_amplitude from the last accepted swing of the opposite kind. A plateau yields no swing, and nothing is ever revised. Knowable at index + pivot_bars, never at index. Defined by UPTM-012, implemented in runner/swing.py.",
+    "HH": "A swing high priced above the previous swing high (runner.swing.label).",
+    "HL": "A swing low priced above the previous swing low (runner.swing.label).",
+    "LL": "A swing low priced below the previous swing low (runner.swing.label).",
+    "LH": "A swing high priced below the previous swing high (runner.swing.label).",
     "break_tolerance": "UNDEFINED",
     "entry_trigger": "UNDEFINED",
     "target_exit": "UNDEFINED",
@@ -84,19 +100,18 @@
     "slippage_model": "UNDEFINED",
     "fee_model": "UNDEFINED",
     "risk_sizing": "UNDEFINED",
-    "invalidation_rules": "UNDEFINED"
+    "invalidation_rules": "UNDEFINED",
+    "swing_parameters": "UNDEFINED"
   },
-
   "stop_modes": {
     "conservative": "above the step 3 HH",
     "aggressive": "above the step 5 LH",
     "which_to_use": "UNDEFINED"
   },
-
   "data_requirement": {
     "status": "OPEN_UNKNOWN",
     "finding": "ES/MES futures market data is not listed in docs/architecture/master-data-sourcing-map.md. Under Directive 4 an unlisted source is an open unknown, not a detail to settle during implementation.",
-    "consequence": "No detector may run on bars, and no backtest may be built, until the source is in the map.",
+    "consequence": "No detector may run on bars, and no backtest may be built, until the source is in the map. It is also why swing_parameters is UNDEFINED: pivot_bars and min_amplitude have to be chosen against data, and a number picked without data is a fabricated parameter wearing a definition's clothes.",
     "would_be_needed_if_it_were": [
       "timestamped OHLCV or tick data",
       "instrument metadata",
@@ -105,13 +120,14 @@
       "order simulation rules"
     ]
   },
-
   "control_plane_constraints": [
     "Do not invent missing mechanical rules.",
+    "Do not choose swing parameters without data to choose them against.",
     "Do not infer the bearish entry from the bullish one.",
     "Do not treat the source's worked examples as performance evidence.",
     "Do not advance an axis on the strength of a restatement.",
     "Do not enable live trading.",
-    "Reject any test that uses information unavailable at the decision timestamp."
+    "Reject any test that uses information unavailable at the decision timestamp.",
+    "Do not treat swing_definition as the source's definition; it is ours, pending the reading."
   ]
 }

@@ -121,7 +121,63 @@ one, and it is reported as both.
 
 ## §5 Result
 
-*(filled in after implementation)*
+Built on 2026-09-27. No market data was read; every series in the tests is
+constructed inside the test file.
+
+| artifact | what it is |
+|---|---|
+| `runner/swing.py` | the definition, and `confirmed_at` on every swing |
+| `tests/test_swing.py` | 31 tests, each naming its criterion |
+| `runner/pattern_contract.py` | `required_terms` now raises `swing_parameters` |
+| `research/candidates/reversal/bearish_quasimodo.json` | root defined, parameters not |
+| `tests/test_pattern_contract.py` | 31 tests (6 new for S9/S10, 3 amended) |
+| `runner/mutation_gate.py` | two cases (§L1) |
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| S1 | `test_s1_*` — six invalid parameter sets, each raising; `True` is rejected as `pivot_bars` because `bool` is an `int` and would otherwise pass as 1. |
+| S2 | `test_s2_*` — a plateau yields nothing; the same shape with the tie broken by 0.01 yields one; an extreme without a full window either side yields nothing. |
+| S3 | `test_s3_*` — parametrised over `pivot_bars` 1–3, asserting `confirmed_at == index + pivot_bars` **and** `confirmed_at > index`. |
+| S4 | `test_s4_*` — the invariant, at **every** cut of the series, for `pivot_bars` 1–3, and again with the amplitude filter engaged. |
+| S5 | `test_s5_*` — every cut's view is a prefix of the next; two rising highs with no qualifying low between them are both kept rather than one replacing the other. |
+| S6 | `test_s6_*` — a move too small yields nothing; absolute and relative are shown to be genuinely different rules (0.8 points vs 80 %, on a move that is 11 points and 73 %). |
+| S7 | `test_s7_*` — the six-swing walk labels `HH HL LH LL` correctly; first-of-kind and exact ties yield `None`; labelling a prefix equals the prefix of the labels. |
+| S8 | `test_s8_*` — `pivot_bars` 1 vs 3 give different sets (and the wider window is a strict subset); amplitude 0 vs 12 differ; the lag tracks the parameter rather than being a constant. |
+| S9 | `test_s9_*` — the root is defined and names `runner/swing.py`; the four relational terms are defined; `rules` still cannot move, and the contract records that the definition is **ours**, not the source's. |
+| S10 | `test_s10_*` — `swing_parameters` is required once the root is written, deleting the key does not hide it, and the requirement is **absent** before the root is written. |
+| L1 | `swing-confirmation-lag-removed` (5 sentinels) and `swing-plateau-accepted` (1). |
+| L2 | No import of any data loader; `series()` and `wedge()` build every fixture, and the module docstring says so. |
+
+### What actually moved, stated small
+
+The Quasimodo contract went from **15 undefined terms to 11**. `rules` did not
+move and cannot: `swing_parameters`, `entry_trigger`, `break_tolerance`,
+`target_exit`, `timeframe`, `instrument_es_vs_mes`, `session_window`,
+`slippage_model`, `fee_model`, `risk_sizing` and `invalidation_rules` are all
+still `UNDEFINED`. The root is gone; the contract is no closer to being tradeable.
+
+### Preregistered as one thing, built as another
+
+**L1 said "a case"; two were built.** The second (`swing-plateau-accepted`) guards
+a one-character choice — `<` against `<=` — that a refactor could flip with
+nothing else in CI noticing.
+
+**Three UPTM-011 tests were amended, not relaxed.** `test_c4_defining_the_root_is_what_clears_it`
+asserted that writing `swing_definition` cleared the contract outright; it no
+longer does, so the test now asserts *both* steps. `test_c3_…_the_root_is_undefined`
+became `…_the_root_is_required`, because the fact it asserted stopped being
+true while the criterion behind it did not. `NOT_STATED_BY_THE_SOURCE` swapped
+`swing_definition` for `swing_parameters`. Each change is a fact that moved, not
+a bar that was lowered — and each is named here so a reader can check that claim
+against the diff rather than take it.
+
+### What was measured
+
+- `python -m runner.syntax_gate` — every file parses.
+- `python -m pytest` — 633 passed, 0 failed.
+- `python -m runner.cli mutation-gate` — 21 cases, `ok: true`, no missing sentinel.
 
 ---
 

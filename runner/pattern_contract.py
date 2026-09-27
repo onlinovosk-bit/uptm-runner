@@ -30,6 +30,12 @@ UNDEFINED = "UNDEFINED"
 # this defined; which structures those are is read out of the data, below.
 SWING_DEFINITION = "swing_definition"
 
+# Defining the root does not finish the job. UPTM-012 makes the rule mechanical
+# while leaving its parameters unchosen, so satisfying one requirement raises
+# the next - which is DEC-UPTM-003's shape, where the capital machinery is
+# ENFORCED and the amount is still null.
+SWING_PARAMETERS = "swing_parameters"
+
 # Ordered. Earlier axes gate later ones.
 AXES: tuple[str, ...] = (
     "source",
@@ -89,6 +95,11 @@ def required_terms(contract: dict[str, Any]) -> list[str]:
     term is required whenever the sequence names a swing, and is not required of
     a contract whose structure names none.
 
+    Once ``swing_definition`` is defined, ``swing_parameters`` joins the set:
+    UPTM-012 makes the rule mechanical without choosing the numbers it takes,
+    and a rule whose parameters are unset is not yet an evaluation. Satisfying
+    one requirement raising the next is the intended behaviour, not a loop.
+
     This is the rule rather than a list of term names for the same reason the
     swing terms themselves are read out of the sequence: a list kept beside the
     data is correct exactly until the data changes.
@@ -96,7 +107,16 @@ def required_terms(contract: dict[str, Any]) -> list[str]:
     used = swing_terms_used(contract)
     if not used:
         return []
-    return [SWING_DEFINITION, *used]
+    required = [SWING_DEFINITION, *used]
+    terms = contract.get("terms")
+    terms = terms if isinstance(terms, dict) else {}
+    if terms.get(SWING_DEFINITION, UNDEFINED) != UNDEFINED:
+        # The rule is written down, so the numbers it takes are now the thing
+        # standing between this contract and an evaluation. Requiring the term
+        # only once the root is defined keeps the finding pointed at whichever
+        # gap is actually in front of the reader.
+        required.append(SWING_PARAMETERS)
+    return required
 
 
 def undefined_terms(contract: dict[str, Any]) -> list[str]:
