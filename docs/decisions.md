@@ -15,6 +15,92 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-27] DEC-UPTM-011 — one pattern contract, and the root all seven rest on
+
+**Decided:** Founder GO on a Bearish Quasimodo prototype. Built as `UPTM-011`,
+preregistered in `docs/specs/UPTM-011-bearish-quasimodo-contract.md` before the
+implementation existed (P4).
+
+### What was asked, and what was built instead
+
+The proposal was a library of seven formalised reversal formations — Head &
+Shoulders, Inverse H&S, Double Top, Double Bottom, Rising Wedge, Falling Wedge,
+Quasimodo. **One was built.**
+
+Every one of the seven is written in swing highs and swing lows: "three peaks",
+"two tops", `HH → HL → HH → LL → LH`. None can be evaluated until *swing* is
+mechanically defined — how many bars either side, what minimum amplitude, on
+what timeframe. Seven contracts written over that gap would be one unsolved
+problem written seven times, and each would carry the appearance of progress.
+
+Bearish Quasimodo was chosen over H&S because it is stated as an explicit
+sequence and reaches the root fastest; H&S adds a second undefined construction,
+the *neckline*, on top of the same one.
+
+### Provenance, recorded as what it is
+
+The rules come from the Founder's restatement of the ebook in conversation. The
+runner has not read the ebook. The contract records `primary_source_read: false`
+and the `source` axis sits at `RESTATED_SECONDHAND`.
+
+The one available inference was declined: the restatement gives the retest entry
+for the *bullish* mirror only, so the bearish `entry_trigger` stays `UNDEFINED`
+rather than being mirrored from it. The contract records that refusal under
+`our_interpretation_not_the_source`, so a later reader can see the gap was
+noticed rather than missed.
+
+The source's worked examples — individual 3R, 5R and 6R outcomes, 2007/2009
+cases — are filed as illustrations. Occurrence count, failure rate, expectancy,
+out-of-sample and after-cost results: none of them exist, and the contract lists
+each one as missing rather than leaving the reader to notice.
+
+### One status word replaced by six axes
+
+The existing Hafez candidate carries a flat `status: "UNVERIFIED"`. That single
+word cannot express *the rules are pinned down and nothing is known about
+whether it earns* — the state a research candidate spends almost all of its life
+in, and the conflation that lets "verified" drift from meaning one thing to
+meaning the other.
+
+Six ordered axes, each with its own floor: `source`, `rules`, `implementation`,
+`no_leakage`, `stats`, `performance`. An axis may rise above its floor only when
+every earlier axis stands at its top. `performance` therefore cannot move while
+`no_leakage` reads `NOT_TESTED` — which is the claim the ordering exists to
+forbid: a return measured with information the strategy could not have had at
+its decision timestamp.
+
+**Derived, never typed.** The requirement that `swing_definition` be defined is
+not a list of term names kept beside the data. The code reads the sequence out
+of the contract, sees that it names swings, and requires the root term on that
+basis — so it holds for a contract nobody has written yet, and disappears for a
+structure that names no swing at all. A test proves exactly that, on a
+triple-bottom contract invented inside the test with every one of its own terms
+defined.
+
+**Checked by tests, not by a JSON Schema.** `DEC-UPTM-010` is the reason: this
+repository already carries a schema that did not parse for a day while every run
+reported success. A second schema nothing loads would inherit the same failure
+mode.
+
+### What this does not establish
+
+Not that Quasimodo works. Not that the rules are right. Not that it is
+implementable — it is not, and the `rules` axis says so. ES/MES market data is
+**not** in `docs/architecture/master-data-sourcing-map.md`; under Directive 4
+that is an open unknown recorded as `OPEN_UNKNOWN`, not a detail to settle
+during implementation. `LIVE_TRADING` stays `false`.
+
+Defining *swing* is a separate decision with its own GO. It is a modelling
+choice every one of the seven formations would inherit, and it must not be made
+as a side effect of writing down one of them.
+
+**Artifact:** `research/candidates/reversal/bearish_quasimodo.json`,
+`runner/pattern_contract.py`, `tests/test_pattern_contract.py` (25 tests), two
+`mutation-gate` cases (19 total, `ok: true`), 594 tests passing. The Hafez
+candidate and its test are untouched, and a test asserts that.
+
+---
+
 ## [2026-09-25] DEC-UPTM-MAP-Q5 — neither wave numbering is canonical
 
 **Decided:** Founder GO MAP-Q5, accepting the recommendation not to pick a

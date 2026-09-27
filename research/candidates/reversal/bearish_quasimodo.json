@@ -1,0 +1,117 @@
+{
+  "schema_version": "1.0.0",
+  "candidate_id": "bearish_quasimodo",
+  "name": "Bearish Quasimodo reversal pattern candidate",
+  "spec": "docs/specs/UPTM-011-bearish-quasimodo-contract.md",
+  "live_trading": false,
+
+  "status": {
+    "source": "RESTATED_SECONDHAND",
+    "rules": "UNDEFINED",
+    "implementation": "NOT_STARTED",
+    "no_leakage": "NOT_TESTED",
+    "stats": "NOT_TESTED",
+    "performance": "UNVERIFIED"
+  },
+
+  "provenance": {
+    "primary_source_read": false,
+    "what_we_have": "The Founder's restatement, in conversation, of a reversal-pattern ebook he holds. This runner has not read the ebook.",
+    "claimed_by_the_source": [
+      "The bearish Quasimodo structure is the sequence HH, HL, HH, LL, LH, and the trade is short.",
+      "A conservative stop sits above the HH; an aggressive stop sits above the LH.",
+      "The bullish mirror is the inverted structure and enters after a retest of the first low.",
+      "The ebook warns against entering before confirmation.",
+      "The ebook advises against using a formation in isolation and suggests combining it with other tooling.",
+      "The ebook states risk of 0.5% for beginners and 1-2% for the experienced."
+    ],
+    "our_interpretation_not_the_source": [
+      "That the bearish entry mirrors the bullish retest rule. The restatement states the retest for the bullish case only, so the bearish entry trigger stays UNDEFINED rather than being inferred from it.",
+      "That any of the six axes may advance on the strength of a restatement."
+    ],
+    "not_evidence": {
+      "note": "The source's worked examples - individual 3R, 5R and 6R outcomes, and 2007/2009 historical cases - are illustrations, not measurements.",
+      "missing_for_any_performance_claim": [
+        "occurrence count across the sample",
+        "failure rate",
+        "expectancy",
+        "results per market",
+        "results per timeframe",
+        "out-of-sample results",
+        "results after spread and slippage",
+        "sensitivity to the swing definition",
+        "behaviour around news events"
+      ]
+    }
+  },
+
+  "no_prediction_principle": {
+    "rule": "Only estimate P(outcome|state) from information available at the decision timestamp.",
+    "forbidden": [
+      "future bars",
+      "future session context",
+      "future volume profile",
+      "post-entry outcome labels in decision-state features",
+      "clairvoyant exits or stops",
+      "swing points confirmed by bars later than the decision timestamp"
+    ]
+  },
+
+  "structure": {
+    "sequence": [
+      { "step": 1, "swing": "HH", "role": "prior high" },
+      { "step": 2, "swing": "HL", "role": "prior low, the level step 4 must break" },
+      { "step": 3, "swing": "HH", "role": "the head, highest point of the structure" },
+      { "step": 4, "swing": "LL", "role": "break below the step 2 low" },
+      { "step": 5, "swing": "LH", "role": "right shoulder, lower than the head" }
+    ],
+    "direction": "short",
+    "note": "Every step names a swing. None of them can be located until swing_definition is defined, which is why status.rules is UNDEFINED and cannot move."
+  },
+
+  "terms": {
+    "swing_definition": "UNDEFINED",
+    "HH": "UNDEFINED",
+    "HL": "UNDEFINED",
+    "LL": "UNDEFINED",
+    "LH": "UNDEFINED",
+    "break_tolerance": "UNDEFINED",
+    "entry_trigger": "UNDEFINED",
+    "target_exit": "UNDEFINED",
+    "instrument_es_vs_mes": "UNDEFINED",
+    "timeframe": "UNDEFINED",
+    "session_window": "UNDEFINED",
+    "slippage_model": "UNDEFINED",
+    "fee_model": "UNDEFINED",
+    "risk_sizing": "UNDEFINED",
+    "invalidation_rules": "UNDEFINED"
+  },
+
+  "stop_modes": {
+    "conservative": "above the step 3 HH",
+    "aggressive": "above the step 5 LH",
+    "which_to_use": "UNDEFINED"
+  },
+
+  "data_requirement": {
+    "status": "OPEN_UNKNOWN",
+    "finding": "ES/MES futures market data is not listed in docs/architecture/master-data-sourcing-map.md. Under Directive 4 an unlisted source is an open unknown, not a detail to settle during implementation.",
+    "consequence": "No detector may run on bars, and no backtest may be built, until the source is in the map.",
+    "would_be_needed_if_it_were": [
+      "timestamped OHLCV or tick data",
+      "instrument metadata",
+      "session calendar",
+      "spread, commission and slippage model",
+      "order simulation rules"
+    ]
+  },
+
+  "control_plane_constraints": [
+    "Do not invent missing mechanical rules.",
+    "Do not infer the bearish entry from the bullish one.",
+    "Do not treat the source's worked examples as performance evidence.",
+    "Do not advance an axis on the strength of a restatement.",
+    "Do not enable live trading.",
+    "Reject any test that uses information unavailable at the decision timestamp."
+  ]
+}

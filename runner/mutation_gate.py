@@ -442,6 +442,44 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_schema_load.py::test_s7_a_fault_is_reported_once_not_once_per_field",
         ),
     ),
+    Mutation(
+        mutation_id="pattern-ladder-ordering-dropped",
+        claim=(
+            "UPTM-011's ladder is ordered on purpose: an axis may rise above its "
+            "floor only when every earlier axis stands at its top. Drop the "
+            "ordering and the six axes become six independent labels, which is the "
+            "single flat `status: UNVERIFIED` again in a longer costume - a "
+            "candidate could carry MEASURED_AFTER_COSTS while no_leakage still "
+            "read NOT_TESTED, i.e. a return measured with information the strategy "
+            "could not have had at decision time."
+        ),
+        path="runner/pattern_contract.py",
+        anchor="            if status[earlier] != top(earlier):\n",
+        replacement="            if False:  # mutation-gate: ladder ordering dropped\n",
+        sentinels=(
+            "tests/test_pattern_contract.py::test_c5_no_axis_rises_while_any_earlier_axis_is_at_its_floor",
+            "tests/test_pattern_contract.py::test_c5_performance_needs_the_whole_ladder_beneath_it",
+        ),
+    ),
+    Mutation(
+        mutation_id="pattern-undefined-root-ignored",
+        claim=(
+            "The root UPTM-011 exists to expose: every one of the seven reversal "
+            "formations is written in swing highs and lows, and none can be "
+            "evaluated until *swing* is mechanically defined. This check is what "
+            "stops `rules` reading MECHANICAL over terms nobody has pinned down. "
+            "Remove it and a contract can declare itself evaluable while the "
+            "sequence it declares rests on UNDEFINED."
+        ),
+        path="runner/pattern_contract.py",
+        anchor='    if still_undefined and status["rules"] != UNDEFINED:\n',
+        replacement="    if False:  # mutation-gate: undefined terms no longer block rules\n",
+        sentinels=(
+            "tests/test_pattern_contract.py::test_c2_deleting_a_term_does_not_define_it",
+            "tests/test_pattern_contract.py::test_c3_rules_cannot_leave_undefined_while_the_root_is_undefined",
+            "tests/test_pattern_contract.py::test_c4_an_unseen_contract_is_held_to_the_same_root",
+        ),
+    ),
 )
 
 
