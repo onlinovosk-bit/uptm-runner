@@ -560,6 +560,45 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_data_sources.py::test_d2_half_the_evidence_is_not_evidence",
         ),
     ),
+    Mutation(
+        mutation_id="roll-admissibility-always-true",
+        claim=(
+            "UPTM-014's L1a. `may_use` is what a future detector would ask before "
+            "reading a continuous series, and the answer is measured rather than "
+            "looked up: build the series at two moments and see whether the "
+            "earlier bars survived. Make it always true and a back-adjusted file "
+            "- which is what most vendors ship - becomes readable, and with it "
+            "every confirmed swing gets repriced by rolls that had not happened "
+            "when it was confirmed. That is precisely UPTM-012's S5 undone."
+        ),
+        path="runner/roll.py",
+        anchor="    return not rewrites_history(series, schedule, adjustment)\n",
+        replacement="    return True  # mutation-gate: every join is admissible now\n",
+        sentinels=(
+            "tests/test_roll.py::test_r7_every_member_of_the_family_is_classified_by_measurement",
+        ),
+    ),
+    Mutation(
+        mutation_id="roll-as-of-ignored",
+        claim=(
+            "UPTM-014's L1b, and an independent mechanism from L1a: the refusal "
+            "still holds when this one is gone. `build_continuous` takes as_of as "
+            "a cut, not a trim - bars after it are never built. Ignore it and the "
+            "series handed to a detector contains bars from after the decision "
+            "point, which is the leak UPTM-012 spent a whole spec closing, "
+            "reopened one layer further down where the swing code cannot see it."
+        ),
+        path="runner/roll.py",
+        anchor="    for index in range(as_of + 1):\n",
+        replacement=(
+            "    for index in range(len(series[schedule[0].contract])):"
+            "  # mutation-gate: as_of ignored\n"
+        ),
+        sentinels=(
+            "tests/test_roll.py::test_r3_no_bar_after_as_of_is_returned",
+            "tests/test_roll.py::test_r4_an_admissible_join_never_moves_a_bar_it_has_already_emitted",
+        ),
+    ),
 )
 
 

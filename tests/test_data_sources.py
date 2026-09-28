@@ -300,6 +300,16 @@ def test_d8_the_licence_regime_is_recorded_as_the_binding_constraint(source):
 
 
 def test_d8_the_roll_rule_is_recorded_as_an_open_modelling_choice(source):
+    """Amended by UPTM-014: the family is settled, the parameters are not.
+
+    D8 asked that the roll rule be recorded as an open modelling choice rather
+    than a data question. It still is - UPTM-014 ruled out the joins that
+    reprice published bars and left the trigger and the remaining pick open, so
+    the assertion now checks that shape instead of the single word it had.
+    """
     roll = source["open_modelling_choice_not_a_data_question"]
-    assert roll["status"] == "UNDEFINED"
+    assert roll["status"] == "FAMILY_DEFINED_PARAMETERS_UNSET"
     assert "construction" in roll["why_it_matters"]
+    assert roll["admissible"] and roll["inadmissible"]
+    assert roll["still_open"], "settling the family must not close the parameters"
+    assert "UNDEFINED" in roll["carried_in_the_contract_as"]

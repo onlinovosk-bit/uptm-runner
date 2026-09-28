@@ -15,6 +15,81 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-28] DEC-UPTM-014 — the roll rule: two joins are admissible, and the standard one is not
+
+**Decided:** Founder GO on the roll rule, the second undefined term `UPTM-013`
+found. Built as `UPTM-014`, preregistered in `docs/specs/UPTM-014-roll-rule.md`
+before the implementation existed (P4).
+
+### Why it was decidable with no data
+
+ES rolls quarterly, so a "continuous ES series" is a **construction, not a
+measurement**. It looked like it needed data. It did not: it is a question about
+information order, and `UPTM-012` already committed to the answer — nothing is
+ever revised, because a withdrawn swing is one a live system may already have
+acted on.
+
+### What was measured
+
+Two contracts ten points apart, rolling at bar 5:
+
+| join | rewrites history |
+|---|---|
+| `raw_splice` | no |
+| `forward_adjusted` | no |
+| `back_adjusted` | **yes** |
+| `ratio_back_adjusted` | **yes** |
+
+And the collision, as numbers rather than as argument. The peak at bar 2 is
+**confirmed at bar 3**, two bars before the roll. Under an admissible join it is
+priced 105 then and 105 after. Under back adjustment it is priced **105 when
+confirmed and 115 afterwards** — repriced by a roll that had not happened when a
+live system would have acted on it. The test runs this through
+`runner.swing.detect` itself, so the collision is with the real swing code.
+
+**The refused join is the one most vendors ship.** A "standard continuous ES
+file" is the thing to decline, not the thing to buy — which changes what the
+four open vendor questions in `DEC-UPTM-013` are asking for.
+
+### Admissibility is measured, not declared
+
+`runner.roll.rewrites_history` builds the series at two moments and compares the
+overlap. A list of approved methods beside the enum would be correct until
+somebody adds a method and forgets the list — and that failure is silent in the
+dangerous direction, because the new method reads as safe.
+
+One trap closed: a probe with **no roll with a price gap** classifies every join
+as stable, so the measurement raises rather than returning a comfortable
+`False`. §3 preregistered the roll-free case; a zero-seam roll has the identical
+defect, so the condition was drawn at its natural boundary and the exception is
+named `UninformativeProbe`. Recorded in the spec's §5.
+
+### What was NOT decided
+
+The trigger and its offset — calendar days before expiry, volume crossover,
+open-interest crossover — stay `UNDEFINED`. So does the pick between raw splice
+and forward adjustment: **both are admissible**, and choosing needs seam sizes
+nobody can measure while the source sits at `MAPPED_UNVERIFIED`. The contract
+carries `roll_parameters: UNDEFINED`, and `status.rules` has not moved.
+
+Settling the family did not close the parameters, and a test asserts exactly
+that, because the easy failure here would have been to let "the roll rule is
+decided" read as "the roll rule is set".
+
+### Process
+
+`L1` named one case per independent mechanism **in advance** — the fix recorded
+in `DEC-UPTM-013` taking effect rather than being promised. Both were built as
+named.
+
+**Artifact:** `runner/roll.py`, `tests/test_roll.py` (60 tests),
+`research/data_sources/es_mes_bars.json`,
+`research/candidates/reversal/bearish_quasimodo.json`, two `mutation-gate` cases
+(25 total, `ok: true`), 725 tests passing. No market data, no network call, no
+detector, no backtest. `LIVE_TRADING` stays `false`.
+
+---
+
 ## [2026-09-28] DEC-UPTM-013 — ES/MES is written down, and written down is not obtained
 
 **Decided:** Founder GO to put ES/MES market data into a sourcing map. Built as
