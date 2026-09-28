@@ -109,7 +109,71 @@ optimistically.
 
 ## §5 Result
 
-*(filled in after implementation)*
+Built on 2026-09-28. No test opens a socket; nothing reads market data.
+
+| artifact | what it is |
+|---|---|
+| `docs/architecture/uptm-data-sourcing-map.md` | the map, in this repository's sibling format |
+| `research/data_sources/es_mes_bars.json` | the machine-readable record |
+| `runner/data_sources.py` | the ladder, the evidence rule, the refusal |
+| `tests/test_data_sources.py` | 28 tests, each naming its criterion |
+| `research/candidates/reversal/bearish_quasimodo.json` | `data_requirement` wired to the record |
+| `runner/mutation_gate.py` | two cases |
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| D1 | `test_d1_*` — the record sits on `MAPPED_UNVERIFIED` with no errors; an invented state and a missing state are each named and rejected. |
+| D2 | `test_d2_*` — `CONNECTED` with no evidence yields two errors; each half alone yields one; whitespace does not count as evidence; and the gate is shown to be **passable**, because a gate nothing can pass is a wall. |
+| D3 | `test_d3_*` — parametrised over **every** rung below `CONNECTED`; plus the real record today, plus a malformed record that claims `CONNECTED` and is still refused. |
+| D4 | `test_d4_*` — the task list is read out of the candidates; on a record this spec has never seen, only the unverified candidate yields a task; adding a candidate adds its task and verifying it removes it. |
+| D5 | `test_d5_*` — every candidate carries a question and an `https://` URL and claims `terms_verified: false`; claiming verification with no method is an error, and supplying the method clears it. |
+| D6 | `test_d6_*` — the map pointer is checked against the filesystem, a dangling pointer is reported, and **every** record in `research/data_sources/` is validated, not only this one. |
+| D7 | `test_d7_*` — the biconditional: `OPEN_UNKNOWN` holds exactly while the source is not connected. |
+| D8 | `test_d8_*` — the denial, its two hosts and its date; the licence regime as the binding constraint; Directive 5's missing skill; and the roll rule as an open modelling choice. |
+| L1 | `unconnected-source-may-produce-numbers` (4 sentinels). |
+| L2 | No network call in any test; no detector, no backtest, no market data. |
+
+### What was found that was not asked for
+
+**The roll rule is a second undefined term.** ES rolls quarterly, so a
+"continuous ES series" is a construction, not a measurement: back-adjusted,
+ratio-adjusted and raw give different prices before every roll, and therefore
+different swings from UPTM-012. It is recorded in the map as `UNDEFINED` and
+explicitly **not** decided — it is the same shape as `swing_parameters`, and it
+must not be settled as a side effect of picking a vendor.
+
+### Preregistered as one thing, built as another — and the process fix
+
+**L1 named one case; two were built**, for the third specification running. The
+second (`connected-no-longer-costs-evidence`) guards a mechanism independent of
+the first: the refusal still holds when the evidence rule is gone, so one
+mutation cannot cover both.
+
+Three specs in a row have ended with this same note, which means the fault is in
+how L1 is written, not in the building. **From UPTM-014, L1 preregisters one
+case per independent mechanism and names them**, rather than saying "a case" and
+reconciling afterwards. Guarding the code beats a tidy record, so the cases were
+added; the preregistration is what changes.
+
+**One UPTM-011 test was amended.** `test_c8_market_data_is_recorded_as_an_open_unknown`
+asserted the finding names `master-data-sourcing-map.md`, which was true when the
+Revolis map was the only map. It now checks that whichever sourcing map the
+finding names is a file that exists — what the criterion was reaching for, and
+stronger than the substring it settled for.
+
+### What was measured
+
+- `python -m runner.syntax_gate` — every file parses.
+- `python -m pytest` — 663 passed, 0 failed.
+- `python -m runner.cli mutation-gate` — 23 cases, `ok: true`, no missing sentinel.
+
+### Still open, by design
+
+Four vendor questions, each with its URL, derived from the record rather than
+listed. `swing_parameters` remains `UNDEFINED`, `status.rules` remains
+`UNDEFINED`, and `may_run_detector` returns `False`.
 
 ---
 

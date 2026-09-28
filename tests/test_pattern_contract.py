@@ -332,10 +332,26 @@ def test_c7_the_forbidden_list_is_the_existing_candidates_plus_the_swing_case(co
 
 
 def test_c8_market_data_is_recorded_as_an_open_unknown(contract):
+    """Amended by UPTM-013: the map it names changed, the criterion did not.
+
+    C8 asked that the requirement record the source as an open unknown against
+    a sourcing map. It named the Revolis map because that was the only map
+    there was. UPTM-013 wrote a UPTM one, so the assertion now checks that the
+    map the finding names is a file that exists - which is what the criterion
+    was reaching for, and stronger than the substring it used to settle for.
+    """
     requirement = contract["data_requirement"]
     assert requirement["status"] == "OPEN_UNKNOWN"
-    assert "master-data-sourcing-map.md" in requirement["finding"]
     assert contract["status"]["implementation"] == "NOT_STARTED"
+
+    named = [
+        word.strip(".,")
+        for word in requirement["finding"].split()
+        if word.strip(".,").endswith("sourcing-map.md")
+    ]
+    assert named, "the finding must name the sourcing map it was measured against"
+    for path in named:
+        assert (ROOT / path).is_file(), f"{path} is named but does not exist"
 
 
 # --------------------------------------------------------------------------

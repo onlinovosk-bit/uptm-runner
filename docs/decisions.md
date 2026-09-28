@@ -15,6 +15,97 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-28] DEC-UPTM-013 — ES/MES is written down, and written down is not obtained
+
+**Decided:** Founder GO to put ES/MES market data into a sourcing map. Built as
+`UPTM-013`, preregistered in `docs/specs/UPTM-013-es-mes-data-sourcing.md`
+before the implementation existed (P4).
+
+### Which map, and why not the Revolis one
+
+`RealitkaAI/docs/architecture/master-data-sourcing-map.md` is titled *"Legálne
+zdroje dát pre Revolis.AI"* and covers cadastre, RPO and property portals. This
+repository's CLAUDE.md says *"Sem patrí výhradne UPTM Runner. Nepatrí sem
+Revolis.AI / RealitkaAI."* Both boundaries point the same way, and the standing
+instruction is that UPTM records go here. So a new map was written here:
+`docs/architecture/uptm-data-sourcing-map.md`, in the Revolis map's own format
+— **ZDROJ → LEGÁLNOSŤ → AKO ZÍSKAŤ → AK NEVIEM, AKO ZISTIŤ** — plus one rule the
+Revolis map does not have: the state is machine-readable and enforced.
+
+Whether the Revolis map should carry a one-line pointer here is a Founder
+decision. Not taken.
+
+### What could not be done, said before anything else
+
+The environment's network policy **denied `databento.com` and
+`www.cmegroup.com`**. No vendor terms, prices, history depth or licence
+conditions were read from a primary source. What was readable was search-result
+summaries from 2026-09-28.
+
+So every candidate is `terms_verified: false` and carries the exact question and
+the exact URL that settles it. A summary is recorded as a lead, never as a term.
+A sourcing map recalled rather than read would be worse than no map, because it
+would look like research — and Directive 4's "never guess a data source" is
+aimed at precisely that.
+
+### GDPR is not the gate here; the exchange licence is
+
+Directive 5 requires the `gdpr-advisor` skill be run against the chosen source.
+**That skill does not exist in either repository** (available: `kontrolor`,
+`strategic-analysis`, `task-loop`). Recorded rather than silently skipped.
+
+The analysis points elsewhere anyway. ES/MES OHLCV is a price at a time on an
+exchange: no personal data, no identifiable person, so 6(1)(f) and a balancing
+test are not what gates it. What gates it is CME market-data licensing, where
+these are **not the same permission**: internal research and private backtesting,
+non-display use, redistribution, **publication of a derived number**, and
+professional versus non-professional status.
+
+That last distinction is the one that will matter to Revolis later: a feature
+that shows a user a number computed from this feed is a different licence
+question from a private backtest, and "we have the data" answers neither.
+
+### The state is enforced, not asserted
+
+Five rungs: `NOT_IN_MAP` → `MAPPED_UNVERIFIED` → `VERIFIED_TERMS` → `LICENSED` →
+`CONNECTED`. Below `CONNECTED`, `runner.data_sources.may_run_detector` returns
+`False` — Directive 4's rule as code rather than as prose. `CONNECTED` costs
+evidence: an artifact and a commit, for `DEC-UPTM-010`'s reason. A state anyone
+can type is one that will eventually be typed optimistically, usually by someone
+in a hurry who is not lying.
+
+The Founder task list is **derived** from the candidates, not kept beside them,
+so it cannot drift from what it describes.
+
+### Found while looking: a second undefined term
+
+**The roll rule.** ES rolls quarterly, so a "continuous ES series" is a
+construction rather than a measurement — back-adjusted, ratio-adjusted and raw
+give different prices before every roll, and therefore different swings from
+`UPTM-012`. Recorded as `UNDEFINED` and deliberately **not** decided: it is the
+same shape as `swing_parameters` and must not be settled as a side effect of
+picking a vendor.
+
+### What moved
+
+The contract's `data_requirement` stops saying the source is unmapped, because
+that stopped being true, and now names the record it is measured against. Its
+status is still `OPEN_UNKNOWN`, `swing_parameters` is still `UNDEFINED`,
+`status.rules` has not moved, and `may_run_detector` returns `False`. Four vendor
+questions are open. **Written down is not obtained.**
+
+A process fix is recorded in the spec's §5: three specs running have preregistered
+"a mutation case" and built two, so from `UPTM-014` L1 preregisters one case per
+independent mechanism and names them.
+
+**Artifact:** `docs/architecture/uptm-data-sourcing-map.md`,
+`research/data_sources/es_mes_bars.json`, `runner/data_sources.py`,
+`tests/test_data_sources.py` (28 tests), two `mutation-gate` cases (23 total,
+`ok: true`), 663 tests passing. No network call, no market data, no detector, no
+backtest. `LIVE_TRADING` stays `false`.
+
+---
+
 ## [2026-09-27] DEC-UPTM-012 — a swing is defined; when it may be known is the point
 
 **Decided:** Founder GO on defining *swing*, the root `DEC-UPTM-011` exposed.

@@ -518,6 +518,48 @@ MUTATIONS: tuple[Mutation, ...] = (
         replacement="            bars[other].high <= pivot  # mutation-gate: ties accepted\n",
         sentinels=("tests/test_swing.py::test_s2_a_plateau_yields_no_swing",),
     ),
+    Mutation(
+        mutation_id="unconnected-source-may-produce-numbers",
+        claim=(
+            "Directive 4's rule, mechanically: a source that is not CONNECTED may "
+            "not produce a number. UPTM-013 wrote ES/MES into a map, and writing a "
+            "source down is exactly when it starts to read like a source we have - "
+            "four vendors named, four questions open, nothing contracted, no data. "
+            "Remove this refusal and MAPPED_UNVERIFIED buys a detector."
+        ),
+        path="runner/data_sources.py",
+        anchor=(
+            '    return source.get("connection_state") == CONNECTED and not '
+            "state_errors(source, root)\n"
+        ),
+        replacement="    return True  # mutation-gate: unconnected source now runs\n",
+        sentinels=(
+            "tests/test_data_sources.py::test_d3_every_rung_below_connected_refuses_the_detector",
+            "tests/test_data_sources.py::test_d3_the_real_record_refuses_today",
+            "tests/test_data_sources.py::test_d3_a_malformed_record_cannot_read_as_connected",
+            "tests/test_data_sources.py::test_d7_the_contract_and_the_source_cannot_disagree",
+        ),
+    ),
+    Mutation(
+        mutation_id="connected-no-longer-costs-evidence",
+        claim=(
+            "CONNECTED is the rung that says data actually reaches this runner. It "
+            "costs an artifact and a commit for UPTM-010's reason: a state anyone "
+            "can type is one that will eventually be typed optimistically, usually "
+            "by someone in a hurry who is not lying. Drop the requirement and the "
+            "top rung becomes a word again.\n\n"
+            "Preregistered L1 named one case, for the refusal above. This second "
+            "mechanism is independent of it - the refusal still holds when the "
+            "evidence rule is gone - so one mutation cannot cover both."
+        ),
+        path="runner/data_sources.py",
+        anchor='        for field in ("artifact", "commit"):\n',
+        replacement="        for field in ():  # mutation-gate: evidence no longer required\n",
+        sentinels=(
+            "tests/test_data_sources.py::test_d2_connected_without_evidence_is_an_error_not_a_pass",
+            "tests/test_data_sources.py::test_d2_half_the_evidence_is_not_evidence",
+        ),
+    ),
 )
 
 
