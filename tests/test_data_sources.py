@@ -203,6 +203,24 @@ def test_d5_every_candidate_carries_a_question_and_a_url(source):
         assert candidate["terms_verified"] is False
 
 
+def test_d5_every_candidate_carries_the_uptm_014_disqualifier(source):
+    """The question that can rule a vendor out on its own.
+
+    It did not exist when the four questions were written. A checklist without
+    it compares prices between options, one of which cannot be used at all - so
+    it is asserted on every candidate rather than left to whoever asks to
+    remember it.
+    """
+    criterion = source["disqualifying_criterion"]
+    assert criterion["added_by"].startswith("UPTM-014")
+    assert criterion["acceptable_answers"]
+
+    for candidate in source["candidates"]:
+        verification = candidate["verification"]
+        assert "raw per-contract" in verification["also_must_answer"].lower()
+        assert "back-adjusted" in verification["disqualifying_answer"]
+
+
 def test_d5_verified_by_nobody_is_not_verified(source):
     claiming = copy.deepcopy(source)
     claiming["candidates"][0]["terms_verified"] = True

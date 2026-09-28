@@ -27,7 +27,18 @@
       "www.cmegroup.com"
     ],
     "consequence": "No vendor terms, prices, history depth or licence conditions were read from a primary source. Every candidate below is terms_verified: false, and each carries the exact question and URL that settles it.",
-    "what_was_readable": "Search-result summaries dated 2026-09-28. A search summary is a lead, not a term sheet, and is recorded as such."
+    "what_was_readable": "Search-result summaries dated 2026-09-28. A search summary is a lead, not a term sheet, and is recorded as such.",
+    "second_attempt": {
+      "date": "2026-09-28",
+      "what_happened": "The Founder opened network access and the fetch was retried. All four vendor hosts were still denied by the egress proxy in this session, including cmegroup.com without the www prefix.",
+      "denied_hosts": [
+        "databento.com",
+        "www.cmegroup.com",
+        "cmegroup.com",
+        "firstratedata.com"
+      ],
+      "consequence": "Still terms_verified: false on every candidate. Nothing was read; nothing is claimed."
+    }
   },
   "legal_regime": {
     "binding_constraint": "Exchange market-data licensing, not GDPR.",
@@ -50,7 +61,9 @@
       "why_it_might_be_the_answer": "No redistribution chain, no question about provenance.",
       "verification": {
         "question": "Does DataMine offer ES/MES bar or tick history at the granularity UPTM needs, under what licence for private research, over what history, and at what cost?",
-        "url": "https://www.cmegroup.com/market-data/datamine-historical-data.html"
+        "url": "https://www.cmegroup.com/market-data/datamine-historical-data.html",
+        "also_must_answer": "Does the vendor supply RAW PER-CONTRACT series (individual contracts such as ESZ6), or only a pre-built continuous series? If only continuous: which join - a back-adjusted or ratio-adjusted continuous series is UNUSABLE here whatever it costs, because UPTM-014 measured that it reprices bars it has already published and UPTM-012 forbids revising a confirmed swing.",
+        "disqualifying_answer": "Only a back-adjusted or ratio-adjusted continuous series, with no raw per-contract access."
       }
     },
     {
@@ -60,7 +73,9 @@
       "lead_not_a_term_sheet": "A search-result summary on 2026-09-28 described this vendor as an official licensed distributor of CME data that passes exchange licence fees through without upcharge. Not read from the vendor's page; the host was denied.",
       "verification": {
         "question": "What exchange licence fees apply to historical-only ES/MES access, what use does that licence permit (private backtest versus publishing a derived number), and what history is available?",
-        "url": "https://databento.com/datasets/GLBX.MDP3"
+        "url": "https://databento.com/datasets/GLBX.MDP3",
+        "also_must_answer": "Does the vendor supply RAW PER-CONTRACT series (individual contracts such as ESZ6), or only a pre-built continuous series? If only continuous: which join - a back-adjusted or ratio-adjusted continuous series is UNUSABLE here whatever it costs, because UPTM-014 measured that it reprices bars it has already published and UPTM-012 forbids revising a confirmed swing.",
+        "disqualifying_answer": "Only a back-adjusted or ratio-adjusted continuous series, with no raw per-contract access."
       }
     },
     {
@@ -71,7 +86,9 @@
       "known_risk": "Broker historical bars are commonly limited in depth and granularity, and a market-data subscription is typically licensed for the account holder's own display use rather than systematic storage. Both need checking, not assuming.",
       "verification": {
         "question": "What ES/MES history depth and bar granularity does the API return, and does the market-data subscription permit systematic retrieval, storage and backtesting?",
-        "url": "https://www.interactivebrokers.com/en/trading/market-data.php"
+        "url": "https://www.interactivebrokers.com/en/trading/market-data.php",
+        "also_must_answer": "Does the vendor supply RAW PER-CONTRACT series (individual contracts such as ESZ6), or only a pre-built continuous series? If only continuous: which join - a back-adjusted or ratio-adjusted continuous series is UNUSABLE here whatever it costs, because UPTM-014 measured that it reprices bars it has already published and UPTM-012 forbids revising a confirmed swing.",
+        "disqualifying_answer": "Only a back-adjusted or ratio-adjusted continuous series, with no raw per-contract access."
       }
     },
     {
@@ -82,7 +99,9 @@
       "known_risk": "Provenance and exchange licensing are the open questions for any reseller of this shape, and they are the questions that matter most.",
       "verification": {
         "question": "What is the data's provenance, is it exchange-licensed for our use, and how are contract rolls and adjustments constructed?",
-        "url": "https://firstratedata.com/i/futures/ES"
+        "url": "https://firstratedata.com/i/futures/ES",
+        "also_must_answer": "Does the vendor supply RAW PER-CONTRACT series (individual contracts such as ESZ6), or only a pre-built continuous series? If only continuous: which join - a back-adjusted or ratio-adjusted continuous series is UNUSABLE here whatever it costs, because UPTM-014 measured that it reprices bars it has already published and UPTM-012 forbids revising a confirmed swing.",
+        "disqualifying_answer": "Only a back-adjusted or ratio-adjusted continuous series, with no raw per-contract access."
       }
     }
   ],
@@ -121,5 +140,15 @@
     "Do not choose swing_parameters, timeframe or instrument while this source is below CONNECTED.",
     "Do not build a detector or a backtest on a source that is not connected.",
     "Do not publish a number computed from this feed without checking the licence permits it."
-  ]
+  ],
+  "disqualifying_criterion": {
+    "added_by": "UPTM-014, 2026-09-28",
+    "rule": "A vendor that can supply only a back-adjusted or ratio-adjusted continuous series is unusable for UPTM regardless of price, history or licence.",
+    "why": "runner.roll.rewrites_history measures that those joins move bars they have already published; a swing confirmed before a roll is repriced by a roll that had not happened when a live system would have acted on it. UPTM-012's no-revision invariant forbids it.",
+    "note": "This criterion did not exist when the four questions were first written, and it is the one that can rule a vendor out on its own. Asking the old questions without it would compare prices between options, one of which cannot be used.",
+    "acceptable_answers": [
+      "raw per-contract series (each contract separately) - we build the join ourselves",
+      "a continuous series built by raw splice or forward adjustment, with the rule documented"
+    ]
+  }
 }
