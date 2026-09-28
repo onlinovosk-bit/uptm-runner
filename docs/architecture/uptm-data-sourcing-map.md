@@ -76,6 +76,8 @@ histórie ani licenčné podmienky neboli prečítané z primárneho zdroja.** �
 boli len zhrnutia z vyhľadávania z toho dňa. Zhrnutie z vyhľadávania je stopa,
 nie term sheet — a je tak aj zapísané.
 
+**Druhý pokus (2026-09-28):** po otvorení sieťového prístupu founderom boli všetky štyri hosty **stále zamietnuté** v tejto session, vrátane `cmegroup.com` bez `www.`. Nič sa neprečítalo, nič sa netvrdí.
+
 ### Kandidáti (všetci `terms_verified: false`)
 
 | kandidát | čo to je | otvorená otázka |
@@ -84,6 +86,29 @@ nie term sheet — a je tak aj zapísané.
 | `databento_glbx_mdp3` | vendor pre CME Globex MDP 3.0 (nesie všetky CME/CBOT/NYMEX/COMEX vrátane ES a MES) | aké licenčné poplatky burzy platia pre historical-only, čo licencia dovoľuje (backtest vs publikovanie odvodeného čísla), aká história? |
 | `interactive_brokers_api` | brokerské historické bary pre držiteľa účtu s market-data predplatným | akú hĺbku a granularitu API vráti, a dovoľuje predplatné systematické sťahovanie, ukladanie a backtest? |
 | `firstrate_data` | historický vendor s intradenným ES | aká je provenience dát, je to licencované pre naše použitie, a ako sú konštruované rolly? |
+
+### VYRAĎOVACIE KRITÉRIUM (pridané UPTM-014, 2026-09-28)
+
+**Vendor, ktorý vie dodať len back-adjusted alebo ratio-adjusted kontinuálnu
+sériu, je pre UPTM nepoužiteľný — bez ohľadu na cenu, históriu a licenciu.**
+
+`runner.roll.rewrites_history` zmeral, že tieto joiny hýbu barmi, ktoré už raz
+publikovali: swing potvrdený pred rollom je precenený rollom, ktorý sa v čase
+potvrdenia ešte nestal. UPTM-012 to zakazuje.
+
+Takže ku každej otázke vyššie patrí ešte táto, a je to tá, čo vie vendora
+vyradiť sama osebe:
+
+> **Dodávate raw per-contract série (jednotlivé kontrakty ako ESZ6), alebo len
+> hotovú kontinuálnu sériu? Ak len kontinuálnu — akým joinom?**
+
+Prijateľné odpovede: raw per-contract (join si postavíme sami), alebo
+kontinuálna séria postavená raw splice / forward adjustment s zdokumentovaným
+pravidlom. Čokoľvek back-adjusted = koniec rozhovoru.
+
+Toto kritérium neexistovalo, keď sa tie štyri otázky písali. Pýtať sa tých
+starých bez neho znamená porovnávať ceny medzi možnosťami, z ktorých jedna sa
+nedá použiť.
 
 **Zoznam nie je vyčerpávajúci.** Barchart OnDemand, dxFeed, Nasdaq Data Link,
 Rithmic a CQG som neskúmal. Neprítomnosť tu nie je hodnotenie.
