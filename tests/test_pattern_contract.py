@@ -20,6 +20,7 @@ from runner.pattern_contract import (
     AXES,
     RUNGS,
     SWING_DEFINITION,
+    SWING_PARAMETERS,
     UNDEFINED,
     ladder_errors,
     lowest,
@@ -37,7 +38,7 @@ CONTRACT_PATH = CANDIDATES / "reversal" / "bearish_quasimodo.json"
 # Listed here rather than derived because this assertion is about *this* source
 # - it is the spec's provenance table, asserted.
 NOT_STATED_BY_THE_SOURCE = {
-    SWING_DEFINITION,
+    SWING_PARAMETERS,
     "break_tolerance",
     "entry_trigger",
     "target_exit",
@@ -104,8 +105,9 @@ def test_c2_everything_the_source_does_not_state_is_present_and_undefined(contra
 
 def test_c2_deleting_a_term_does_not_define_it(contract):
     """Absent must fail the same way UNDEFINED does, or the gate is advisory."""
-    assert SWING_DEFINITION in undefined_terms(contract)
+    assert SWING_PARAMETERS in undefined_terms(contract)
 
+    # UPTM-012 wrote the root down; deleting it reopens it rather than closing it.
     deleted = copy.deepcopy(contract)
     del deleted["terms"][SWING_DEFINITION]
     assert SWING_DEFINITION in undefined_terms(deleted)
@@ -119,7 +121,10 @@ def test_c2_deleting_a_term_does_not_define_it(contract):
 def test_c2_an_empty_terms_block_is_not_a_clean_contract(contract):
     stripped = copy.deepcopy(contract)
     stripped["terms"] = {}
-    assert set(undefined_terms(stripped)) == set(required_terms(contract))
+    assert set(undefined_terms(stripped)) == set(required_terms(stripped))
+    # With the root gone, the parameter term is not what stands in the way.
+    assert SWING_DEFINITION in undefined_terms(stripped)
+    assert SWING_PARAMETERS not in required_terms(stripped)
 
 
 # --------------------------------------------------------------------------
@@ -127,8 +132,10 @@ def test_c2_an_empty_terms_block_is_not_a_clean_contract(contract):
 # --------------------------------------------------------------------------
 
 
-def test_c3_the_sequence_names_swings_and_the_root_is_undefined(contract):
-    assert contract["terms"][SWING_DEFINITION] == UNDEFINED
+def test_c3_the_sequence_names_swings_and_the_root_is_required(contract):
+    """Amended by UPTM-012: the root is defined now, and still required."""
+    assert SWING_DEFINITION in required_terms(contract)
+    assert contract["terms"][SWING_DEFINITION] != UNDEFINED
     assert swing_terms_used(contract) == ["HH", "HL", "LL", "LH"]
     assert [step["swing"] for step in contract["structure"]["sequence"]] == [
         "HH",
@@ -196,10 +203,21 @@ def test_c4_an_unseen_contract_is_held_to_the_same_root():
 
 
 def test_c4_defining_the_root_is_what_clears_it():
+    """Amended by UPTM-012: defining the rule raises the next requirement.
+
+    Before UPTM-012 this asserted that writing `swing_definition` cleared the
+    contract outright. It no longer does - a mechanical rule whose parameters
+    are unset is not an evaluation - so the test now asserts both steps rather
+    than being relaxed to assert neither.
+    """
     defined = copy.deepcopy(UNSEEN_CONTRACT)
     defined["terms"][SWING_DEFINITION] = "extreme of 5 bars either side, >= 0.25%"
-    assert undefined_terms(defined) == []
-    assert ladder_errors(defined) == []
+    assert undefined_terms(defined) == [SWING_PARAMETERS]
+
+    parametrised = copy.deepcopy(defined)
+    parametrised["terms"][SWING_PARAMETERS] = "pivot_bars=5, min_amplitude=0.0025"
+    assert undefined_terms(parametrised) == []
+    assert ladder_errors(parametrised) == []
 
 
 def test_c4_a_structure_that_names_no_swing_does_not_need_a_swing_definition():
@@ -332,3 +350,69 @@ def test_l2_the_hafez_candidate_still_carries_its_flat_status():
     )
     assert hafez["status"] == "UNVERIFIED"
     assert isinstance(hafez["status"], str)
+
+
+# --------------------------------------------------------------------------
+# UPTM-012 - the root is defined, and the contract is still not evaluable
+# --------------------------------------------------------------------------
+
+
+def test_s9_the_root_is_defined_and_names_the_module_that_implements_it(contract):
+    definition = contract["terms"][SWING_DEFINITION]
+    assert definition != UNDEFINED
+    assert "runner/swing.py" in definition
+    # The two choices UPTM-012 made rather than inherited are carried in the
+    # contract, not left in the spec where a reader of the data would miss them.
+    assert "plateau yields no swing" in definition
+    assert "never at index" in definition
+
+
+def test_s9_the_four_relational_terms_are_defined_against_the_previous_same_kind(contract):
+    terms = contract["terms"]
+    for name in ("HH", "HL", "LL", "LH"):
+        assert terms[name] != UNDEFINED
+        assert "previous swing" in terms[name]
+
+
+def test_s9_rules_still_cannot_move_and_the_reason_has_changed(contract):
+    """The advance is real and small, and the contract has to say which."""
+    assert contract["status"]["rules"] == UNDEFINED
+    assert ladder_errors(contract) == []
+
+    still_open = undefined_terms(contract)
+    assert SWING_DEFINITION not in still_open
+    assert SWING_PARAMETERS in still_open
+    assert {"entry_trigger", "target_exit", "break_tolerance"} <= set(still_open)
+
+    claiming = copy.deepcopy(contract)
+    claiming["status"]["source"] = top("source")
+    claiming["status"]["rules"] = "MECHANICAL"
+    assert any(SWING_PARAMETERS in error for error in ladder_errors(claiming))
+
+
+def test_s10_defining_the_rule_raises_the_requirement_for_its_parameters(contract):
+    assert SWING_PARAMETERS in required_terms(contract)
+
+    # And deleting the key does not hide it - C2's rule, applied to the term
+    # that UPTM-012 put in front of the reader.
+    deleted = copy.deepcopy(contract)
+    del deleted["terms"][SWING_PARAMETERS]
+    assert SWING_PARAMETERS in undefined_terms(deleted)
+
+
+def test_s10_the_parameter_requirement_appears_only_once_the_rule_is_written():
+    """Before the root is defined, the finding points at the root, not past it."""
+    unwritten = copy.deepcopy(UNSEEN_CONTRACT)
+    assert required_terms(unwritten) == [
+        SWING_DEFINITION,
+        "LL_first",
+        "LH_between",
+        "LL_second",
+    ]
+    assert SWING_PARAMETERS not in required_terms(unwritten)
+
+
+def test_s9_the_contract_records_that_the_definition_is_ours_not_the_sources(contract):
+    interpretation = " ".join(contract["provenance"]["our_interpretation_not_the_source"])
+    assert "swing definition" in interpretation.lower()
+    assert contract["status"]["source"] == "RESTATED_SECONDHAND"

@@ -15,6 +15,97 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-27] DEC-UPTM-012 — a swing is defined; when it may be known is the point
+
+**Decided:** Founder GO on defining *swing*, the root `DEC-UPTM-011` exposed.
+Built as `UPTM-012`, preregistered in `docs/specs/UPTM-012-swing-definition.md`
+before the implementation existed (P4).
+
+### The recommendation that was not taken, recorded
+
+The recommendation was to read the ebook **first**, so `source` would leave
+`RESTATED_SECONDHAND` before committing a definition that all seven formations
+inherit. The Founder decided otherwise. This is built on that decision, and the
+risk is written into the spec's §0 rather than argued again: if the primary
+source defines *swing* differently, this is what changes, and seven formations
+change with it.
+
+The risk is contained deliberately — the **parameters are not chosen**, so what
+a later reading could overturn is the shape of the rule, not numbers already
+baked into a contract. The contract also now records, under
+`our_interpretation_not_the_source`, that the definition is ours pending the
+reading.
+
+### The definition
+
+A bar is a swing high when its high is strictly greater than the highs of the
+`pivot_bars` bars on **each** side; a swing low is the mirror on lows. It is
+accepted only if it moved at least `min_amplitude` from the last accepted swing
+of the opposite kind, read absolutely or as a fraction.
+
+Two choices were made rather than inherited:
+
+- **A plateau yields no swing.** A tie is not an extreme, and picking one of two
+  equal bars would be a rule a later reader could not reconstruct from the data.
+- **Nothing is ever revised.** The usual ZigZag withdraws a swing when a later
+  bar makes a better one. Rejected: a withdrawn swing is one a live system may
+  already have acted on. Consecutive same-kind swings are both kept instead.
+
+### The part that matters more than the definition
+
+A swing high at bar `i` **is not knowable at bar `i`.** The bars to its right
+have not happened. Every swing therefore carries `confirmed_at = i + pivot_bars`,
+and the invariant is stated so it can fail:
+
+> For every `t`, the swings whose `confirmed_at <= t` are **exactly** the swings
+> detected from `bars[:t+1]`.
+
+Filtering the full series by confirmation time and truncating the series before
+detection must give the same answer. If any future information reaches the
+detector, the two diverge. Asserted at every cut of a series, for `pivot_bars`
+1–3, and again with the amplitude filter engaged.
+
+The candidate already forbade "swing points confirmed by bars later than the
+decision timestamp". This is where that stopped being a sentence — and
+`swing-confirmation-lag-removed` in the mutation gate is what keeps it from
+becoming one again.
+
+### The parameters are not set, and that is not a contradiction
+
+`pivot_bars` and `min_amplitude` require bar data to choose against, and ES/MES
+data is `OPEN_UNKNOWN` under Directive 4. A number picked without data would be
+a fabricated parameter wearing a definition's clothes.
+
+`DEC-UPTM-003`'s precedent applies exactly: *"`ENFORCED` and unset are not in
+tension: the machinery is enforced, and it is enforcing a denial."* So
+`swing_definition` becomes defined and a new term `swing_parameters` becomes
+`UNDEFINED`. The contract stays unevaluable for a different reason than before,
+and the derivation in `pattern_contract.required_terms` raises that requirement
+*only once the root is written* — so the finding always points at whichever gap
+is actually in front of the reader.
+
+### What moved, stated small
+
+The Quasimodo contract went from **15 undefined terms to 11**. `status.rules`
+did not move and cannot: `swing_parameters`, `entry_trigger`, `break_tolerance`,
+`target_exit`, `timeframe`, `instrument_es_vs_mes`, `session_window`,
+`slippage_model`, `fee_model`, `risk_sizing` and `invalidation_rules` are all
+still `UNDEFINED`. The root is gone; the contract is no closer to tradeable, and
+nothing here claims otherwise.
+
+Three `UPTM-011` tests were amended because facts they asserted stopped being
+true — not because a bar was lowered. Each amendment is named in the spec's §5
+so the claim can be checked against the diff.
+
+**Artifact:** `runner/swing.py`, `tests/test_swing.py` (31 tests),
+`research/candidates/reversal/bearish_quasimodo.json`,
+`runner/pattern_contract.py`, `tests/test_pattern_contract.py` (31 tests), two
+`mutation-gate` cases (21 total, `ok: true`), 633 tests passing. No market data
+was read, no formation detector was built, no backtest was run. `LIVE_TRADING`
+stays `false`.
+
+---
+
 ## [2026-09-27] DEC-UPTM-011 — one pattern contract, and the root all seven rest on
 
 **Decided:** Founder GO on a Bearish Quasimodo prototype. Built as `UPTM-011`,
