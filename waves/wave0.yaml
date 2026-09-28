@@ -1,4 +1,6 @@
 wave_id: 0
+repository: uptm-runner
+qualified_id: uptm-runner:W0  # UPTM-016: carried here so a value lifted out of this file is qualified
 name: baseline_lock
 objective: "Lock machine-readable Wave 0 baseline from known UPTM PR/audit history; confirm live_trading=false; forbid PR4 merge."
 depends_on: []

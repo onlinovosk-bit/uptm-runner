@@ -1,4 +1,6 @@
 wave_id: 1
+repository: uptm-runner
+qualified_id: uptm-runner:W1  # UPTM-016: carried here so a value lifted out of this file is qualified
 name: discover_inventory
 objective: "Read-only discovery of UPTM surface area and open hardening PRs; no mutations."
 tip_assessment: "DONE_ON_MAIN_AFTER_PR17"

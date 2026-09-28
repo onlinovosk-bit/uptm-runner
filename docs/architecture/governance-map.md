@@ -133,8 +133,8 @@ evidence.**
 ## Open questions — Founder decisions, not inferences
 
 Questions 1, 2 and 4 are decided below.
+Questions 1, 2, 4 and 5 are decided below.
 Question 3 is recorded open: no relation between €700 and €750 is adopted.
-Question 5 is recorded open: neither wave numbering is canonical.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
@@ -175,17 +175,32 @@ Question 5 is recorded open: neither wave numbering is canonical.
    condition. `docs/evidence-rule-a.md`.
 5. **Which wave vocabulary is canonical?** Two systems numbering waves 0–7 and
    0–9 will keep colliding in status lines.
-   **OPEN (DEC-UPTM-MAP-Q5, 2026-09-25):** neither numbering is canonical.
-   This repository keeps its own wave files. It does not renumber them to 0–9,
-   and it does not declare 0–7 the name of the other repository's waves.
+   **DECIDED (DEC-UPTM-MAP-Q5, 2026-09-28): NO CANONICAL NUMBERING, QUALIFIED
+   AT SOURCE.** Founder GO to close it. **Neither numbering is canonical** —
+   that part of the open record survives its own closure, because picking one
+   does not fix the collision and cannot be done here. Renumbering this
+   repository would rewrite eight artifacts to solve a problem in how they are
+   *quoted*, and every status line already written would stay ambiguous;
+   declaring 0–7 canonical for the other repository claims authority over a
+   repository this one cannot even read.
+   What is adopted instead: **a wave reference that leaves its repository must
+   carry it**, and the qualification lives in the data rather than in whoever
+   writes the status line — which is exactly where it failed the first time.
+   Every `waves/wave*.yaml` now carries `repository` and `qualified_id`, so a
+   single field lifted out of a file is already qualified.
+   Which numbers are ambiguous is **derived**: ours measured from the files on
+   disk, theirs recorded from this document, ambiguous is the intersection.
+   `W8` and `W9` are unambiguous — this repository has no such wave.
+   `runner/wave_names.py`, `UPTM-016`.
 
 ## What this document does not do
 
 - Questions 1, 2 and 4 are decided. Closing 1 and 2 **creates work rather than
   finishing it**: Q1 names a requirement nothing meets, and Q2's resolution is
-  built and disconnected. Question 3 stays open under `DEC-UPTM-MAP-Q3`: no
-  relation between €700 and €750 is adopted. Question 5 stays open under
-  `DEC-UPTM-MAP-Q5`: neither wave numbering is canonical.
+  built and disconnected. Question 5 is decided, and decided *without*
+  making either numbering canonical. Question 3 stays open under
+  `DEC-UPTM-MAP-Q3`: no relation between €700 and €750 is adopted — the last
+  one left, and the one that is an appetite for risk rather than a convention.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.

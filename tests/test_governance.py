@@ -102,15 +102,24 @@ def test_lease_and_cp_flag_cannot_substitute_for_each_other():
     assert live["cp_flag_may_replace_lease"] is False
 
 
-def test_map_q5_stays_open():
-    """DEC-UPTM-MAP-Q5: neither 0–7 nor 0–9 is the canonical wave numbering."""
+def test_map_q5_is_decided_without_a_canonical_numbering():
+    """Amended by UPTM-016, on Founder GO: closed, and closed *without* picking.
+
+    The guard changes direction rather than disappearing. It protected against
+    anyone naming a canonical numbering; it still does - the closure explicitly
+    keeps "neither numbering is canonical" - and now also protects the thing
+    that replaced the question: qualification carried in the data.
+    """
     text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
     start = text.index("5. **Which wave vocabulary")
     block = text[start : text.index("\n## What this document", start)]
     assert "DEC-UPTM-MAP-Q5" in block
-    assert "OPEN" in block
-    assert "neither numbering is canonical" in block
-    assert "DECIDED" not in block
+    assert "DECIDED" in block
+    assert "OPEN (" not in block
+    assert "Neither numbering is canonical" in block
+    assert "must\n   carry it" in block or "must carry it" in " ".join(block.split())
+    for claim in ("0–7 are the canonical", "0–9 are the canonical", "is the canonical numbering"):
+        assert claim not in block
     for wave_id in range(8):
         assert (WAVES / f"wave{wave_id}.yaml").is_file()
     assert not (WAVES / "wave8.yaml").exists()

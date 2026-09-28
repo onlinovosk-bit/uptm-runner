@@ -1,4 +1,6 @@
 wave_id: 5
+repository: uptm-runner
+qualified_id: uptm-runner:W5  # UPTM-016: carried here so a value lifted out of this file is qualified
 name: ruflo_boundary
 objective: "Finalize Ruflo adapter boundary + stub; orchestration must work without Ruflo."
 tip_assessment: "NEXT_AFTER_CONSOLIDATE"

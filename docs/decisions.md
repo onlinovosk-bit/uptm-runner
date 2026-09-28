@@ -15,6 +15,83 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-28] DEC-UPTM-016 — MAP-Q5 closed without a canonical numbering
+
+**Decided:** Founder GO to close `DEC-UPTM-MAP-Q5`. Built as `UPTM-016`,
+preregistered in `docs/specs/UPTM-016-close-map-q5.md` before the implementation
+existed (P4).
+
+### Why picking a canonical numbering was not the answer
+
+The collision is real and has already cost something: this map records that its
+own author conflated this repository's wave 7 (`exit_and_archive`) with the
+trading repository's `W7` (`INDEPENDENT RED TEAM`) on the day it was written.
+
+But **neither candidate fix works**:
+
+- Renumbering this repository 0–9 would rewrite eight wave artifacts to solve a
+  problem in how they are **quoted**, and every status line already written
+  would stay ambiguous.
+- Declaring 0–7 canonical for the other repository claims authority this one
+  does not have, over a repository it cannot even read.
+
+So **neither numbering is canonical** — that part of the open record survives
+its own closure, which is an unusual shape for a decision and the honest one
+here.
+
+### What was adopted instead
+
+**A wave reference that leaves its repository must carry it**, and the
+qualification lives **in the data**.
+
+Policing quotations would put the rule in whoever writes the status line, which
+is precisely where it failed. Measured before designing: every bare `W7` in this
+repository is **prose about the collision** — nine in the map, two here, one in
+`evidence-rule-a.md`, one docstring. **None is a status claim.** The ambiguity
+enters when a number is lifted out of a wave artifact, and those carried bare
+integers.
+
+So every `waves/wave*.yaml` now carries `repository` and `qualified_id`, and
+`waves/index.json` carries the repository and the qualified list. A single field
+lifted out of a file is already qualified. `qualified_id` is redundant with
+`wave_id` plus `repository` **on purpose** — the failure is a lone field being
+quoted — and because redundancy in data is drift waiting to happen, the
+agreement is derived and checked rather than trusted.
+
+### Which numbers are ambiguous is derived
+
+Ours is **measured** from the files on disk. Theirs is **recorded** from the
+map, with its provenance carried beside the number, because this repository
+cannot read `onlinovosk-bit-uptm` and must not dress a recalled number as a
+measured one. Ambiguous is the intersection.
+
+`W8` and `W9` are **not** ambiguous — this repository has no such wave — and the
+tests assert the *direction*: they are unambiguously **theirs**, not nobody's.
+Adding `wave8.yaml` here would change that with nobody editing a list, and a
+test proves it on a range this spec never listed.
+
+### What was protected
+
+`N7` preregisters a test that keeps the map's own `W7` examples alive. A later
+tidy-up that qualified every reference in the document would delete the example
+the document exists to give. Prose explaining the collision is not a status
+claim.
+
+### What did not change
+
+No wave was renumbered, added or removed — `N1` and `L2` assert it against the
+files. No principle's enforcement state moved.
+
+**Four of five governance questions are now closed.** `DEC-UPTM-MAP-Q3` (€700
+versus €750) is the last, and it is the one that is an appetite for risk rather
+than a convention — so it is not mine to close.
+
+**Artifact:** `runner/wave_names.py`, `tests/test_wave_names.py`,
+`waves/*.yaml`, `waves/index.json`, `docs/architecture/governance-map.md`, two
+`mutation-gate` cases. `LIVE_TRADING` stays `false`.
+
+---
+
 ## [2026-09-28] DEC-UPTM-015 — MAP-Q1 and MAP-Q2 closed, and the switch left off
 
 **Decided:** Founder GO to close `DEC-UPTM-MAP-Q1` and `DEC-UPTM-MAP-Q2`, open

@@ -1,4 +1,6 @@
 wave_id: 6
+repository: uptm-runner
+qualified_id: uptm-runner:W6  # UPTM-016: carried here so a value lifted out of this file is qualified
 name: patch_loop_and_stops
 objective: "Validate patch loop max-3 and all stop conditions including live_trading."
 tip_assessment: "NEXT_AFTER_CONSOLIDATE"

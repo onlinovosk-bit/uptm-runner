@@ -91,7 +91,62 @@ One case per independent mechanism, named in advance:
 
 ## §4 Result
 
-*(filled in after implementation)*
+Built on 2026-09-28. **Nothing was renumbered.** Four of five governance
+questions are now closed.
+
+| artifact | what it is |
+|---|---|
+| `runner/wave_names.py` | the derived ambiguity set and the reference grammar |
+| `tests/test_wave_names.py` | 41 tests, each naming its criterion |
+| `waves/wave0..7.yaml` | each gains `repository` and `qualified_id` |
+| `waves/index.json` | gains `repository`, `qualified`, and why |
+| `docs/architecture/governance-map.md` | Q5 recorded decided, in both places |
+| `runner/mutation_gate.py` | L1a, L1b, and one re-aimed case |
+
+### The measurement that shaped it
+
+| number | ambiguous bare | whose |
+|---|---|---|
+| 0–7 | **yes** | both repositories have one |
+| 8, 9 | no | unambiguously `onlinovosk-bit-uptm`'s |
+
+Ours measured from the files; theirs recorded from the map with its provenance
+carried beside it. The tests assert the **direction** — `W8` is theirs, not
+nobody's — because whose wave it is, is the part a reader needs.
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| N1 | `test_n1_*` — every `wave_id` unchanged, and wave 7 is still `exit_and_archive`, the collision's own example. |
+| N2 | `test_n2_*` — every artifact consistent; a file dropping `repository` and a `qualified_id` disagreeing with its own filename are each one finding. |
+| N3 | `test_n3_*` — both directions: a wave missing from the index, and an index entry with no file (how a deleted wave keeps appearing in status lines). |
+| N4 | `test_n4_*` — a synthetic tree of waves 3, 4 and **8** shows `W8` becoming ambiguous, on a range this spec never listed. |
+| N5 | `test_n5_*` — round-trip over both repositories × three numbers; every shared number ambiguous bare and readable qualified; six malformed references raise. |
+| N6 | `test_n6_*` — the provenance string asserted, not only the number. |
+| N7 | `test_n7_*` — the map's `W7` examples still there, so a later tidy-up cannot delete the teaching. |
+| N8 | `test_n8_*` — decided in both places, `Neither numbering is canonical` kept, Q3 untouched. |
+| L1a | `wave-artifact-loses-its-repository`. |
+| L1b | `wave-ambiguity-set-hardcoded` — independent: artifacts still declare their repository when this one is gone. |
+| L2 | `test_l2_*` — the eight files, exactly. |
+
+### The unusual shape
+
+**The closure keeps the open record's own answer.** `DEC-UPTM-MAP-Q5` said
+neither numbering is canonical, and that survives — because picking one was
+never an unmade choice, it was the wrong fix. What changed is that the question
+stops being open: the failure it names is closed by a different mechanism.
+
+`test_map_q5_stays_open` became
+`test_map_q5_is_decided_without_a_canonical_numbering`, and the mutation case
+`map-q5-marked-decided` became `map-q5-given-a-canonical-numbering` — re-aimed,
+not weakened, and still forbidding exactly what it always forbade.
+
+### What was measured
+
+- `python -m runner.syntax_gate` — every file parses.
+- `python -m pytest` — 796 passed, 0 failed.
+- `python -m runner.cli mutation-gate` — 29 cases, `ok: true`, no missing sentinel.
 
 ---
 
