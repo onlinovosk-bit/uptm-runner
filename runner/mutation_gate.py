@@ -338,20 +338,26 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
-        mutation_id="map-q1-marked-decided",
+        mutation_id="map-q1-reopened",
         claim=(
-            "DEC-UPTM-MAP-Q1 leaves the trading-wave question open. Marking it "
-            "decided adopts an answer the Founder did not give."
+            "Re-aimed by UPTM-015 after the Founder closed the question. It used "
+            "to guard that nobody adopted an answer; it now guards that nobody "
+            "reverts the one that was adopted.\n\n"
+            "DEC-UPTM-MAP-Q1 is YES: a trading-system wave gate must satisfy the "
+            "capital constitution. Reverting it to open would quietly restore the "
+            "reading in which P8 and P10 - two of the three principles that are "
+            "actually ENFORCED - are enforced against something that never runs."
         ),
         path="docs/architecture/governance-map.md",
-        anchor=(
-            "   **OPEN (DEC-UPTM-MAP-Q1, 2026-09-25):** neither answer is adopted. This\n"
-        ),
+        anchor="   **DECIDED (DEC-UPTM-MAP-Q1, 2026-09-28): YES.** Founder GO to close it.\n",
         replacement=(
-            "   **DECIDED (2026-09-25):** a trading-system wave gate satisfies the "
-            "capital constitution. This\n"
+            "   **OPEN (DEC-UPTM-MAP-Q1, 2026-09-25):** neither answer is adopted.\n"
         ),
-        sentinels=("tests/test_governance.py::test_map_q1_stays_open",),
+        sentinels=(
+            "tests/test_governance.py::test_map_q1_is_decided_yes_and_claims_no_mechanism",
+            "tests/test_cross_repository.py::test_g1_q1_is_adopted_yes_with_the_reason_that_no_empties_the_runner",
+            "tests/test_cross_repository.py::test_g8_the_map_does_not_still_call_q1_or_q2_open",
+        ),
     ),
     Mutation(
         mutation_id="map-q5-marked-decided",
@@ -384,19 +390,26 @@ MUTATIONS: tuple[Mutation, ...] = (
         sentinels=("tests/test_governance.py::test_map_q3_stays_open",),
     ),
     Mutation(
-        mutation_id="map-q2-marked-decided",
+        mutation_id="map-q2-given-a-winner",
         claim=(
-            "DEC-UPTM-MAP-Q2 leaves a cross-repository disagreement without a "
-            "winner. Marking it decided picks a PASS neither side is allowed to own."
+            "Re-aimed by UPTM-015 after the Founder closed the question. The "
+            "answer adopted is NEITHER WINS, so the dangerous edit is no longer "
+            "'decide it' but 'decide it the other way'.\n\n"
+            "A disagreement between two verdicts is not a tie to be broken, it is "
+            "uncertainty, and P11 halts on uncertainty. Naming a winner would let "
+            "one repository's PASS overrule the other's DENY - which is the one "
+            "reading the closure exists to forbid."
         ),
         path="docs/architecture/governance-map.md",
-        anchor=(
-            "   **OPEN (DEC-UPTM-MAP-Q2, 2026-09-25):** neither repository's `PASS` wins.\n"
-        ),
+        anchor="   **DECIDED (DEC-UPTM-MAP-Q2, 2026-09-28): NEITHER WINS.** Founder GO to\n",
         replacement=(
-            "   **DECIDED (2026-09-25):** the uptm-runner `PASS` wins the disagreement.\n"
+            "   **DECIDED (2026-09-28):** the uptm-runner `PASS` wins the "
+            "disagreement. Founder GO to\n"
         ),
-        sentinels=("tests/test_governance.py::test_map_q2_stays_open",),
+        sentinels=(
+            "tests/test_governance.py::test_map_q2_is_decided_neither_wins",
+            "tests/test_cross_repository.py::test_g2_q2_is_adopted_neither_wins_and_derived_rather_than_chosen",
+        ),
     ),
     Mutation(
         mutation_id="syntax-gate-stops-parsing",
@@ -597,6 +610,46 @@ MUTATIONS: tuple[Mutation, ...] = (
         sentinels=(
             "tests/test_roll.py::test_r3_no_bar_after_as_of_is_returned",
             "tests/test_roll.py::test_r4_an_admissible_join_never_moves_a_bar_it_has_already_emitted",
+        ),
+    ),
+    Mutation(
+        mutation_id="cross-repo-absence-allows",
+        claim=(
+            "UPTM-015's L1a. MAP-Q2 adopted that an absent counterpart verdict "
+            "is not an ALLOW - GOVERNANCE.md C3, silence is not permission. "
+            "Remove the check and the resolution reads a missing trading-system "
+            "verdict as agreement, which is exactly the state the control plane "
+            "is in today: it reaches ALLOW without ever asking."
+        ),
+        path="runner/cross_repository.py",
+        anchor="    if missing:\n",
+        replacement="    if False:  # mutation-gate: absence no longer denies\n",
+        sentinels=(
+            "tests/test_cross_repository.py::test_g4_an_unreadable_verdict_on_either_side_denies",
+            "tests/test_cross_repository.py::test_g4_the_missing_side_is_named_not_merely_counted",
+            "tests/test_cross_repository.py::test_g4_an_absent_counterpart_is_not_a_dispute",
+            "tests/test_cross_repository.py::test_g6_no_trading_system_verdict_is_reachable_from_here",
+        ),
+    ),
+    Mutation(
+        mutation_id="cross-repo-allow-overrides-deny",
+        claim=(
+            "UPTM-015's L1b, independent of L1a: absence still denies when this "
+            "one is gone. MAP-Q2 adopted NEITHER WINS, so one side's ALLOW must "
+            "never clear the other's DENY. A disagreement is not a tie to be "
+            "broken; it is uncertainty, and P11 halts on uncertainty. Let either "
+            "ALLOW carry the pair and the control plane can permit what the "
+            "trading system just refused."
+        ),
+        path="runner/cross_repository.py",
+        anchor="    if ours is theirs is Decision.ALLOW:\n",
+        replacement=(
+            "    if Decision.ALLOW in (ours, theirs):"
+            "  # mutation-gate: one ALLOW now wins\n"
+        ),
+        sentinels=(
+            "tests/test_cross_repository.py::test_g3_allow_only_when_both_sides_allow",
+            "tests/test_cross_repository.py::test_g5_a_disagreement_keeps_both_sides_and_names_neither_a_winner",
         ),
     ),
 )

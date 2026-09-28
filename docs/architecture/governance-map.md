@@ -132,23 +132,37 @@ evidence.**
 
 ## Open questions — Founder decisions, not inferences
 
-Question 4 is decided below.
-Question 1 is recorded open: neither answer is adopted. Question 2 is recorded
-open: neither repository's `PASS` wins. Question 3 is recorded open: no
-relation between €700 and €750 is adopted. Question 5 is recorded open: neither
-wave numbering is canonical.
+Questions 1, 2 and 4 are decided below.
+Question 3 is recorded open: no relation between €700 and €750 is adopted.
+Question 5 is recorded open: neither wave numbering is canonical.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
    no, P8 and P10 are enforced against something that never runs.
-   **OPEN (DEC-UPTM-MAP-Q1, 2026-09-25):** neither answer is adopted. This
-   repository does not invent the evidence link, and it does not exempt a
-   trading wave from the constitution.
+   **DECIDED (DEC-UPTM-MAP-Q1, 2026-09-28): YES.** Founder GO to close it.
+   The answer is not a preference — the sentence above refutes "no" on its own.
+   P8 and P10 are two of the **three** principles that are actually `ENFORCED`,
+   and the constitution's SUCCESS CONDITION is independent evidence of
+   robustness, which a runner with no subject cannot produce.
+   What was open was never the question but the **mechanism**: no artifact links
+   a trading wave to an evidence document, and adopting "yes" converts an open
+   question into a **named unmet requirement**. That looks worse and is more
+   honest. This repository still does not invent the link (UPTM-015 §4).
 2. **Which repository's verdict wins on a disagreement?** Both can emit `PASS`.
    Neither reads the other's.
-   **OPEN (DEC-UPTM-MAP-Q2, 2026-09-25):** neither repository's `PASS` wins.
-   This repository does not read the other verdict, and it does not treat its
-   own `PASS` as the winner.
+   **DECIDED (DEC-UPTM-MAP-Q2, 2026-09-28): NEITHER WINS.** Founder GO to
+   close it. The question assumes a tie to be broken. P11 says uncertainty
+   halts and `GOVERNANCE.md` C3 says silence is not permission — a sentence
+   `resolve_planes` already cites in its own docstring. **A disagreement is not
+   a tie; it is uncertainty.** So disagreement resolves to `DENY`, and so does
+   the absence of a counterpart verdict: an unread verdict is not an `ALLOW`.
+   `runner/cross_repository.py` makes that executable, and reports a
+   disagreement as a **dispute** carrying both sides rather than as one side
+   having lost.
+   **The mechanism is deliberately not wired into the gate.** Today
+   `evaluate_gate` reaches `ALLOW` without ever asking the trading system, so
+   connecting it would deny every current `PASS`. That is a separate Founder
+   decision; a test asserts the switch stays off until it is taken.
 3. **How do €700 and €750 relate?**
    **OPEN (DEC-UPTM-MAP-Q3, 2026-09-25):** no relation is adopted. €700 stays
    the validation-test size. €750 stays the other repository's paper-account
@@ -167,10 +181,10 @@ wave numbering is canonical.
 
 ## What this document does not do
 
-- Question 1 stays open under `DEC-UPTM-MAP-Q1`: neither answer is adopted.
-  Question 2 stays open under `DEC-UPTM-MAP-Q2`: neither repository's `PASS`
-  wins. Question 3 stays open under `DEC-UPTM-MAP-Q3`: no relation between €700
-  and €750 is adopted. Question 4 is decided. Question 5 stays open under
+- Questions 1, 2 and 4 are decided. Closing 1 and 2 **creates work rather than
+  finishing it**: Q1 names a requirement nothing meets, and Q2's resolution is
+  built and disconnected. Question 3 stays open under `DEC-UPTM-MAP-Q3`: no
+  relation between €700 and €750 is adopted. Question 5 stays open under
   `DEC-UPTM-MAP-Q5`: neither wave numbering is canonical.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
