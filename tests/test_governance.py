@@ -138,29 +138,43 @@ def test_map_q3_stays_open():
     assert "| Status | **LOCKED** |" in constitution
 
 
-def test_map_q2_stays_open():
-    """DEC-UPTM-MAP-Q2: neither repository's PASS wins a disagreement."""
+def test_map_q2_is_decided_neither_wins():
+    """Amended by UPTM-015, on Founder GO: the question is closed, not open.
+
+    The guard changes direction rather than disappearing. What it protected was
+    that nobody quietly adopts an answer; what it protects now is that nobody
+    quietly adopts a *different* one - in particular a winner, which is the
+    answer P11 rules out.
+    """
     text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
     start = text.index("2. **Which repository's verdict wins")
     block = text[start : text.index("\n3. ", start)]
     assert "DEC-UPTM-MAP-Q2" in block
-    assert "OPEN" in block
-    assert "neither repository's `PASS` wins" in block
-    assert "DECIDED" not in block
+    assert "DECIDED" in block and "NEITHER WINS" in block
+    assert "OPEN (" not in block
+    # No side may be recorded as having won.
+    for claim in ("`PASS` wins the", "uptm-runner wins", "overrules", "overrides"):
+        assert claim not in block
     constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
     assert "v1.0" in constitution.splitlines()[0]
     assert "| Status | **LOCKED** |" in constitution
 
 
-def test_map_q1_stays_open():
-    """DEC-UPTM-MAP-Q1: neither answer about a trading-system wave is adopted."""
+def test_map_q1_is_decided_yes_and_claims_no_mechanism():
+    """Amended by UPTM-015, on Founder GO: the question is closed, not open.
+
+    Adopting yes creates a requirement nothing meets. The guard now protects
+    against the reading that would erase that: a wave gate must satisfy the
+    constitution, and this repository still has not built the link.
+    """
     text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
     start = text.index("1. **Does a trading-system wave gate")
     block = text[start : text.index("\n2. ", start)]
     assert "DEC-UPTM-MAP-Q1" in block
-    assert "OPEN" in block
-    assert "neither answer is adopted" in block
-    assert "DECIDED" not in block
+    assert "DECIDED" in block and "YES" in block
+    assert "OPEN (" not in block
+    assert "named unmet requirement" in block
+    assert "does not invent the link" in block
     constitution = CC_CONSTITUTION.read_text(encoding="utf-8")
     assert "v1.0" in constitution.splitlines()[0]
     assert "| Status | **LOCKED** |" in constitution

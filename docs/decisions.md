@@ -15,6 +15,71 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-28] DEC-UPTM-015 — MAP-Q1 and MAP-Q2 closed, and the switch left off
+
+**Decided:** Founder GO to close `DEC-UPTM-MAP-Q1` and `DEC-UPTM-MAP-Q2`, open
+since 2026-09-25. Built as `UPTM-015`, preregistered in
+`docs/specs/UPTM-015-close-map-q1-q2.md` before the implementation existed (P4).
+
+Neither was really a preference. Each has one answer that survives contact with
+principles already adopted, so the work was to show the derivation rather than
+to pick.
+
+### MAP-Q1 — must a trading-system wave gate satisfy the capital constitution?
+
+**YES.** The governance map refutes "no" in its own sentence: *"If no, P8 and
+P10 are enforced against something that never runs."* Those are two of the
+**three** principles that are actually `ENFORCED`, and the constitution's
+SUCCESS CONDITION is independent evidence of robustness — which a runner with
+no subject cannot produce.
+
+What was open was never the question. It was the **mechanism**: no artifact
+links a trading wave to an evidence document. Adopting "yes" converts an open
+question into a **named unmet requirement**, which looks worse on the board and
+is more honest. This repository still does not invent the link.
+
+### MAP-Q2 — which repository's verdict wins a disagreement?
+
+**NEITHER.** The question assumes a tie to be broken. P11 says uncertainty
+halts; `GOVERNANCE.md` C3 says silence is not permission — a sentence
+`resolve_planes` already cites in its own docstring.
+
+**A disagreement is not a tie. It is uncertainty.** So disagreement resolves to
+`DENY`, and so does the absence of a counterpart verdict: an unread verdict is
+not an `ALLOW`. `runner/cross_repository.py` makes that executable and reports a
+disagreement as a **dispute** carrying both sides, never as one side having
+lost — because "the control plane's `PASS` won" would claim the other verdict
+was read and overruled, when what happened is that nobody knows which is right.
+
+### What closing them exposed
+
+Today `evaluate_gate` reaches `ALLOW` **without ever asking the trading
+system**. Absence currently behaves as permission — the exact thing Q2's answer
+forbids.
+
+**So the mechanism is built and deliberately left disconnected**, and a test
+asserts it stays that way. Wiring it in would deny **every** current `PASS`,
+because no trading-system verdict exists and `onlinovosk-bit-uptm` is not even
+in this session's scope. That is a separate Founder decision with its own GO.
+
+A switch that is off and known is safe. A switch that is off and forgotten is
+the next `DECLARATIVE` principle, and this repository already has one of those.
+
+### What did not change
+
+No principle's enforcement state moved — a test reads `capital-rules.json` and
+asserts the counts are still `ENFORCED 3 / PARTIAL 6 / DECLARATIVE 1 /
+MISSING 4`. `CONSTITUTION-CAPITAL.md` v1.0 stays LOCKED, so no P12 invalidation
+follows. MAP-Q3 and MAP-Q5 stay open and were not swept up with these two; a
+test asserts that too.
+
+**Artifact:** `runner/cross_repository.py`, `tests/test_cross_repository.py`,
+`docs/architecture/governance-map.md`, two `mutation-gate` cases. Two of five
+governance questions closed, and both closures **create work rather than
+finishing it**. `LIVE_TRADING` stays `false`.
+
+---
+
 ## [2026-09-28] DEC-UPTM-014 — the roll rule: two joins are admissible, and the standard one is not
 
 **Decided:** Founder GO on the roll rule, the second undefined term `UPTM-013`
