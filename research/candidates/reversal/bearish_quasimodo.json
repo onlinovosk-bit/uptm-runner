@@ -101,7 +101,9 @@
     "fee_model": "UNDEFINED",
     "risk_sizing": "UNDEFINED",
     "invalidation_rules": "UNDEFINED",
-    "swing_parameters": "UNDEFINED"
+    "swing_parameters": "UNDEFINED",
+    "roll_rule": "Admissible joins only: raw_splice or forward_adjusted. A join that reprices bars it has already published is refused, because UPTM-012 forbids revising a confirmed swing. Measured by runner.roll.rewrites_history, not declared. Defined by UPTM-014.",
+    "roll_parameters": "UNDEFINED"
   },
   "stop_modes": {
     "conservative": "above the step 3 HH",
@@ -131,6 +133,7 @@
     "Do not advance an axis on the strength of a restatement.",
     "Do not enable live trading.",
     "Reject any test that uses information unavailable at the decision timestamp.",
-    "Do not treat swing_definition as the source's definition; it is ours, pending the reading."
+    "Do not treat swing_definition as the source's definition; it is ours, pending the reading.",
+    "Do not read a back-adjusted continuous series, whoever shipped it; it reprices confirmed swings."
   ]
 }

@@ -5,24 +5,30 @@
   "spec": "docs/specs/UPTM-013-es-mes-data-sourcing.md",
   "map_document": "docs/architecture/uptm-data-sourcing-map.md",
   "recorded_on": "2026-09-28",
-
   "connection_state": "MAPPED_UNVERIFIED",
   "state_means": "Candidates are written down. No vendor page was read, no contract exists, no data reaches this runner. Written down is not obtained.",
-
   "needed_for": {
     "candidate": "research/candidates/reversal/bearish_quasimodo.json",
-    "blocked_terms": ["swing_parameters", "timeframe", "instrument_es_vs_mes", "session_window", "slippage_model", "fee_model"],
+    "blocked_terms": [
+      "swing_parameters",
+      "timeframe",
+      "instrument_es_vs_mes",
+      "session_window",
+      "slippage_model",
+      "fee_model"
+    ],
     "note": "UPTM-012 defined the swing rule and deliberately left pivot_bars and min_amplitude unset, because choosing them requires data to choose against. This record is the thing standing between that definition and an evaluation."
   },
-
   "environment_limitation": {
     "date": "2026-09-28",
     "what_happened": "The environment's network policy denied outbound access to the vendors' own pages.",
-    "denied_hosts": ["databento.com", "www.cmegroup.com"],
+    "denied_hosts": [
+      "databento.com",
+      "www.cmegroup.com"
+    ],
     "consequence": "No vendor terms, prices, history depth or licence conditions were read from a primary source. Every candidate below is terms_verified: false, and each carries the exact question and URL that settles it.",
     "what_was_readable": "Search-result summaries dated 2026-09-28. A search summary is a lead, not a term sheet, and is recorded as such."
   },
-
   "legal_regime": {
     "binding_constraint": "Exchange market-data licensing, not GDPR.",
     "why_not_gdpr": "ES/MES OHLCV records a price at a time on an exchange. It contains no personal data and identifies no natural person, so GDPR 6(1)(f) and the balancing test are not the gate for this source.",
@@ -36,7 +42,6 @@
     ],
     "consequence_for_revolis": "A future feature that shows a user a number computed from this feed is a different licence question from a private backtest. The map must keep them apart; 'we have the data' answers neither."
   },
-
   "candidates": [
     {
       "id": "cme_datamine",
@@ -81,9 +86,7 @@
       }
     }
   ],
-
   "candidates_not_exhaustive": "Barchart OnDemand, dxFeed, Nasdaq Data Link, Rithmic and CQG were not investigated. Absence from this list is not a judgement about them.",
-
   "what_the_runner_would_need": [
     "timestamped OHLCV or tick data for ES and/or MES",
     "instrument metadata: tick size, tick value, contract multiplier",
@@ -91,16 +94,27 @@
     "spread, commission and slippage model",
     "order simulation rules"
   ],
-
   "open_modelling_choice_not_a_data_question": {
     "issue": "Continuous-contract construction.",
-    "why_it_matters": "ES rolls quarterly. A 'continuous ES series' is not a measurement; it is a construction, and the roll rule - which day, back-adjusted or ratio-adjusted or raw - changes every price before the roll and therefore changes every swing UPTM-012 would find.",
-    "status": "UNDEFINED",
-    "consequence": "This is the same shape as swing_parameters: a choice that must be made deliberately and recorded, not settled as a side effect of whichever vendor is picked."
+    "why_it_matters": "ES rolls quarterly. A 'continuous ES series' is not a measurement; it is a construction, and the join changes every price before each roll and therefore every swing UPTM-012 would find.",
+    "status": "FAMILY_DEFINED_PARAMETERS_UNSET",
+    "settled_by": "UPTM-014, docs/specs/UPTM-014-roll-rule.md, implemented in runner/roll.py",
+    "admissible": [
+      "raw_splice - each contract's own prices, leaving a seam at the join",
+      "forward_adjusted - the new contract is shifted onto the old level, so no emitted bar ever moves"
+    ],
+    "inadmissible": [
+      "back_adjusted - shifts every earlier bar at each roll",
+      "ratio_back_adjusted - the same, multiplicatively"
+    ],
+    "why_inadmissible": "Measured, not declared: runner.roll.rewrites_history builds the series at two moments and compares the overlap. Back adjustment reprices bars it already published, which is exactly what UPTM-012's no-revision invariant forbids - and it is what most vendors ship, so a 'standard continuous ES file' is the thing to refuse rather than the thing to buy.",
+    "still_open": [
+      "which trigger, and its offset - calendar days before expiry, volume crossover, open-interest crossover",
+      "raw_splice versus forward_adjusted - both admissible; choosing needs seam sizes nobody can measure yet"
+    ],
+    "carried_in_the_contract_as": "roll_parameters: UNDEFINED"
   },
-
   "founder_tasks_are_derived": "Not listed here. runner.data_sources.open_founder_tasks reads them out of the candidates above, so the list cannot drift from the data it describes.",
-
   "control_plane_constraints": [
     "Do not treat a search-result summary as a verified term.",
     "Do not advance connection_state without the evidence the rung requires.",
