@@ -110,15 +110,18 @@
   },
   "data_requirement": {
     "status": "OPEN_UNKNOWN",
-    "finding": "ES/MES futures market data is not listed in docs/architecture/master-data-sourcing-map.md. Under Directive 4 an unlisted source is an open unknown, not a detail to settle during implementation.",
-    "consequence": "No detector may run on bars, and no backtest may be built, until the source is in the map. It is also why swing_parameters is UNDEFINED: pivot_bars and min_amplitude have to be chosen against data, and a number picked without data is a fabricated parameter wearing a definition's clothes.",
+    "finding": "ES/MES market data is now written down - UPTM-013 put it in docs/architecture/uptm-data-sourcing-map.md, in this repository rather than the Revolis one. It is at MAPPED_UNVERIFIED: candidates named, no vendor page read (the environment's network policy denied them on 2026-09-28), no contract, no data. Written down is not obtained, so this stays an open unknown under Directive 4.",
+    "consequence": "No detector may run on bars and no backtest may be built until the source reaches CONNECTED, which runner.data_sources enforces rather than asks. It is also why swing_parameters is UNDEFINED: pivot_bars and min_amplitude have to be chosen against data, and a number picked without data is a fabricated parameter wearing a definition's clothes.",
     "would_be_needed_if_it_were": [
       "timestamped OHLCV or tick data",
       "instrument metadata",
       "session calendar",
       "spread, commission and slippage model",
       "order simulation rules"
-    ]
+    ],
+    "source_id": "es_mes_bars",
+    "source_record": "research/data_sources/es_mes_bars.json",
+    "also_undefined_and_not_a_data_question": "Continuous-contract construction. ES rolls quarterly, so a continuous series is a construction, not a measurement, and the roll rule changes every swing UPTM-012 would find. Recorded in the map; not decided."
   },
   "control_plane_constraints": [
     "Do not invent missing mechanical rules.",
