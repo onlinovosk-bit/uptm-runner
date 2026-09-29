@@ -405,9 +405,9 @@ MUTATIONS: tuple[Mutation, ...] = (
         mutation_id="map-q3-relation-reads-unadopted-again",
         claim=(
             "UPTM-018a. The map's numbers paragraph said DEC-UPTM-MAP-Q3 'leaves "
-            "that relation unadopted' for three days after the same label was "
-            "decided as a floor two screens below. This puts the original "
-            "sentence back.\n\n"
+            "that relation unadopted' after the same label had been decided as a "
+            "floor two screens below - true on 2026-09-25, false from UPTM-017. "
+            "This puts the original sentence back.\n\n"
             "It is a different mutation from map-q3-turned-into-a-ceiling and "
             "the difference is the point: that case edits the decision inside "
             "question 3's block, which the older one-sided test slices and "

@@ -3,8 +3,8 @@
 `test_map_q3_is_decided_as_a_floor_and_copies_no_number` slices question 3's
 block and asserts the decision is *in it*. It proves the decision was written.
 It cannot prove the decision is not *also contradicted*, because a contradiction
-lives outside the slice - and for three days one did: a paragraph above the
-question list said `DEC-UPTM-MAP-Q3` "leaves that relation unadopted" while the
+lives outside the slice - and from the day UPTM-017 closed the question one
+did: a paragraph above the question list said `DEC-UPTM-MAP-Q3` "leaves that relation unadopted" while the
 list said the same label was DECIDED.
 
 That is a one-sided guard. These tests are the other side. They check the whole

@@ -142,4 +142,88 @@ One case, named in advance:
 
 ## §4 Result
 
-*(filled in after the implementation, with output.)*
+Built on 2026-09-29. Written after the criteria above, in a later commit.
+
+| artifact | what it is |
+|---|---|
+| `docs/architecture/governance-map.md` | the numbers paragraph now says what `DEC-UPTM-MAP-Q3` decided; nothing else touched |
+| `tests/test_governance_map_consistency.py` | 18 tests, each naming its criterion |
+| `runner/mutation_gate.py` | one case, `map-q3-relation-reads-unadopted-again` |
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| R1 | `test_r1_*` — label, *floor* and `VC-I6` all in the numbers paragraph. |
+| R2 | `test_r2_*` — no openness wording in it. |
+| R3 | `test_r3_*` — `capital.account_equity`, *declares*, *never measured*, *nothing here commands the other repository*. |
+| R4 | `test_r4_*` — `700` kept, `750` absent from `capital-rules.json`, constitution v1.0 LOCKED. |
+| G1 | `test_g1_*` on the real map, plus six parametrised cases — one per recorded way of saying "open". |
+| G2 | `test_g2_*` — a two-item list is two units; Q1 decided beside Q2 open passes; Q2 asserting both fails. |
+| G3 | `test_g3_*` — the verbatim `5a6ecb0` sentence beside a `DECIDED` line: exactly one conflict, naming `DEC-UPTM-MAP-Q3`. |
+| G4 | two tests — an open-only label passes; a state-less mention passes. |
+| G5 | `test_g5_*` — a decided label and an open label do not contaminate each other. |
+| G6 | `test_g6_*` — labels in the map equal the `DEC-UPTM-MAP-Q<n>` headings in the decisions log, and each asserts a state. |
+| G7 | `test_g7_*` — the older one-sided test is still in `tests/test_governance.py`, untouched. |
+| L1 | `map-q3-relation-reads-unadopted-again` — caught by `g1`, `r1` and `r2`. |
+| L2 | measured by hand, below. |
+
+### L2 — the gap, measured
+
+Under exactly the L1 mutation, run individually:
+
+```
+GREEN  test_map_q3_is_decided_as_a_floor_and_copies_no_number      <- the older guard
+RED    test_g1_no_label_in_the_map_is_asserted_both_decided_and_open
+RED    test_r1_the_numbers_paragraph_states_the_relation_that_was_adopted
+RED    test_r2_the_numbers_paragraph_carries_no_openness_wording
+```
+
+The premise of §0 holds: the older test was blind to this. What the new guard
+says under the mutation:
+
+```
+DEC-UPTM-MAP-Q3 is asserted both DECIDED and OPEN:
+  [DECIDED] 3. **How do €700 and €750 relate?** **DECIDED (DEC-UPTM-MAP-Q3, 2026-09-29) …
+  [OPEN]    They are not in conflict, and they are not the same thing: €700 is the size …
+The map is a current-state document: say what the label decided and put the
+history of the earlier state in docs/decisions.md.
+```
+
+Run against `main`'s actual, unmutated map, the guard reports **exactly one**
+conflict, `DEC-UPTM-MAP-Q3`, with `Q1`, `Q2` and `Q5` clean — the same result §1
+measured before the design existed.
+
+### How it was verified, and why not on `main` alone
+
+`main` was red on the calendar when this was built (a second pinned drill date;
+8 failed, 822 passed at 2026-09-29T21:03Z), and `mutation-gate` **refuses to run
+on a red baseline**. The repair is a separate change, `claude/fix-drill-fixture-clock`.
+So the full proof was produced on a **local, unpushed integration branch** —
+this work merged with that repair:
+
+| check | on this branch alone | on the integration branch |
+|---|---|---|
+| `pytest` | 8 failed, 841 passed (the 8 are the calendar, none in this change) | **851 passed** |
+| syntax gate | — | every file parses |
+| `mutation-gate` | refuses: baseline red | **34 cases, `ok: true`, `baseline_error: None`**, tree clean after |
+| `enforcement-evidence` | — | `ok: true`, `tree_clean: true`, `unproven_claims: []` |
+
+**CI on this branch is red until the repair merges.** That is the repair's
+absence, not this change; the eight failing tests are the same eight, in
+`tests/test_detector_invocation.py`.
+
+### What this does not do
+
+- **It does not close the vocabulary gap.** The openness wording is recorded
+  from this map's history, not derived. R1 is the second net; a structured claim
+  would be the real fix and is a larger change than this.
+- **It does not cover question 4**, which carries no `DEC-UPTM-MAP-Q4` label.
+- **It does not touch `docs/decisions.md`.** The 2026-09-25 entry for
+  `DEC-UPTM-MAP-Q3` says the question "stays OPEN" and carries no forward pointer
+  to `DEC-UPTM-017`. In a dated log that is normal chronology — a later entry
+  supersedes an earlier one — and rewriting history is not this change's to do.
+  It is **noted, not fixed**: a one-line "superseded by" pointer would be a
+  Founder call.
+- **It does not settle the two capital numbers** `UPTM-018` waits for. Without
+  them VC-I5 and VC-I6 still end at `UNKNOWN`, which is the correct state.
