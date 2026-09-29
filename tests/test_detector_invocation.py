@@ -10,6 +10,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -17,6 +18,21 @@ from runner import gates
 from runner.detectors.fabrication import CheckOutcome
 from runner.gates import evaluate_gate
 from runner.verdict import Decision, Verdict, resolve
+
+
+def _ago(**delta: float) -> str:
+    """A drill timestamp relative to the real clock.
+
+    `evaluate_gate` judges drill freshness against the wall clock and takes no
+    injected reference, so a fixture that pins `last_drill_at` to a calendar
+    date is comparing a frozen value to a moving one. Two pinned dates did:
+    2026-09-22 (a 7-day cadence ran out at 2026-09-29T12:00Z) and 2026-09-23
+    (would have run out the next morning). Nothing in either test was wrong
+    until the day they were run. Age is the property under test, so it is the
+    thing written down.
+    """
+    return (datetime.now(timezone.utc) - timedelta(**delta)).isoformat()
+
 
 SESSIONS = ["2026-09-14", "2026-09-15", "2026-09-16", "2026-09-17", "2026-09-18"]
 CLOSES = [100.0, 101.5, 99.0, 102.0, 103.5]
@@ -254,7 +270,7 @@ def ks_evidence(evidence, sealed_stop):
         ev["scope"] = {"capital_bearing": False, "live_bearing": True}
         ev["kill_switch"] = pack
         ev["kill_switch_drill"] = {
-            "last_drill_at": "2026-09-22T12:00:00Z",
+            "last_drill_at": _ago(days=2),
             "drill_commit": "c9ae2aa",
             "drill_stop_path": pack["stop_state"]["path"],
             "before": {"state": "RUNNING", "artifact_digest": "a" * 64},
@@ -264,6 +280,23 @@ def ks_evidence(evidence, sealed_stop):
         return ev
 
     return _make
+
+
+def test_the_drill_fixture_ages_with_the_wall_clock_not_the_calendar(ks_evidence):
+    """The gate's freshness clock is the wall clock, so the fixture's must be too.
+
+    A drill pinned to a calendar date is fresh on the day it is written and
+    stale a cadence later, with nothing in the test changed. This asserts the
+    fixture states an *age*: whatever day the suite runs, the drill is a couple
+    of days old. It is the property whose absence turned main red on
+    2026-09-29 (the second time after #50), so it gets its own test rather than
+    resting on the eight that only notice it after the fact.
+    """
+    last = datetime.fromisoformat(ks_evidence()["kill_switch_drill"]["last_drill_at"])
+    age = datetime.now(timezone.utc) - last
+    assert timedelta(days=1) < age < timedelta(days=3), (
+        f"fixture drill is {age} old - it is pinned to a date, not to an age"
+    )
 
 
 def test_gate_actually_calls_the_kill_switch_detector(ks_evidence, monkeypatch):
@@ -559,7 +592,7 @@ def test_removing_the_ported_check_turns_a_denying_gate_into_a_passing_one(
 def test_a_fresh_drill_against_a_dead_deployment_still_denies(ks_evidence):
     """The property in one sentence: recent is not the same as still true."""
     ev = ks_evidence()
-    ev["kill_switch_drill"]["last_drill_at"] = "2026-09-23T08:00:00Z"  # minutes old
+    ev["kill_switch_drill"]["last_drill_at"] = _ago(minutes=10)
     ev["kill_switch"]["stop_state"]["environment"]["credentials_ref"] = "rotated"
     result = evaluate_gate(ev)
     assert result.verdict is Verdict.UNKNOWN, result.reasons
