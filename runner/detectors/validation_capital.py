@@ -38,6 +38,21 @@ APPLIES_TO = (
     "cumulative_realised_loss",
 )
 
+#: UPTM-017. What `at_risk` counts. `aggregate_open_exposure` in `applies_to`
+#: is a switch, not a definition - it turns on a comparison of `at_risk`
+#: against the amount and says nothing about the unit. For ES/MES notional,
+#: margin and risk-to-stop differ by orders of magnitude, so the number is
+#: meaningless until the pack says which it is.
+AT_RISK_BASIS = "risk_to_stop"
+
+#: Named in the failure so a reader learns why, not merely that.
+_REJECTED_BASES = {
+    "notional": "700 of notional buys no ES or MES contract; a cap that permits "
+    "no test cannot be the size of the test",
+    "margin": "margin is a broker and exchange artefact that moves with "
+    "volatility and says nothing about what can be lost",
+}
+
 #: Metrics that are return by another name. Kept deliberately short: matching a
 #: substring of any criterion's name would fail a criterion called
 #: "pnl_pack_declared", which is a requirement to *report*, not to profit.
@@ -179,6 +194,63 @@ def check_vc_i3_cumulative_loss_within_tranche(
     return _ok("VC-I3", f"cumulative realised loss {loss} within {amount}")
 
 
+def check_vc_i5_at_risk_basis_declared(
+    pack: dict[str, Any], tranche: dict[str, Any]
+) -> CheckOutcome:
+    """UPTM-017 U1-U3. A number whose unit nobody declared is not a measurement.
+
+    Bound to the same terms VC-I2 reads, derived from ``applies_to`` rather than
+    from a list kept here: a tranche that does not bind exposure never reads
+    ``at_risk``, so its unit cannot matter.
+    """
+    applies = tranche.get("applies_to") or []
+    if not [a for a in applies if a in ("per_position_at_risk", "aggregate_open_exposure")]:
+        return _ok("VC-I5", "tranche does not bind exposure; at_risk is not read")
+    basis = pack.get("at_risk_basis")
+    if not isinstance(basis, str) or not basis.strip():
+        return _unknown(
+            "VC-I5",
+            ["capital.at_risk_basis naming what at_risk measures"],
+        )
+    if basis != AT_RISK_BASIS:
+        why = _REJECTED_BASES.get(basis)
+        return _fail(
+            "VC-I5",
+            f"at_risk is declared as {basis!r}; the tranche counts "
+            f"{AT_RISK_BASIS!r}"
+            + (f" — {why}" if why else ""),
+        )
+    return _ok("VC-I5", f"at_risk measured as {AT_RISK_BASIS}")
+
+
+def check_vc_i6_account_covers_the_ceiling(
+    pack: dict[str, Any], tranche: dict[str, Any]
+) -> CheckOutcome:
+    """UPTM-017 U4-U6, option C. A ceiling above the account is not a ceiling.
+
+    The loss ceiling halts the test only while the account can reach it. Below
+    that the thing that halts the test is the account running out, which is not
+    a decision anybody made. So the *configuration* is refused - no individual
+    action is at fault.
+    """
+    applies = tranche.get("applies_to") or []
+    if "cumulative_realised_loss" not in applies:
+        return _ok("VC-I6", "tranche binds no loss ceiling; the account floor does not apply")
+    amount = _number(tranche.get("amount"))
+    equity = _number(pack.get("account_equity"))
+    if amount is None:
+        return _unknown("VC-I6", ["validation_capital.amount"])
+    if equity is None:
+        return _unknown("VC-I6", ["capital.account_equity as a number"])
+    if equity < amount:
+        return _fail(
+            "VC-I6",
+            f"account equity {equity} is below the tranche {amount} — the loss "
+            "ceiling cannot bind before the account is empty, so it is not a ceiling",
+        )
+    return _ok("VC-I6", f"account equity {equity} covers the tranche {amount}")
+
+
 def check_vc_i4_currency_matches(pack: dict[str, Any], tranche: dict[str, Any]) -> CheckOutcome:
     """Never convert. An invented rate is a sourceless number in the one
     calculation that decides whether the money is protected."""
@@ -270,6 +342,8 @@ def detect_validation_capital(
         check_vc_i2_at_risk_within_tranche(pack, tranche),
         check_vc_i3_cumulative_loss_within_tranche(pack, tranche),
         check_vc_i4_currency_matches(pack, tranche),
+        check_vc_i5_at_risk_basis_declared(pack, tranche),
+        check_vc_i6_account_covers_the_ceiling(pack, tranche),
     ]
 
 

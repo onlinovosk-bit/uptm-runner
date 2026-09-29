@@ -382,19 +382,24 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
-        mutation_id="map-q3-marked-decided",
+        mutation_id="map-q3-turned-into-a-ceiling",
         claim=(
-            "DEC-UPTM-MAP-Q3 leaves the relation between EUR 700 and EUR 750 "
-            "unadopted. Marking it decided invents a ceiling the Founder did not set."
+            "Re-aimed by UPTM-017 after the Founder closed the question with "
+            "option C. The relation adopted is a FLOOR - the declared account "
+            "must be at least the tranche - and the dangerous edit is the option "
+            "that was not chosen: making EUR 700 a ceiling on the other "
+            "repository's account.\n\n"
+            "That would impose a change on a repository this one cannot read and "
+            "has no authority over, which is exactly what MAP-Q1 and MAP-Q2 "
+            "settled against. The floor needs no authority there: it refuses a "
+            "configuration rather than commanding anyone."
         ),
         path="docs/architecture/governance-map.md",
-        anchor=(
-            "   **OPEN (DEC-UPTM-MAP-Q3, 2026-09-25):** no relation is adopted. €700 stays\n"
+        anchor="   **DECIDED (DEC-UPTM-MAP-Q3, 2026-09-29): THE ACCOUNT IS A FLOOR UNDER THE\n",
+        replacement="   **DECIDED (2026-09-29): €700 IS A CEILING ON THE ACCOUNT, AND THE\n",
+        sentinels=(
+            "tests/test_governance.py::test_map_q3_is_decided_as_a_floor_and_copies_no_number",
         ),
-        replacement=(
-            "   **DECIDED (2026-09-25):** €700 is a ceiling on the €750 paper account. €700 stays\n"
-        ),
-        sentinels=("tests/test_governance.py::test_map_q3_stays_open",),
     ),
     Mutation(
         mutation_id="map-q2-given-a-winner",
@@ -723,6 +728,44 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
         sentinels=(
             "tests/test_kill_switch_detector.py::test_without_an_injected_now_a_stale_drill_fails_against_the_wall_clock",
+        ),
+    ),
+    Mutation(
+        mutation_id="at-risk-basis-unchecked",
+        claim=(
+            "UPTM-017's L1a. `aggregate_open_exposure` in applies_to is a switch, "
+            "not a definition: it turns on a comparison of at_risk against the "
+            "amount and says nothing about the unit. For ES/MES, notional, margin "
+            "and risk-to-stop differ by orders of magnitude - EUR 700 means no "
+            "trade at all, one contract, or fourteen trades depending which. "
+            "Accept any declared basis and P10's exposure half is a number with "
+            "no unit again, which is where this started."
+        ),
+        path="runner/detectors/validation_capital.py",
+        anchor="    if basis != AT_RISK_BASIS:\n",
+        replacement="    if False:  # mutation-gate: any basis accepted\n",
+        sentinels=(
+            "tests/test_at_risk_unit_and_floor.py::test_u2_the_two_rejected_bases_are_told_why_not_merely_that",
+            "tests/test_at_risk_unit_and_floor.py::test_u2_an_unrecognised_basis_fails_without_inventing_a_reason",
+        ),
+    ),
+    Mutation(
+        mutation_id="account-floor-unchecked",
+        claim=(
+            "UPTM-017's L1b, independent of L1a: the basis is still checked when "
+            "this one is gone. Option C, adopted by the Founder - a loss ceiling "
+            "halts the test only while the account can reach it. Against the "
+            "range recorded in the governance map, an account of 500 can never "
+            "reach a 700 ceiling, so what halts the test is the account emptying, "
+            "which is not a decision anybody made. Remove the comparison and the "
+            "ceiling goes back to being decoration in exactly that case."
+        ),
+        path="runner/detectors/validation_capital.py",
+        anchor="    if equity < amount:\n",
+        replacement="    if False:  # mutation-gate: the floor no longer binds\n",
+        sentinels=(
+            "tests/test_at_risk_unit_and_floor.py::test_u5_an_account_below_the_tranche_fails_and_says_why",
+            "tests/test_at_risk_unit_and_floor.py::test_u7_an_account_below_the_tranche_denies_at_the_gate",
         ),
     ),
 )

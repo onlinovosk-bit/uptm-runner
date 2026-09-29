@@ -253,9 +253,18 @@ def test_n8_q5_is_recorded_decided_in_both_places():
     assert "Neither numbering is canonical" in text
 
 
-def test_n8_q3_is_untouched():
+def test_n8_q3_was_not_swept_up_with_q5():
+    """Amended by UPTM-017: Q3 is closed now, but on its own GO and its own date.
+
+    N8 asked that closing Q5 leave Q3 alone. It did: Q3 stayed open for a day
+    and was then decided separately, as a floor, by UPTM-017. The assertion
+    moves from "still open" to "closed under its own marker", which is what the
+    criterion was protecting.
+    """
     text = " ".join(MAP.read_text(encoding="utf-8").split())
-    assert "stays open under `DEC-UPTM-MAP-Q3`" in text
+    assert "DECIDED (DEC-UPTM-MAP-Q3, 2026-09-29)" in text
+    assert "DECIDED (DEC-UPTM-MAP-Q5, 2026-09-28)" in text
+    assert "OPEN (DEC-UPTM-MAP-Q3" not in text
 
 
 def test_n8_the_decisions_log_carries_it():

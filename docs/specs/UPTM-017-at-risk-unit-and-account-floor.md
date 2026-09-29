@@ -143,7 +143,76 @@ One case per independent mechanism, named in advance:
 
 ## §5 Result
 
-*(filled in after implementation)*
+Built on 2026-09-29. **`DEC-UPTM-MAP-Q3` is closed with this, so no governance
+question is left open.**
+
+| artifact | what it is |
+|---|---|
+| `runner/detectors/validation_capital.py` | `AT_RISK_BASIS`, VC-I5, VC-I6 |
+| `tests/test_at_risk_unit_and_floor.py` | 28 tests, each naming its criterion |
+| `docs/architecture/governance-map.md` | Q3 decided, in all three places |
+| `constitution/capital-rules.json` | P10's check count, 9 → 11 |
+| `runner/mutation_gate.py` | L1a, L1b, and one re-aimed case |
+
+### The measurement, per pack
+
+| pack | VC-I5 | VC-I6 |
+|---|---|---|
+| declares `risk_to_stop`, account 750 | PASS | PASS |
+| no `at_risk_basis` | **UNKNOWN → DENY** | PASS |
+| `at_risk_basis: notional` | **FAIL** | PASS |
+| account 500 | PASS | **FAIL** |
+| account exactly 700 | PASS | PASS |
+| no `account_equity` | PASS | **UNKNOWN → DENY** |
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| U1 | `test_u1_*` — absent, and five kinds of non-word, are each `UNKNOWN`. |
+| U2 | `test_u2_*` — the adopted basis passes; `notional` and `margin` fail **with their reason quoted**; an unrecognised basis fails without one being invented. |
+| U3 | `test_u3_*` — a loss-only tranche never reads `at_risk`; `per_position_at_risk` binds it just as `aggregate_open_exposure` does. |
+| U4 | `test_u4_*` — absent, and four kinds of non-number, are `UNKNOWN`. |
+| U5 | `test_u5_*` — 500 against 700 fails and names both; **700 against 700 passes**, because a ceiling exactly at the account is still reachable. |
+| U6 | `test_u6_*` — an exposure-only tranche has no floor; an unset amount is `UNKNOWN`, never a floor of zero. |
+| U7 | `test_u7_*` — through `evaluate_gate`: the pack passes when both are declared, and omitting either denies **naming the check**. |
+| U8 | `test_u8_*` — a plain pack still passes; and the checks, when they do run on an empty pack, are `UNKNOWN` rather than a quiet pass. |
+| L1a | `at-risk-basis-unchecked`. |
+| L1b | `account-floor-unchecked` — independent: the basis is still checked when this one is gone. |
+| L2 | No network call, no market data; no enforcement state moved (`ENFORCED 3 / PARTIAL 6 / DECLARATIVE 1 / MISSING 4` still asserted by `test_g7_*`). |
+
+### What was measured
+
+- `python -m runner.syntax_gate` — every file parses.
+- `python -m pytest` — 830 passed, 0 failed.
+- `python -m runner.cli mutation-gate` — 32 cases, `ok: true`, no missing sentinel.
+
+### Four tests amended, all because a fact changed
+
+| test | why |
+|---|---|
+| `test_map_q3_stays_open` → `test_map_q3_is_decided_as_a_floor_and_copies_no_number` | Q3 closed on Founder GO. The guard **changed direction**: it now forbids the two options that were *not* chosen — a ceiling on the other repository's account, and their number copied into this constitution. |
+| `test_g8_…` (UPTM-015) and `test_n8_q3_is_untouched` (UPTM-016) | both asserted Q3 still open. They now assert it closed **under its own marker and date**, which is what they were really protecting: it was not swept up with Q1/Q2 or Q5. |
+| two capital fixtures | the packs now declare what they previously left unsaid. |
+
+### Two stale sentences corrected in passing
+
+Both said the shipped `validation_capital` is unset and every capital gate
+denies until the Founder sets it. **It has been set since 2026-09-23.** They
+were in the two test files this change already edits, one line from fixtures it
+already touches, and a reader would have believed them. The stubbing they
+justify is still right, for a different reason: a test that read the live
+configuration would change meaning the next time a number changed.
+
+The identical sentence in `capital-rules.json`'s P10 entry is **left alone** —
+it is not made wrong by this change, nothing reads it, and correcting it was
+not part of this GO.
+
+### What did not move
+
+€700 is unchanged. `aggregate_open_exposure` keeps the name the Founder set —
+renaming it is P14's business. `750` still appears nowhere in this
+repository's constitution, and a test asserts it.
 
 ---
 

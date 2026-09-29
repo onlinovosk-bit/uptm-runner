@@ -261,7 +261,7 @@
     "module": "runner/detectors/validation_capital.py",
     "spec": "docs/specs/UPTM-004-validation-capital-cap.md",
     "principle": "P10",
-    "checks": 9,
+    "checks": 11,
     "status": "INVOKED_BY_GATE",
     "invocation_path": "runner.gates.evaluate_gate -> run_validation_capital_detectors",
     "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_validation_capital and detect_return_as_criterion, that the first receives the tranche read from this file and the second the exit_criteria read from waves/wave3.yaml; a disconnection test asserts the gate's verdict follows the detector. Four mutations - dropping the verdict from the fold, neutering VC-I3, neutering VC-R1, letting VC-I4 compare across currencies - each turn the suite red at the tests naming that property.",
@@ -275,7 +275,8 @@
       "free_text_justification": "VC-R2 reads agent_claim.basis, a structured list. A PASS argued in prose is not parsed - deliberately, since matching prose would produce false positives on the honest reporting P10 wants.",
       "leverage_and_notional": "Whether a notional position with a protective stop counts as the stop distance or the notional is a Founder decision recorded in applies_to, not an inference."
     },
-    "enforced_since": "UPTM-005 (PR #10). P10 was PARTIAL for one stated reason - a gate that never set capital_gate was never examined - and the mandatory scope declaration closed it. The old why_not_enforced text was left behind by that upgrade and is removed here rather than kept as a rationale for a status that no longer holds. Matches the correction made to uptm003_detector in PR #12."
+    "enforced_since": "UPTM-005 (PR #10). P10 was PARTIAL for one stated reason - a gate that never set capital_gate was never examined - and the mandatory scope declaration closed it. The old why_not_enforced text was left behind by that upgrade and is removed here rather than kept as a rationale for a status that no longer holds. Matches the correction made to uptm003_detector in PR #12.",
+    "checks_note": "9 until UPTM-017 added VC-I5 (at_risk declares its basis) and VC-I6 (the account is a floor under the tranche, DEC-UPTM-MAP-Q3)."
   },
   "validation_capital": {
     "amount": 700,

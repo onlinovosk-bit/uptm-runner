@@ -375,10 +375,14 @@ TRANCHE = {
 
 @pytest.fixture
 def declared_tranche(monkeypatch):
-    """The real capital-rules.json leaves validation_capital unset on purpose.
+    """Stubbing the loader keeps these tests about wiring, not about the values.
 
-    Stubbing the loader keeps these tests about wiring, and leaves the shipped
-    configuration fail-closed until the Founder sets applies_to.
+    Corrected 2026-09-29: this said the shipped validation_capital was unset and
+    every capital gate denied until the Founder set it. It has been set since
+    2026-09-23 — amount 700, EUR, binding aggregate_open_exposure and
+    cumulative_realised_loss. The stub is still right, for a different reason:
+    a wiring test that read the live tranche would change meaning the next time
+    the Founder changed a number.
     """
     rules = json.loads(gates.CAPITAL_RULES.read_text(encoding="utf-8"))
     rules["validation_capital"] = TRANCHE
@@ -394,6 +398,9 @@ def capital_evidence(evidence, declared_tranche):
         ev["capital_gate"] = True
         ev["capital"] = {
             "at_risk": 250.0,
+            # UPTM-017: what at_risk counts, and the account it is counted on.
+            "at_risk_basis": "risk_to_stop",
+            "account_equity": 750.0,
             "cumulative_realised_loss": 120.0,
             "currency": "EUR",
             **capital_overrides,

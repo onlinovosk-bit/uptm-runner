@@ -133,8 +133,7 @@ evidence.**
 ## Open questions — Founder decisions, not inferences
 
 Questions 1, 2 and 4 are decided below.
-Questions 1, 2, 4 and 5 are decided below.
-Question 3 is recorded open: no relation between €700 and €750 is adopted.
+All five questions are decided below.
 
 1. **Does a trading-system wave gate have to satisfy the capital constitution?**
    If yes, W8 needs a `uptm-runner` evidence artifact and none is specified. If
@@ -164,10 +163,24 @@ Question 3 is recorded open: no relation between €700 and €750 is adopted.
    connecting it would deny every current `PASS`. That is a separate Founder
    decision; a test asserts the switch stays off until it is taken.
 3. **How do €700 and €750 relate?**
-   **OPEN (DEC-UPTM-MAP-Q3, 2026-09-25):** no relation is adopted. €700 stays
-   the validation-test size. €750 stays the other repository's paper-account
-   capital. This repository does not treat either number as a ceiling, a
-   subset, or a limit on the other.
+   **DECIDED (DEC-UPTM-MAP-Q3, 2026-09-29): THE ACCOUNT IS A FLOOR UNDER THE
+   TRANCHE.** Founder GO, option C. A loss ceiling halts the test only while
+   the account can reach it; at the bottom of the recorded range an account of
+   500 can never reach a 700 ceiling, so what would halt the test is the
+   account emptying — which is not a decision anybody made. A tranche binding
+   `cumulative_realised_loss` is therefore valid only when the declared account
+   is at least the tranche amount, and below that the **configuration** is
+   refused, not the trade.
+   The comparison turned out to be ill-posed on the other side first:
+   `aggregate_open_exposure` was a switch rather than a definition, so `at_risk`
+   had no unit. `UPTM-017` adopted **risk to stop**, and a pack that does not
+   declare its basis now denies.
+   **Neither number is rewritten into the other.** €700 stays the
+   validation-test size and is unchanged; €750 stays the other repository's
+   figure, recorded here and never measured. The floor is enforced against
+   whatever a pack declares, so nothing reaches into that repository and
+   nothing commands it. `runner/detectors/validation_capital.py`, VC-I5 and
+   VC-I6.
 4. ~~**Does Evidence Rule A apply to `uptm-runner`?**~~ **DECIDED 2026-09-24:**
    half two (the evaluated head is read from the checkout, never asserted by the
    caller) is adopted; half one (no field meaning "the commit that contains me")
@@ -198,9 +211,11 @@ Question 3 is recorded open: no relation between €700 and €750 is adopted.
 - Questions 1, 2 and 4 are decided. Closing 1 and 2 **creates work rather than
   finishing it**: Q1 names a requirement nothing meets, and Q2's resolution is
   built and disconnected. Question 5 is decided, and decided *without*
-  making either numbering canonical. Question 3 stays open under
-  `DEC-UPTM-MAP-Q3`: no relation between €700 and €750 is adopted — the last
-  one left, and the one that is an appetite for risk rather than a convention.
+  making either numbering canonical. Question 3 is decided, and decided
+  *without* rewriting either number into the other — the relation adopted is a
+  floor, enforced by refusing a configuration, not a new amount.
+  **No question is left open.** Four of the five closures created work rather
+  than finishing it.
 - It does not change any principle's enforcement state.
 - It does not make either repository's `PASS` mean anything it did not already
   mean.

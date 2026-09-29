@@ -1,8 +1,13 @@
 """Acceptance criteria preregistered in docs/specs/UPTM-004-validation-capital-cap.md §5.
 
 Case numbers are the spec's own. The tranche is passed in rather than read from
-constitution/capital-rules.json, so these prove the logic while the real
-configuration stays unset and fail-closed.
+constitution/capital-rules.json, so these prove the logic independently of the
+values the Founder has set.
+
+Corrected 2026-09-29: this said the real configuration "stays unset and
+fail-closed". It has been set since 2026-09-23. Passing the tranche in is still
+right, for a different reason - a logic test that read the live configuration
+would change meaning the next time a number changed.
 """
 
 from __future__ import annotations
@@ -10,6 +15,7 @@ from __future__ import annotations
 import pytest
 
 from runner.detectors.validation_capital import (
+    AT_RISK_BASIS,
     detect_return_as_criterion,
     detect_validation_capital,
 )
@@ -31,6 +37,9 @@ def capital():
     def _make(**overrides):
         base = {
             "at_risk": 250.0,
+            # UPTM-017: what at_risk counts, and the account it is counted on.
+            "at_risk_basis": AT_RISK_BASIS,
+            "account_equity": 750.0,
             "cumulative_realised_loss": 120.0,
             "currency": "EUR",
         }

@@ -129,15 +129,24 @@ def test_map_q5_is_decided_without_a_canonical_numbering():
     assert "| Status | **LOCKED** |" in constitution
 
 
-def test_map_q3_stays_open():
-    """DEC-UPTM-MAP-Q3: no relation between EUR 700 and EUR 750 is adopted."""
+def test_map_q3_is_decided_as_a_floor_and_copies_no_number():
+    """Amended by UPTM-017, on Founder GO: closed, and closed as a *floor*.
+
+    The guard changes direction rather than disappearing. It protected against
+    adopting a relation nobody chose; it now protects the one that was chosen
+    from turning into either of the two that were not - a ceiling on the other
+    repository's account (which this repository has no authority to impose) or
+    their number copied into this constitution.
+    """
     text = (ROOT / "docs/architecture/governance-map.md").read_text(encoding="utf-8")
     start = text.index("3. **How do €700 and €750 relate?")
     block = text[start : text.index("\n4. ", start)]
     assert "DEC-UPTM-MAP-Q3" in block
-    assert "OPEN" in block
-    assert "no relation is adopted" in block
-    assert "DECIDED" not in block
+    assert "DECIDED" in block and "FLOOR UNDER THE" in " ".join(block.split())
+    assert "OPEN (" not in block
+    assert "Neither number is rewritten into the other" in " ".join(block.split())
+    for claim in ("ceiling on the €750", "ceiling on the account", "DEFAULT_CAPITAL_EUR must"):
+        assert claim not in block
     capital = _capital_rules()["validation_capital"]
     assert capital["amount"] == 700
     assert capital["currency"] == "EUR"
