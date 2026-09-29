@@ -109,9 +109,12 @@ onlinovosk-bit-uptm   DEFAULT_CAPITAL_EUR  EUR 750   (min 500, max 1000)
 
 They are not in conflict, and they are not the same thing: €700 is the size of
 the validation *test* under P10; €750 is the paper account's starting capital.
-**DEC-UPTM-MAP-Q3 leaves that relation unadopted.** Whether the tranche is a
-ceiling on the envelope, a subset of it, or an independent limit is not decided
-here. Neither number is rewritten into the other.
+**DEC-UPTM-MAP-Q3 relates them as a floor:** a declared account must be at
+least the tranche, or the configuration is refused (VC-I6). The account in that
+comparison is `capital.account_equity`, a figure the pack under evaluation
+declares — not the €750 above, which this repository records and has never
+measured. Neither number is rewritten into the other, and nothing here commands
+the other repository. Question 3 below carries the decision.
 
 ## Where authority actually sits, today
 
