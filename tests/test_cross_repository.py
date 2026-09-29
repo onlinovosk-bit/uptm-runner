@@ -183,9 +183,11 @@ def test_g8_the_map_does_not_still_call_q1_or_q2_open(governance_map):
     for question in ("DEC-UPTM-MAP-Q1", "DEC-UPTM-MAP-Q2"):
         assert f"OPEN ({question}" not in governance_map
         assert f"stays open under `{question}`" not in governance_map
-    # The one that really is still open must not have been swept up with them.
-    # (Q5 was open when UPTM-015 landed; UPTM-016 closed it on its own GO.)
-    assert "stays open under `DEC-UPTM-MAP-Q3`" in governance_map
+    # Q3 and Q5 were open when UPTM-015 landed and were not swept up with these
+    # two: each was closed later, on its own Founder GO and its own date.
+    # (Q5: UPTM-016, 2026-09-28. Q3: UPTM-017, 2026-09-29, as a floor.)
+    assert "DECIDED (DEC-UPTM-MAP-Q3, 2026-09-29)" in governance_map
+    assert "DECIDED (DEC-UPTM-MAP-Q5, 2026-09-28)" in governance_map
 
 
 def test_g8_closing_them_is_recorded_as_creating_work(governance_map):

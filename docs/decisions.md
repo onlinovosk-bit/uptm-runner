@@ -15,6 +15,107 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-29] DEC-UPTM-017 — what €700 counts, and the floor that makes it real
+
+**Decided:** Founder GO, in two parts: define the unit of `at_risk`, then adopt
+**option C** for `DEC-UPTM-MAP-Q3`. Built as `UPTM-017`, preregistered in
+`docs/specs/UPTM-017-at-risk-unit-and-account-floor.md` before the
+implementation existed (P4).
+
+**This closes MAP-Q3, and with it the last open governance question.**
+
+### The question could not be answered as asked
+
+Relating €700 to €750 turned out to be ill-posed on one side. Measured:
+
+| `applies_to` term | what the detector reads | unambiguous |
+|---|---|---|
+| `cumulative_realised_loss` | `pack["cumulative_realised_loss"]` (VC-I3) | yes |
+| `aggregate_open_exposure` | `pack["at_risk"]` (VC-I2) | **no** |
+
+`aggregate_open_exposure` was a **switch, not a definition**: its presence in
+`applies_to` turned on a comparison of a differently-named field against the
+amount, and nothing said whether `at_risk` was notional, margin or risk to
+stop. For ES/MES those differ by orders of magnitude — one MES around index
+6000 is roughly $30,000 notional, ~$1,500 margin, perhaps €50 of risk to a
+stop. €700 therefore meant "no trade at all", "one contract" or "fourteen
+trades" depending on which nobody had said.
+
+This repository had already caught the *name* mismatch and recorded it. The
+name was fixed. **The unit never was.**
+
+### The unit: risk to stop
+
+Adopted because it is the only one of the three that measures **money that can
+be lost**, which is what the constitution's own note says €700 is. Notional
+would make P10 forbid trading outright — €700 of notional buys no contract, and
+a cap permitting no test cannot be the size of the test. Margin is a broker and
+exchange artefact that moves with volatility and says nothing about loss.
+
+**Said out loud, because it decides the design: a stop is not a guarantee.**
+Gaps and limit moves mean realised loss can exceed planned risk. So `at_risk`
+bounds **intent** and `cumulative_realised_loss` bounds **outcome** — which is
+exactly why the two terms are not redundant. One catches a plan that risks too
+much; the other catches a plan that was within its limit and lost more anyway.
+A single number could not do both.
+
+### The floor: option C
+
+A loss ceiling halts the test only while the account can reach it:
+
+| account | €700 binds at |
+|---|---|
+| 1000 | 70 % |
+| 750 | 93 % |
+| **500** | **never — the account empties first** |
+
+At the bottom of the recorded range, what would halt the test is the account
+running out, which is not a decision anybody made. So a tranche binding
+`cumulative_realised_loss` is valid only when the declared account is at least
+the tranche amount, and below that the **configuration** is refused — not the
+trade, because the defect is in the setup and no individual action is at fault.
+
+**It needs no authority over the other repository.** It refuses rather than
+commands, which is the shape `MAP-Q1` and `MAP-Q2` settled. Neither number is
+rewritten into the other: €700 is unchanged, €750 stays recorded-and-unverified
+in the map, `750` appears nowhere in this constitution, and a test asserts that.
+
+### Blast radius, stated before it was built and then measured
+
+`run_validation_capital_detectors` returns early for evidence carrying no
+capital pack and not declaring `capital_gate`. **Non-capital gates are
+untouched** — `U8` asserts it. Within capital gates the effect is real and was
+not softened: a pack omitting either field denies. Two existing fixtures had to
+declare what they had previously left unsaid.
+
+### Guards re-aimed, not deleted
+
+`test_map_q3_stays_open` became
+`test_map_q3_is_decided_as_a_floor_and_copies_no_number`, and
+`map-q3-marked-decided` became `map-q3-turned-into-a-ceiling`. Both now forbid
+the option that was *not* chosen: making €700 a ceiling on the other
+repository's account, which would impose a change on a repository this one
+cannot read.
+
+Two UPTM-015/016 tests that asserted Q3 still open now assert it closed **under
+its own marker and date** — it was not swept up with the others; it stayed open
+a further day and was decided separately.
+
+### What did not change
+
+€700. The name `aggregate_open_exposure` — renaming a Founder parameter is P14's
+business. No principle's enforcement state: still `ENFORCED 3 / PARTIAL 6 /
+DECLARATIVE 1 / MISSING 4`.
+
+**Artifact:** `runner/detectors/validation_capital.py` (VC-I5, VC-I6),
+`tests/test_at_risk_unit_and_floor.py` (28 tests),
+`docs/architecture/governance-map.md`, `constitution/capital-rules.json`
+(P10 check count 9 → 11), two `mutation-gate` cases (32 total, `ok: true`),
+830 tests passing. No market data, no network call. `LIVE_TRADING` stays
+`false`.
+
+---
+
 ## [2026-09-28] DEC-UPTM-016 — MAP-Q5 closed without a canonical numbering
 
 **Decided:** Founder GO to close `DEC-UPTM-MAP-Q5`. Built as `UPTM-016`,
