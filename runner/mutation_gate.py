@@ -768,6 +768,30 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_at_risk_unit_and_floor.py::test_u7_an_account_below_the_tranche_denies_at_the_gate",
         ),
     ),
+    Mutation(
+        mutation_id="drill-fixture-pinned-to-a-date",
+        claim=(
+            "Added after a repair, not a build - the second one on the same "
+            "cause. The kill-switch drill fixture states its drill as an age "
+            "(two days). Pin it to a calendar date and it is fresh on the day "
+            "it is written and stale a cadence later: main went red on "
+            "2026-09-29 at 12:00Z with no commit landing, after passing CI "
+            "hours earlier, and a second pinned date would have done the same "
+            "the next morning.\n\n"
+            "P8 is one of the three principles that are actually ENFORCED and "
+            "these tests are what show the detector is what decides. A fixture "
+            "that rots takes that proof with it. Re-pin the date and the guard "
+            "must go red on its own, not only through the eight tests that "
+            "notice after the fact."
+        ),
+        path="tests/test_detector_invocation.py",
+        anchor='            "last_drill_at": _ago(days=2),\n',
+        replacement='            "last_drill_at": "2026-09-22T12:00:00Z",\n',
+        sentinels=(
+            "tests/test_detector_invocation.py::test_the_drill_fixture_ages_with_the_wall_clock_not_the_calendar",
+            "tests/test_detector_invocation.py::test_clear_stop_with_a_recent_drill_passes_the_gate",
+        ),
+    ),
 )
 
 
