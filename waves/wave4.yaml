@@ -1,4 +1,6 @@
 wave_id: 4
+repository: uptm-runner
+qualified_id: uptm-runner:W4  # UPTM-016: carried here so a value lifted out of this file is qualified
 name: cursor_contract
 objective: "Finalize Cursor execution contract + fail-closed stub; document handoff when Cursor unreachable."
 tip_assessment: "PARTIAL_DONE_ON_MAIN_AFTER_PR17"

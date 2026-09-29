@@ -1,7 +1,34 @@
 {
-  "waves": [0, 1, 2, 3, 4, 5, 6, 7],
+  "repository": "uptm-runner",
+  "qualified": [
+    "uptm-runner:W0",
+    "uptm-runner:W1",
+    "uptm-runner:W2",
+    "uptm-runner:W3",
+    "uptm-runner:W4",
+    "uptm-runner:W5",
+    "uptm-runner:W6",
+    "uptm-runner:W7"
+  ],
+  "note": "UPTM-016 / DEC-UPTM-MAP-Q5. Neither numbering is canonical. A bare W<n> for 0-7 does not distinguish this repository from onlinovosk-bit-uptm, so the qualified form is carried here rather than left to whoever quotes it.",
+  "waves": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
   "files": [
-    "wave0.yaml", "wave1.yaml", "wave2.yaml", "wave3.yaml",
-    "wave4.yaml", "wave5.yaml", "wave6.yaml", "wave7.yaml"
+    "wave0.yaml",
+    "wave1.yaml",
+    "wave2.yaml",
+    "wave3.yaml",
+    "wave4.yaml",
+    "wave5.yaml",
+    "wave6.yaml",
+    "wave7.yaml"
   ]
 }

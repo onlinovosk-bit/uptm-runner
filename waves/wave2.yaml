@@ -1,4 +1,6 @@
 wave_id: 2
+repository: uptm-runner
+qualified_id: uptm-runner:W2  # UPTM-016: carried here so a value lifted out of this file is qualified
 name: trust_model_alignment
 objective: "Align Runner trust model with UPTM audit findings; document that local-only state is not immutable."
 tip_assessment: "DONE_ON_MAIN_AFTER_PR17"

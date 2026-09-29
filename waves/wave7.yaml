@@ -1,4 +1,6 @@
 wave_id: 7
+repository: uptm-runner
+qualified_id: uptm-runner:W7  # UPTM-016: carried here so a value lifted out of this file is qualified
 name: exit_and_archive
 objective: "Exit contract: package evidence, refuse PR4 merge, produce upload-ready archive metadata."
 tip_assessment: "NEXT_AFTER_CONSOLIDATE"

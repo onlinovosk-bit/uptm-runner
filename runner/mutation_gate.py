@@ -360,19 +360,26 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
-        mutation_id="map-q5-marked-decided",
+        mutation_id="map-q5-given-a-canonical-numbering",
         claim=(
-            "DEC-UPTM-MAP-Q5 leaves the two wave numberings without a canonical "
-            "one. Marking 0-7 canonical names the other repository's waves."
+            "Re-aimed by UPTM-016 after the Founder closed the question. The "
+            "closure keeps 'neither numbering is canonical' - picking one was "
+            "always the wrong fix, not merely an unmade choice - so the "
+            "dangerous edit is unchanged in substance: naming a canonical "
+            "numbering.\n\n"
+            "Marking 0-7 canonical names the other repository's waves, over a "
+            "repository this one cannot read, and it would not remove the "
+            "ambiguity from a single status line already written."
         ),
         path="docs/architecture/governance-map.md",
-        anchor=(
-            "   **OPEN (DEC-UPTM-MAP-Q5, 2026-09-25):** neither numbering is canonical.\n"
-        ),
+        anchor="   AT SOURCE.** Founder GO to close it. **Neither numbering is canonical** —\n",
         replacement=(
-            "   **DECIDED (2026-09-25):** waves 0–7 are the canonical numbering.\n"
+            "   AT SOURCE.** Founder GO to close it. **Waves 0-7 are canonical** —\n"
         ),
-        sentinels=("tests/test_governance.py::test_map_q5_stays_open",),
+        sentinels=(
+            "tests/test_governance.py::test_map_q5_is_decided_without_a_canonical_numbering",
+            "tests/test_wave_names.py::test_n8_q5_is_recorded_decided_in_both_places",
+        ),
     ),
     Mutation(
         mutation_id="map-q3-marked-decided",
@@ -650,6 +657,44 @@ MUTATIONS: tuple[Mutation, ...] = (
         sentinels=(
             "tests/test_cross_repository.py::test_g3_allow_only_when_both_sides_allow",
             "tests/test_cross_repository.py::test_g5_a_disagreement_keeps_both_sides_and_names_neither_a_winner",
+        ),
+    ),
+    Mutation(
+        mutation_id="wave-artifact-loses-its-repository",
+        claim=(
+            "UPTM-016's L1a. MAP-Q5 was closed by putting the qualification in "
+            "the data rather than in whoever writes the status line - because "
+            "the line is where it failed the first time, when this map's own "
+            "author conflated this repository's wave 7 with the trading "
+            "repository's W7. Stop requiring a wave file to say which repository "
+            "it belongs to and a single field lifted out of it is bare again."
+        ),
+        path="runner/wave_names.py",
+        anchor='        if document.get("repository") != CONTROL_PLANE:\n',
+        replacement="        if False:  # mutation-gate: repository no longer required\n",
+        sentinels=(
+            "tests/test_wave_names.py::test_n2_a_wave_file_that_drops_its_repository_is_a_finding",
+        ),
+    ),
+    Mutation(
+        mutation_id="wave-ambiguity-set-hardcoded",
+        claim=(
+            "UPTM-016's L1b, independent of L1a: the artifacts still declare "
+            "their repository when this one is gone. Which numbers are ambiguous "
+            "is the intersection of a measured range and a recorded one, so "
+            "adding wave8.yaml makes W8 ambiguous with nobody editing a list. "
+            "Freeze it to a literal and the set is correct until the day the "
+            "tree changes - which is the same rot as a hand-kept dependency set, "
+            "silent and in the reassuring direction."
+        ),
+        path="runner/wave_names.py",
+        anchor="    return our_waves(root) & THEIR_WAVES\n",
+        replacement=(
+            "    return frozenset({0, 1, 2, 3, 4, 5, 6, 7})"
+            "  # mutation-gate: set frozen\n"
+        ),
+        sentinels=(
+            "tests/test_wave_names.py::test_n4_adding_a_wave_changes_the_set_without_anyone_editing_a_list",
         ),
     ),
 )
