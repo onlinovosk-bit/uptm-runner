@@ -697,6 +697,34 @@ MUTATIONS: tuple[Mutation, ...] = (
             "tests/test_wave_names.py::test_n4_adding_a_wave_changes_the_set_without_anyone_editing_a_list",
         ),
     ),
+    Mutation(
+        mutation_id="drill-freshness-loses-the-wall-clock",
+        claim=(
+            "P8 is one of the three principles that are actually ENFORCED, and "
+            "KS-D2 is what makes an untested kill switch fail rather than pass. "
+            "Its reference has to be the wall clock: that is the only clock an "
+            "operator can be judged against.\n\n"
+            "Added after a repair, not a build. The suite mixed a frozen drill "
+            "fixture with the wall clock and stayed green for five days, then "
+            "went red at the minute the fixture aged past the cadence - fifteen "
+            "minutes after a PR's CI had passed on it. The fix threads an "
+            "explicit reference through for tests; this case guards the thing "
+            "the fix could have broken, by freezing the default."
+        ),
+        path="runner/detectors/kill_switch.py",
+        anchor=(
+            '        return _unknown("KS-D2", ["last_drill_at as an ISO-8601 timestamp"])\n'
+            "    reference = now or datetime.now(timezone.utc)\n"
+        ),
+        replacement=(
+            '        return _unknown("KS-D2", ["last_drill_at as an ISO-8601 timestamp"])\n'
+            "    reference = now or datetime(2026, 9, 23, 12, 0, tzinfo=timezone.utc)"
+            "  # mutation-gate: default clock frozen\n"
+        ),
+        sentinels=(
+            "tests/test_kill_switch_detector.py::test_without_an_injected_now_a_stale_drill_fails_against_the_wall_clock",
+        ),
+    ),
 )
 
 

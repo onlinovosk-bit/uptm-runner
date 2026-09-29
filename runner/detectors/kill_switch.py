@@ -393,11 +393,27 @@ def detect_kill_switch(
 
 
 def detect_kill_switch_drill(
-    pack: dict[str, Any], stop: dict[str, Any], cadence_days: Any
+    pack: dict[str, Any],
+    stop: dict[str, Any],
+    cadence_days: Any,
+    *,
+    now: datetime | None = None,
 ) -> list[CheckOutcome]:
+    """Every drill check. ``now`` is the reference for freshness only.
+
+    It exists so a caller with a *fixed* drill timestamp can evaluate against a
+    fixed reference. ``check_ks_d2_drill_recent`` already took it; not threading
+    it here left the suite mixing a frozen fixture with the wall clock, and the
+    two tests that did so passed for five days and then failed at the minute
+    the fixture aged past the cadence. A test whose verdict depends on what day
+    it is measures the calendar.
+
+    Production passes nothing and gets the wall clock, which is the only
+    reference an operator can be judged against.
+    """
     return [
         check_ks_d1_cadence_declared(cadence_days),
-        check_ks_d2_drill_recent(pack, cadence_days),
+        check_ks_d2_drill_recent(pack, cadence_days, now=now),
         check_ks_d3_drill_demonstrated_a_stop(pack),
         check_ks_d4_commit_pinned(pack, stop),
         check_ks_d5_environment_unchanged(pack, stop),
