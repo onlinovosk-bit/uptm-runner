@@ -219,7 +219,7 @@ def test_case11_well_formed_pack_passes(pack, drill):
     d = drill()
     d["drill_stop_path"] = p["stop_state"]["path"]
     outcomes = detect_kill_switch(p, writable=sealed) + detect_kill_switch_drill(
-        d, p["stop_state"], CADENCE
+        d, p["stop_state"], CADENCE, now=NOW
     )
     assert all(o.verdict is Verdict.PASS for o in outcomes), [
         (o.check_id, o.verdict.value, o.detail) for o in outcomes if o.verdict is not Verdict.PASS
@@ -273,7 +273,9 @@ def test_a_relevant_change_invalidates_an_otherwise_fresh_drill(pack, drill, key
     """Recent and worthless are not mutually exclusive."""
     p = pack()
     p["stop_state"]["environment"][key] = "changed-after-the-drill"
-    outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
+    outcomes = detect_kill_switch_drill(
+        _drill_for(p, drill()), p["stop_state"], CADENCE, now=NOW
+    )
 
     assert _outcome(outcomes, "KS-D5").verdict is Verdict.UNKNOWN
     assert key in _outcome(outcomes, "KS-D5").detail
@@ -344,3 +346,47 @@ def test_neither_check_claims_deployment_independence_is_true(pack, drill):
     p["stop_state"]["independence_attestation"]["by"] = "someone who never checked"
     outcomes = detect_kill_switch_drill(_drill_for(p, drill()), p["stop_state"], CADENCE)
     assert _outcome(outcomes, "KS-D6").verdict is Verdict.PASS
+
+
+# ------------------------------------------------- the clock the default uses
+#
+# The two tests above pin a frozen drill against a frozen reference. That is
+# right for them and wrong as a default: in production the only reference an
+# operator can be judged against is the wall clock. These assert that the
+# default is still the wall clock, so the injection point added for the tests
+# cannot quietly become the thing that hides a genuinely stale drill.
+#
+# They are written relative to real time, so unlike the fixture they cannot rot.
+
+
+def _at(**delta):
+    return (datetime.now(timezone.utc) - timedelta(**delta)).isoformat()
+
+
+def test_without_an_injected_now_a_stale_drill_fails_against_the_wall_clock(pack, drill):
+    p = pack()
+    d = _drill_for(p, drill(last_drill_at=_at(days=CADENCE + 1)))
+    outcome = _outcome(detect_kill_switch_drill(d, p["stop_state"], CADENCE), "KS-D2")
+    assert outcome.verdict is Verdict.FAIL
+    assert "does not exist" in outcome.detail
+
+
+def test_without_an_injected_now_a_fresh_drill_passes_against_the_wall_clock(pack, drill):
+    p = pack()
+    d = _drill_for(p, drill(last_drill_at=_at(hours=1)))
+    assert _outcome(
+        detect_kill_switch_drill(d, p["stop_state"], CADENCE), "KS-D2"
+    ).verdict is Verdict.PASS
+
+
+def test_the_injected_reference_actually_reaches_the_freshness_check(pack, drill):
+    """Otherwise threading `now` would look done and change nothing."""
+    p = pack()
+    d = _drill_for(p, drill())  # frozen at NOW - 2 days
+
+    fresh = detect_kill_switch_drill(d, p["stop_state"], CADENCE, now=NOW)
+    stale = detect_kill_switch_drill(
+        d, p["stop_state"], CADENCE, now=NOW + timedelta(days=CADENCE + 1)
+    )
+    assert _outcome(fresh, "KS-D2").verdict is Verdict.PASS
+    assert _outcome(stale, "KS-D2").verdict is Verdict.FAIL
