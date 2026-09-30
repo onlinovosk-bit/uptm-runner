@@ -402,6 +402,36 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
+        mutation_id="map-q3-relation-reads-unadopted-again",
+        claim=(
+            "UPTM-018a. The map's numbers paragraph said DEC-UPTM-MAP-Q3 'leaves "
+            "that relation unadopted' after the same label had been decided as a "
+            "floor two screens below - true on 2026-09-25, false from UPTM-017. "
+            "This puts the original sentence back.\n\n"
+            "It is a different mutation from map-q3-turned-into-a-ceiling and "
+            "the difference is the point: that case edits the decision inside "
+            "question 3's block, which the older one-sided test slices and "
+            "reads. This one edits outside the slice, which that test cannot "
+            "see. Measured by hand under this exact mutation: the older test "
+            "stays green, the two-sided guard goes red."
+        ),
+        path="docs/architecture/governance-map.md",
+        anchor=(
+            "**DEC-UPTM-MAP-Q3 relates them as a floor:** a declared account must be at\n"
+            "least the tranche, or the configuration is refused (VC-I6). The account in that\n"
+        ),
+        replacement=(
+            "**DEC-UPTM-MAP-Q3 leaves that relation unadopted.** Whether the tranche is a\n"
+            "ceiling on the envelope, a subset of it, or an independent limit is not decided\n"
+            "here. The account in that\n"
+        ),
+        sentinels=(
+            "tests/test_governance_map_consistency.py::test_g1_no_label_in_the_map_is_asserted_both_decided_and_open",
+            "tests/test_governance_map_consistency.py::test_r1_the_numbers_paragraph_states_the_relation_that_was_adopted",
+            "tests/test_governance_map_consistency.py::test_r2_the_numbers_paragraph_carries_no_openness_wording",
+        ),
+    ),
+    Mutation(
         mutation_id="map-q2-given-a-winner",
         claim=(
             "Re-aimed by UPTM-015 after the Founder closed the question. The "
