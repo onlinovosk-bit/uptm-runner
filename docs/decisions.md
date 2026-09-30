@@ -15,6 +15,44 @@ artifact that makes it real. A decision with no artifact is a plan, and says so.
 
 ---
 
+## [2026-09-30] DEC-UPTM-018 — `account_equity` is the pack's, not the constitution's
+
+**Decided:** Founder GO, choosing the option that builds nothing: `capital.account_equity`
+stays a figure the **pack declares**; no account figure is added to
+`constitution/capital-rules.json`. Preregistered in
+`docs/specs/UPTM-018-account-equity-stays-in-the-pack.md` before the
+implementation existed (P4).
+
+**What was found first.** The handover carried this as "the Founder owes two
+numbers, and 700 is only a fixture". It is not: `validation_capital.amount` has
+been set since 2026-09-23 (`DEC-UPTM-004`, `set_by: founder`). Only
+`account_equity` is missing, and it was never a repository parameter. On the
+real configuration VC-I6 already gives `UNKNOWN` naming the key when a pack omits
+it, `FAIL` below the tranche and `PASS` at or above it.
+
+**Why not the other option.** A constitution-level account figure would sit
+beside the pack's. The day the two differ, which one wins is `MAP-Q2` again —
+closed as *neither wins*, i.e. `DENY` — so it would recreate a solved problem,
+and it would put a number of the other side's kind into this constitution, which
+`MAP-Q3` was written to avoid. The value is the Founder's appetite for risk and
+is entered where the account is: the first real pack.
+
+**What changed.** The note `uptm004_detector.founder_parameter_required` said the
+three tranche parameters were "unset"; they have been set for a week. It is
+corrected, not deleted, and now leads with a status word. A new guard makes the
+status word equal the state of the parameters it describes, derived from the
+data and checked in both directions. No runner behaviour changed and no number
+was added; `VC-I5` and `VC-I6` are exactly as `UPTM-017` left them.
+
+**Still open, and correctly so:** until a pack declares `account_equity`, the
+capital gates end at `UNKNOWN`. That is the intended state, not a gap.
+
+**Artifact:** `tests/test_capital_parameter_status.py`, one `mutation-gate` case
+(`capital-note-claims-unset-again`), the corrected note. `LIVE_TRADING` stays
+`false`.
+
+---
+
 ## [2026-09-29] DEC-UPTM-017 — what €700 counts, and the floor that makes it real
 
 **Decided:** Founder GO, in two parts: define the unit of `at_risk`, then adopt

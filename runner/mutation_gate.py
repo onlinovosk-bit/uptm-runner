@@ -432,6 +432,32 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
+        mutation_id="capital-note-claims-unset-again",
+        claim=(
+            "UPTM-018. The note beside the validation-capital detector said the "
+            "tranche parameters were 'unset. Every capital gate denies until all "
+            "three are set' for the week after the Founder set them, and a handover "
+            "later believed the 700 EUR tranche was still open because of it. This "
+            "puts the original sentence back.\n\n"
+            "The suite was green with that sentence in place - measured before the "
+            "guard existed - so nothing looked at the record. The guard makes the "
+            "note's status word equal the state of the three parameters it "
+            "describes, in both directions, so a stale note cannot pass and a "
+            "correct one cannot be broken by tidying."
+        ),
+        path="constitution/capital-rules.json",
+        anchor='"founder_parameter_required": "SATISFIED 2026-09-23 (DEC-UPTM-004): the Founder set',
+        replacement=(
+            '"founder_parameter_required": "validation_capital.amount, .currency and '
+            '.applies_to are unset. Every capital gate denies until all three are '
+            'set. (DEC-UPTM-004): the Founder set'
+        ),
+        sentinels=(
+            "tests/test_capital_parameter_status.py::test_g1_the_note_in_the_real_file_agrees_with_the_real_parameters",
+            "tests/test_capital_parameter_status.py::test_a1_the_note_is_dated_and_names_the_decision_that_satisfied_it",
+        ),
+    ),
+    Mutation(
         mutation_id="map-q2-given-a-winner",
         claim=(
             "Re-aimed by UPTM-015 after the Founder closed the question. The "
