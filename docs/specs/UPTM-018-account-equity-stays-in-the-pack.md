@@ -116,4 +116,66 @@ Why this and not a constitution-level account figure:
 
 ## §4 Result
 
-*(filled in after the implementation, with output.)*
+Built on 2026-09-30. Written after the criteria above, in a later commit.
+
+| artifact | what it is |
+|---|---|
+| `constitution/capital-rules.json` | the note corrected: leads `SATISFIED 2026-09-23 (DEC-UPTM-004)`, names `capital.account_equity` as the one figure still supplied from outside |
+| `tests/test_capital_parameter_status.py` | 25 tests, each naming its criterion |
+| `runner/mutation_gate.py` | one case, `capital-note-claims-unset-again` |
+| `docs/decisions.md` | `DEC-UPTM-018`, newest first |
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| A1 | `test_a1_*` — starts `SATISFIED`, carries `2026-09-23` and `DEC-UPTM-004`. |
+| A2 | `test_a2_*` — `capital.account_equity`, *each pack declares it*, `UNKNOWN`, `DEC-UPTM-018`. |
+| A3 | `test_a3_*` — no `account_equity` **key** anywhere in the file; `amount` still `700`; `750` absent; constitution v1.0 LOCKED. |
+| A4 | `test_a4_*` — entry present, above `DEC-UPTM-017`, names the option not taken and `MAP-Q2`. |
+| G1 | `test_g1_*` on the real file. |
+| G2 | parametrised over the three parameters × four ways of being empty (`None`, `""`, `[]`, `{}`): `SATISFIED` fails, `REQUIRED` passes; plus all-set with `REQUIRED` fails and both consistent states pass. |
+| G3 | `test_g3_*` — empty, prose without a status, a bare reference, and lower-case `satisfied` all fail. |
+| G4 | `test_g4_*` — the verbatim old sentence against the real parameters is reported. |
+| G5 | `test_g5_*` — the note is found by walking the file. |
+| G6 | three tests on the real configuration, threshold read from the file: undeclared → `UNKNOWN` naming `capital.account_equity`; `amount − 1` → `FAIL`; `amount` and `2 × amount` → `PASS`. |
+| L1 | `capital-note-claims-unset-again` — caught by `g1` and `a1`. |
+| L2 | measured by hand, below. |
+
+### L1 and L2 — measured
+
+Under exactly the L1 mutation:
+
+```
+L2  all 804 pre-existing tests (the new file and the gate's own excluded): 804 passed
+L1  the new guard: 2 failed, 23 passed
+      test_g1_the_note_in_the_real_file_agrees_with_the_real_parameters
+      test_a1_the_note_is_dated_and_names_the_decision_that_satisfied_it
+```
+
+The premise of §0 holds: the record was unguarded — the suite was green
+(851 passed) with the stale sentence in place, and stays green under the
+mutation. `a2` does not go red under it, correctly: the mutation replaces only
+the lead of the note, and `a2` asserts the tail.
+
+### Verified
+
+| check | result |
+|---|---|
+| syntax gate | every file parses |
+| `pytest` | **877 passed** (851 + 25 + the test the gate generates for the new case) |
+| `mutation-gate` | **35 cases, `ok: true`, `baseline_error: None`**, tree clean after |
+| `enforcement-evidence` | `ok: true`, `tree_clean: true`, `unproven_claims: []` — on the committed head; on a dirty tree it correctly refuses |
+
+### What this does not do
+
+- **It does not set `capital.account_equity`.** Nobody can until a pack exists;
+  the capital gates end at `UNKNOWN`, which is the intended state.
+- **It adds no field and no number to the constitution.**
+- **It does not touch `docs/decisions.md` history.** The 2026-09-25 entry for
+  `DEC-UPTM-MAP-Q3` still reads "stays OPEN" with no pointer forward; that is
+  noted in `UPTM-018a` and remains a Founder call.
+- **The guard covers this note only.** Other prose in `capital-rules.json`
+  (`open_limits`, `checks_note`) can still go stale the same way; there is no
+  status vocabulary there to derive an expectation from, and inventing one is a
+  larger change than this.
