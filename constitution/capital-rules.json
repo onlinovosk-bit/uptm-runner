@@ -265,7 +265,7 @@
     "status": "INVOKED_BY_GATE",
     "invocation_path": "runner.gates.evaluate_gate -> run_validation_capital_detectors",
     "reachability_proof": "tests/test_detector_invocation.py: spies assert the gate calls both detect_validation_capital and detect_return_as_criterion, that the first receives the tranche read from this file and the second the exit_criteria read from waves/wave3.yaml; a disconnection test asserts the gate's verdict follows the detector. Four mutations - dropping the verdict from the fold, neutering VC-I3, neutering VC-R1, letting VC-I4 compare across currencies - each turn the suite red at the tests naming that property.",
-    "founder_parameter_required": "validation_capital.amount, .currency and .applies_to are unset. Every capital gate denies until all three are set.",
+    "founder_parameter_required": "SATISFIED 2026-09-23 (DEC-UPTM-004): the Founder set validation_capital.amount, .currency and .applies_to, and every capital gate denied until then. The one figure still supplied from outside this file is capital.account_equity, and by DEC-UPTM-018 it stays outside: each pack declares it (VC-I6, DEC-UPTM-MAP-Q3), and a pack that does not ends UNKNOWN naming the key. It is deliberately not a parameter of this constitution.",
     "closes_from_uptm002": "omission_bypass, for a gate declaring capital_gate=true and carrying no capital pack: UNKNOWN rather than silence.",
     "open_limits": {
       "gate_that_never_declares_itself": "CLOSED by UPTM-005. A gate that declared nothing once bypassed these checks entirely; the scope declaration is now mandatory and unconditional, and its absence resolves to UNKNOWN. Kept as a closed entry rather than removed so the hole and its closure stay auditable together.",
