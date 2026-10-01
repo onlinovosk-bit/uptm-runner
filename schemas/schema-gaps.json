@@ -1,0 +1,13 @@
+{
+  "_comment": "UPTM-019. Root keys the runner reads that schemas/evidence.schema.json does not know. ACKNOWLEDGED, not fixed: the schema is not taught these shapes because they would be derived from test fixtures, not from the real packs the trading repository produces and this repository cannot read. A key leaves this file only by the schema learning it - tests/test_schema_gap_ratchet.py fails if one is left behind - and a new unacknowledged one fails the other way. Nothing here changes what the gate does: a mismatch is still silent (UPTM-010).",
+  "acknowledged_unknown_root_keys": {
+    "calendars": "Trading calendars passed to detect_fabricated_market_data (runner/gates.py). Shape known only from fixtures.",
+    "capital": "P10 capital pack, read by the validation-capital detectors, which fail closed (UNKNOWN) on a missing or ill-typed field. account_equity is declared here by design (DEC-UPTM-MAP-Q3, DEC-UPTM-018).",
+    "capital_gate": "Declares whether a gate bears capital (runner/gates.py, runner/detectors/validation_capital.py).",
+    "gate_criteria": "Extra preregistered criteria a gate may declare when waves/wave{N}.yaml has none (wave_exit_criteria); read by VC-R1.",
+    "kill_switch": "P8 kill-switch pack, evaluated by detect_kill_switch, which fails closed (UNKNOWN) on a missing or ill-typed field.",
+    "kill_switch_drill": "P8 drill record. A kill_switch pack without one ends KS-D0 UNKNOWN (runner/gates.py).",
+    "market_data": "Evaluated by detect_fabricated_market_data when the evidence carries it. Produced by the trading system, which this repository cannot read.",
+    "pnl": "Evaluated by detect_fabricated_pnl when the evidence carries it. Produced by the trading system, which this repository cannot read."
+  }
+}
