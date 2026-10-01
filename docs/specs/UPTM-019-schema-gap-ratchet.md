@@ -126,4 +126,89 @@ the document names its parameter `evidence`; the limit is stated, not hidden.
 
 ## §4 Result
 
-*(filled in after the implementation, with output.)*
+Built on 2026-10-01. Written after the criteria above, in a later commit.
+
+| artifact | what it is |
+|---|---|
+| `schemas/schema-gaps.json` | the 8 acknowledged keys, each with a reason |
+| `tests/test_schema_gap_ratchet.py` | 39 tests, each naming its criterion |
+| `runner/mutation_gate.py` | two cases, one per direction of the ratchet |
+
+### An amendment made during implementation
+
+**`K2` was wrong as preregistered, and is built differently.** It said the real
+scan must find *at least one key the schema knows **and** at least one it does
+not*. Written down, that would **fail on the day the gap is closed** — the
+baseline empty, the ratchet reaching its goal — and punish the success it exists
+to produce. It is built as: the scan finds reads, and some of them are keys the
+schema knows (so it is demonstrably reading evidence). Nothing about the number
+of unknown keys is asserted. A test (`test_k5_closing_the_whole_gap_passes_…`)
+pins the success case explicitly. The flaw was found while writing the code, not
+by a failing result; it is recorded here rather than rewritten into the spec above.
+
+### Criteria, discharged
+
+| # | how |
+|---|---|
+| K1 | 17 parametrised read shapes — `get`/`pop`/`setdefault`/subscript/`in`/`not in`, the `ev` alias, nested access yielding only the root, and ten things that must **not** count (other variables, non-literal keys, a non-string key, `.keys()`) — plus a read inside a nested function. |
+| K2 | `test_k2_*` — as amended above. |
+| K3 | `test_k3_*` — on the real repository the baseline **equals** the derived gap, and every entry carries a reason of at least five words. |
+| K4 | the consistent state passes; a new gap fails naming the key, the file and **both** ways out; each way out, taken, passes. |
+| K5 | stale because the schema learned the key; stale because the runner stopped reading it — each separately; and closing the whole gap passes. |
+| K6 | blank, whitespace-only and non-string reasons; a duplicate; and three malformed shapes are each refused. |
+| K7 | the base fixture validates against the real schema; a corrupted known field is rejected; an unknown root key is rejected **by the schema itself** (`additionalProperties: false`) — which is why the gap exists, and why it is silent. |
+| K8 | `test_k8_*` asserts a mismatch is still silent in the gate; `git diff main...HEAD`: **0** files under `runner/` other than `mutation_gate.py`, **0** touching `schemas/evidence.schema.json`. |
+| L1 | `schema-gap-widens-silently` — caught by `test_k3_…equals_the_derived_gap…`. |
+| L2 | `schema-gap-baseline-goes-stale` — caught by the same test. |
+| L3 | measured by hand, below. |
+
+### What the ratchet says when it goes red
+
+```
+schema-gap-widens-silently:
+  NEW GAP: `brand_new_pack` is read by runner/gates.py but is unknown to the evidence
+  schema and not acknowledged. Either teach schemas/evidence.schema.json the key, or
+  acknowledge it in schemas/schema-gaps.json with a reason.
+
+schema-gap-baseline-goes-stale:
+  STALE: `signature` is acknowledged as a gap but the schema now knows it - remove it
+  from schemas/schema-gaps.json.
+```
+
+### L3 — the gap, measured
+
+Before the guard existed, with the runner reading a new key the schema was never
+taught (`evidence.get("brand_new_pack")` added to `runner/gates.py`):
+
+```
+877 passed
+```
+
+Every existing test stayed green: the gap would have widened silently. With the
+guard, the same edit turns exactly one test red and names what to do.
+
+### Verified
+
+| check | result |
+|---|---|
+| syntax gate | every file parses |
+| `pytest` | **918 passed** (877 + 39 + the two tests the gate generates for the new cases) |
+| `mutation-gate` | **37 cases, `ok: true`, `baseline_error: None`**, tree clean after |
+| `enforcement-evidence` | `ok: true`, `tree_clean: true`, `unproven_claims: []` — on the committed head |
+
+### What this does not do
+
+- It does **not** teach the schema anything and **tightens nothing**. Mismatch is
+  still silent; the 8 keys are still unknown to it. A malformed `capital` or
+  `kill_switch` pack is still caught only by its own detector, which fails closed.
+- **The scan sees reads through a variable named `evidence` or `ev`.** A read
+  through another name is invisible to it. Every function in `runner/` that takes
+  the document names its parameter `evidence`, so today that is every read — but it
+  is a convention, not a guarantee.
+- It does **not** cover the nine one-off keys from historical fixtures; nothing in
+  `runner/` reads them.
+- It does **not** pin the failing-validation count; that number is unstable by
+  construction.
+- The real fix — teaching the schema the capital and kill-switch shapes — waits for
+  a **real pack** from the trading system, and is then a behaviour change with its
+  own GO.
