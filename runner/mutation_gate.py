@@ -458,6 +458,49 @@ MUTATIONS: tuple[Mutation, ...] = (
         ),
     ),
     Mutation(
+        mutation_id="schema-gap-widens-silently",
+        claim=(
+            "UPTM-019. The evidence schema returns nothing on a mismatch (UPTM-010), "
+            "so a root key the runner starts reading that the schema was never taught "
+            "changes no verdict and no test. Measured before the guard existed: "
+            "adding exactly this read left all 877 existing tests green.\n\n"
+            "This adds that read. The ratchet derives the keys the runner reads from "
+            "the source, compares them with the schema and with the acknowledged "
+            "baseline, and goes red: the author must teach the schema the key or "
+            "acknowledge the gap with a reason, as a visible act."
+        ),
+        path="runner/gates.py",
+        anchor='    drill = evidence.get("kill_switch_drill")\n',
+        replacement=(
+            '    drill = evidence.get("kill_switch_drill")\n'
+            '    _ = evidence.get("brand_new_pack")  # mutation-gate: a pack the schema was never taught\n'
+        ),
+        sentinels=(
+            "tests/test_schema_gap_ratchet.py::test_k3_the_baseline_equals_the_derived_gap_on_the_real_repository",
+        ),
+    ),
+    Mutation(
+        mutation_id="schema-gap-baseline-goes-stale",
+        claim=(
+            "UPTM-019, the other direction. An acknowledgement of a gap that no longer "
+            "exists is how a baseline stops being a promise and becomes a list nobody "
+            "reads. This acknowledges a key the schema already knows; the ratchet must "
+            "go red so the baseline can only shrink.\n\n"
+            "Without this direction the ratchet is half a ratchet: it would stop the "
+            "gap widening and let the record of it rot."
+        ),
+        path="schemas/schema-gaps.json",
+        anchor='  "acknowledged_unknown_root_keys": {\n    "calendars":',
+        replacement=(
+            '  "acknowledged_unknown_root_keys": {\n'
+            '    "signature": "A key the schema already knows, acknowledged as a gap, so this entry is stale.",\n'
+            '    "calendars":'
+        ),
+        sentinels=(
+            "tests/test_schema_gap_ratchet.py::test_k3_the_baseline_equals_the_derived_gap_on_the_real_repository",
+        ),
+    ),
+    Mutation(
         mutation_id="map-q2-given-a-winner",
         claim=(
             "Re-aimed by UPTM-015 after the Founder closed the question. The "
